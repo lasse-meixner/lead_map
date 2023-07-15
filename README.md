@@ -1,4 +1,7 @@
 # lead_map
+
+:warning: *Currently under construction!*
+
 Repository to host code and data for US and UK lead maps for the project "Mapping disparities in childhood lead exposure in England".
 
 This repository is an upcycled version of the deprecated [leadmap_public](https://github.com/fditraglia/leadmap-public) that was decided to be overhauled in July 2023.
