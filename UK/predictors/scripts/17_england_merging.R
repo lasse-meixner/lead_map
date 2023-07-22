@@ -44,7 +44,5 @@ data_msoa |>
   write_csv("../processed_data/combined_msoa.csv")
 
 
-# clear environment
-rm(list = ls())
-
-
+# clear environment except for data_msoa
+rm(list = ls() |> setdiff(c("data_msoa")))
