@@ -3,6 +3,7 @@
 # This option does not exist for other file types, so those are downloaded to ../raw_data prior to being read into memory.
 
 library(rdrop2)
+library(purrr)
 
 drop_box_base_url <- "/downloading_cleaning_mapping_predictors_data_raw/uk/"
 drop_auth(new_user = TRUE) # this should prompt authentication in the browser
@@ -14,6 +15,20 @@ drop_get_from_root <- function(path) {
     }
     # if not, download from dropbox
     else {
-        drop_download(paste0(drop_box_base_url, path), local_path = "../raw_data/", overwrite = TRUE)
+        drop_download(paste0(drop_box_base_url, path), local_path = paste0("../raw_data/",path), overwrite = TRUE)
+    }
+}
+
+# write function to read all files in folder:
+
+drop_get_folder <- function(path) {
+    # check if directory already exists in ../raw_data
+    if (dir.exists(paste0("../raw_data/", path))) {
+        return("Directory already exists")
+    }
+    # if not, download from dropbox by iterating over files in directory
+    else {
+        drop_dir(paste0(drop_box_base_url, path))$name %>% 
+            map(~ drop_get_from_root(paste0(path, .x)))
     }
 }
