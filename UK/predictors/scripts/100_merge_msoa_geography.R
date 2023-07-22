@@ -15,21 +15,17 @@ if (exists("data_msoa")) {
 }
 
 # load MSOA shapefile
-drop_get_from_root("shapefiles/msoa/england_msoa_2011.shp")
-sf_msoa <- read_sf("../raw_data/england_msoa_2011.shp") %>%
+drop_get_folder("shapefiles/msoa/")
+sf_msoa <- read_sf("../raw_data/shapefiles/msoa/england_msoa_2011.shp") %>%
   rename("msoa11cd" = "code",
          "msoa_name" = "name",
          "geometry_msoa" = "geometry") %>%
   dplyr::select(-label)
 
 # merge with data_msoa and convert to shapefile
-data_msoa_sf <- sf_msoa %>%
-  left_join(., data_msoa) %>%
+data_msoa_sf <- data_msoa %>%
+  left_join(., sf_msoa) %>%
   st_as_sf()
 
-# write to file
-data_msoa_sf %>%
-  write_sf("../processed_data/combined_msoa.shp")
-
-# clear environment
-rm(list = ls())
+# clear environment except data_msoa_sf
+rm(list = ls() %>% setdiff("data_msoa_sf"))
