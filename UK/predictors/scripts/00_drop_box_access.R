@@ -8,6 +8,8 @@ library(purrr)
 drop_box_base_url <- "/downloading_cleaning_mapping_predictors_data_raw/uk/"
 drop_auth(new_user = TRUE) # this should prompt authentication in the browser
 
+# function to download file:
+
 drop_get_from_root <- function(path) {
     # check if file lies already in ../raw_data
     if (file.exists(paste0("../raw_data/", path))) {
@@ -19,7 +21,7 @@ drop_get_from_root <- function(path) {
     }
 }
 
-# write function to read all files in folder:
+# function to download all files in folder:
 
 drop_get_folder <- function(path) {
     # check if directory already exists in ../raw_data
