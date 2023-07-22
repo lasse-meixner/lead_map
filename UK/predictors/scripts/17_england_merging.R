@@ -14,7 +14,7 @@ for (obj in c("imd_msoa", "sop_msoa", "house_prices_msoa", "income_msoa", "pover
   if (exists(obj)) {
     print(paste0(obj, " already in memory"))
   } else {
-    assign(obj, read_csv(paste0("../data_processed/", obj, ".csv")))
+    assign(obj, read_csv(paste0("../processed_data/", obj, ".csv")))
   }
 }
 
@@ -39,6 +39,10 @@ data_msoa <- imd_msoa %>%
          -c(emissions_yearly_air_2006_neighbours_density:emissions_yearly_air_2008_neighbours_density),
          -contains("emissions_yearly_land"),
          -contains("emissions_cumulative_land"))
+
+data_msoa |> 
+  write_csv("../processed_data/combined_msoa.csv")
+
 
 # clear environment
 rm(list = ls())
