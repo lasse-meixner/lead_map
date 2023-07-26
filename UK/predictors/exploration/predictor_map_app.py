@@ -72,7 +72,7 @@ app.layout = dash.html.Div([
 )
 def update_choropleth(predictor, search):
 
-    # subset data based on substring in msoa_name_x
+    # subset data based on whether substring is in name
     merged_sub = merged[merged["msoa_name_x"].str.contains(search)]
     # plot
     fig = px.choropleth_mapbox(
@@ -82,6 +82,8 @@ def update_choropleth(predictor, search):
         locations=merged_sub.index,
         # center on England
         center={"lat": 52.5, "lon": -1.5},
+        # size based on browser window
+        height=900,
         color=predictor,
         color_continuous_scale="Viridis",
         range_color=(merged_sub[predictor].min(), merged_sub[predictor].max()),
