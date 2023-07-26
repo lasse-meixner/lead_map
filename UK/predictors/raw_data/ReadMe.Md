@@ -1,0 +1,2 @@
+Feel free to use this as temporary storage for DropBox downloads.
+However, please do not commit large raw files into this directory! Instead, save them to DropBox and point to the remote file in the scripts.
