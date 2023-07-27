@@ -1,0 +1,62 @@
+This notebook explores reducing the shapefile size to speed up interactive mapping of England MSOAs.
+
+```{r}
+library(tidyverse)
+library(rmapshaper)
+library(sf)
+```
+
+First, load the shapefile using sf
+
+```{r}
+msoa <- st_read("../raw_data/shapefiles/msoa/england_msoa_2011.shp")
+```
+
+Let's take Birmingham as an example, since it has a lot of small, intricate MSOAs. Let's plot it to see what it looks like.
+
+```{r}
+birmingham <- msoa %>% filter(grepl("Birmingham", name))
+
+birmingham |> 
+    ggplot() +
+    geom_sf()
+```
+
+Now let's make use of the rmapshaper package to simplify the shapefile. We'll use the Visvalingam-Whyatt algorithm, and keep 5% of the original points, which is the default.
+
+```{r}
+birmingham_simple <- ms_simplify(birmingham, keep = 0.05)
+```
+
+Let's again plot the area of Birmingham to see what it looks like.
+
+```{r}
+birmingham_simple |> 
+    ggplot() +
+    geom_sf()
+```
+
+For plotting purposes, the difference is barely noticeable, even though we kept only 5% of observations!
+
+**NOTE:** Running this algorithm on the entire shapefile can lead the underlying mapshaper engine to run out of memory (see [here](https://github.com/ateucher/rmapshaper/issues/83#issuecomment-492775206)). One can alternatively run this on system using the `sys = TRUE` keyword, but it requires install node.
+
+Instead, we can do it in chunks:
+
+```{r}
+library(purrr)
+
+# assign chunks of ~ 200 rows
+msoa_simple <- msoa |> 
+    mutate(chunk = ceiling(row_number() / 200)) |> 
+    group_by(chunk) |> 
+    nest() |> 
+    mutate(data = purrr::map(data, ms_simplify)) |> 
+    unnest()
+```
+
+This way we avoided any Memory issues.
+
+```{r}
+# saving the simple shapefile
+st_write(msoa_simple, "../raw_data/shapefiles/msoa/england_msoa_2011_simple.shp")
+```
