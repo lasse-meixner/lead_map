@@ -33,4 +33,4 @@ io <- io_path %>%
   mutate(year = factor(year))
 
 # save to csv
-write_csv(io, file = "../../processed_files/io.csv")
+write_csv(io, file = "../processed_files/io.csv")

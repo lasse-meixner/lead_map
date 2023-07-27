@@ -39,4 +39,4 @@ al <- al_path %>%
 
 
 # save to csv
-write_csv(al, "../../processed_files/al.csv")
+write_csv(al, "../processed_files/al.csv")

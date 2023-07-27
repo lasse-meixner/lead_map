@@ -40,4 +40,4 @@ ma <- read_excel(ma_path, sheet = "2005-2015 Individual Years", skip = 0) %>%
 
 
 # save to csv
-write_csv(ma, "../../processed_files/ma.csv")
+write_csv(ma, "../processed_files/ma.csv")

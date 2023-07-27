@@ -38,4 +38,4 @@ ri <- read_excel(ri_path, skip = 5) %>%
   mutate(BLL_geq_5=as.character(BLL_geq_5))
   
 # save to csv
-write_csv(ri, file = "../../processed_files/ri.csv")
+write_csv(ri, file = "../processed_files/ri.csv")

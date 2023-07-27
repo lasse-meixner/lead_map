@@ -36,4 +36,4 @@ sc <- sc_path %>%
   mutate(state="SC")
   
 # save to csv
-write_csv(sc, file = "../../processed_files/sc.csv")
+write_csv(sc, file = "../processed_files/sc.csv")

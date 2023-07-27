@@ -39,4 +39,4 @@ co <- rbind(co2010,co2011,co2012,co2013,co2014) %>%
 rm(co2010,co2011,co2012,co2013,co2014)
 
 # save to csv
-write_csv(co, "../../processed_files/co.csv")
+write_csv(co, "../processed_files/co.csv")

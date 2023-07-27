@@ -37,4 +37,4 @@ md <- md_path %>%
 
 
 # save to csv
-write_csv(md, "../../processed_files/md.csv")
+write_csv(md, "../processed_files/md.csv")

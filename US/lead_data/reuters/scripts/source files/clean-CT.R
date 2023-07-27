@@ -26,4 +26,4 @@ ct <- read_excel(ct_path) %>%
 
          
 # save to csv
-write_csv(ct, "../../processed_files/ct.csv")
+write_csv(ct, "../processed_files/ct.csv")

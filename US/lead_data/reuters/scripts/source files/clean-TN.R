@@ -51,4 +51,4 @@ tn <- rbind(tn2005,tn2006,tn2007,tn2010,tn2011,tn2012,tn2013,tn2014,tn2015) %>%
 rm(tn2005,tn2006,tn2007,tn2010,tn2011,tn2012,tn2013,tn2014,tn2015)
 
 # save to csv
-write_csv(tn, file = "../../processed_files/tn.csv")
+write_csv(tn, file = "../processed_files/tn.csv")

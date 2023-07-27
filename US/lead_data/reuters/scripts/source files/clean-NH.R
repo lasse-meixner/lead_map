@@ -105,4 +105,4 @@ nh <- nh %>%
 rm(nh2_path, nh_path, nhtested, countyindex, new_names)
 
 # save to csv
-write_csv(nh, "../../processed_files/nh.csv")
+write_csv(nh, "../processed_files/nh.csv")

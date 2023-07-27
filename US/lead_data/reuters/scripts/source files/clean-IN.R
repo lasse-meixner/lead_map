@@ -50,4 +50,4 @@ ind <- left_join(ind,ind_county_codes) %>%
   pivot_wider(names_from=measure,values_from=value)
 
 # save to csv
-write_csv(ind, "../../processed_files/in.csv")
+write_csv(ind, "../processed_files/in.csv")

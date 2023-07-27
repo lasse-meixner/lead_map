@@ -60,4 +60,4 @@ or <- merge(or1, or2, by=c("tract","year")) %>%
 rm(or1,or2)
 
 # save to csv
-write_csv(or, "../../processed_files/or.csv")
+write_csv(or, "../processed_files/or.csv")

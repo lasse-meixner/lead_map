@@ -49,4 +49,4 @@ rm(CA_Rawpg1,CA_Rawpg2,CA_Rawpg3,CA_Rawpg4,CA_Rawpg5,
    CA_Rawpg11,CA_Rawpg12,CA_Rawpg13)
 
 # save to csv
-write_csv(ca, "../../processed_files/ca.csv")
+write_csv(ca, "../processed_files/ca.csv")

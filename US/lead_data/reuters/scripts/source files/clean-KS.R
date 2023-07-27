@@ -49,4 +49,4 @@ ks <- rbind(ks2005,ks2006,ks2007,ks2008,ks2009,ks2010,ks2011,ks2012) %>%
 rm(ks2005,ks2006,ks2007,ks2008,ks2009,ks2010,ks2011,ks2012)
 
 # save to csv
-write_csv(ks, file = "../../processed_files/ks.csv")
+write_csv(ks, file = "../processed_files/ks.csv")

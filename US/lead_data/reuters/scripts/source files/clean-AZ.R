@@ -33,4 +33,4 @@ az <- read_excel(az_path, sheet ='ALL',skip=2) %>%
   mutate(year=factor(year))
 
 # save to csv
-write_csv(az, "../../processed_files/az.csv")
+write_csv(az, "../processed_files/az.csv")

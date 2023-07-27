@@ -30,4 +30,4 @@ il <- read_excel(il_path) %>%
   relocate(state)
 
 # save to csv
-write_csv(il, "../../processed_files/il.csv")
+write_csv(il, "../processed_files/il.csv")

@@ -60,4 +60,4 @@ mo <- rbind(mo1,mo2,mo3) %>%
 rm(mo1,mo2,mo3)
 
 # save to csv
-write_csv(mo, "../../processed_files/mo.csv")
+write_csv(mo, "../processed_files/mo.csv")

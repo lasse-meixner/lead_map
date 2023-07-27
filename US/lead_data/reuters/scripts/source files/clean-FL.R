@@ -29,4 +29,4 @@ fl <- read_excel(fl_path, skip = 1) %>%
 
 
 # save to csv
-write_csv(fl, "../../processed_files/fl.csv")
+write_csv(fl, "../processed_files/fl.csv")

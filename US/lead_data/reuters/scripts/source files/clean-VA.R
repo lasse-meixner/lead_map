@@ -47,4 +47,4 @@ va <- rbind(va2005,va2006,va2007,va2008,va2009,va2010,va2011) %>%
 rm(va2005,va2006,va2007,va2008,va2009,va2010,va2011)
 
 # save to csv
-write_csv(va, file = "../../processed_files/va.csv")
+write_csv(va, file = "../processed_files/va.csv")

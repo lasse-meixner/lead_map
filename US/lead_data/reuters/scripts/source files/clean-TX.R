@@ -29,4 +29,4 @@ tx <- read_sas(tx_path) %>%
          
 
 # save to csv
-write_csv(tx, "../../processed_files/tx.csv")
+write_csv(tx, "../processed_files/tx.csv")

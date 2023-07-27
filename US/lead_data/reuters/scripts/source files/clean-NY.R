@@ -30,4 +30,4 @@ ny <- read_excel(ny_path) %>%
   mutate(zip=as.character(zip))
 
 # save to csv
-write_csv(ny, "../../processed_files/ny.csv")
+write_csv(ny, "../processed_files/ny.csv")

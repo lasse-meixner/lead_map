@@ -34,4 +34,4 @@ nm <- nmraw %>%
   relocate(state)
 
 # save to csv
-write_csv(nm, "../../processed_files/nm.csv")
+write_csv(nm, "../processed_files/nm.csv")
