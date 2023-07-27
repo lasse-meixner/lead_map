@@ -2,8 +2,18 @@ library(tidyverse)
 library(readxl)
 # library(xlsx)
 
-setwd(dir = "/Users/peter/Documents/Oxford/Frank RA/Lead Project/Raw Files")
+tryCatch(setwd(dir = "../../raw_files/"),
+         error = function(e) 1)
+
 ks_path <- 'BLL_KS_Raw.xlsx'
+
+# if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
+if (exists("drop_get_from_root")) {
+    drop_get_from_root(ks_path)
+} else {
+    source("../scripts/00_drop_box_access.R")
+    drop_get_from_root(ks_path)
+}
 
 ks <- read_excel(ks_path,skip=2) %>% 
   select(1:4) %>% 
@@ -19,6 +29,7 @@ ks <- read_excel(ks_path,skip=2) %>%
   mutate(state='KS') %>% 
   relocate(state)
 
+#TODO: Check this!
 ## assuming that every year is the same as the average of the years.
 ks2005 <- ks %>% mutate(year=2005)
 ks2006 <- ks %>% mutate(year=2006)
@@ -33,3 +44,9 @@ ks2012 <- ks %>% mutate(year=2012)
 ## merging all the replicated years into one larger file
 ks <- rbind(ks2005,ks2006,ks2007,ks2008,ks2009,ks2010,ks2011,ks2012) %>% 
   mutate(year=factor(year))
+
+# remove unnecessary variables
+rm(ks2005,ks2006,ks2007,ks2008,ks2009,ks2010,ks2011,ks2012)
+
+# save to csv
+write_csv(ks, file = "../../processed_files/ks.csv")

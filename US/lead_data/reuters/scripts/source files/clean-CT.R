@@ -1,8 +1,18 @@
 library(readxl)
 library(tidyverse)
 
-setwd(dir = "/Users/peter/Documents/Oxford/Frank RA/Lead Project/Raw Files")
+tryCatch(setwd(dir = "../../raw_files/"),
+         error = function(e) 1)
+         
 ct_path <- 'BLL_CT_Raw.xlsx'
+
+# if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
+if (exists("drop_get_from_root")) {
+    drop_get_from_root(ct_path)
+} else {
+    source("../scripts/00_drop_box_access.R")
+    drop_get_from_root(ct_path)
+}
 
 ct <- read_excel(ct_path) %>% 
   pivot_longer(cols=!`Zip_Code`,
@@ -15,3 +25,5 @@ ct <- read_excel(ct_path) %>%
          year=factor(year))
 
          
+# save to csv
+write_csv(ct, "../../processed_files/ct.csv")

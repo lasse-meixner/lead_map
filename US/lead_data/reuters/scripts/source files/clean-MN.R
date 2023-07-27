@@ -2,8 +2,17 @@ library(tidyverse)
 library(readxl)
 # library(xlsx)
 
-setwd(dir = "/Users/peter/Documents/Oxford/Frank RA/Lead Project/Raw Files")
+tryCatch(setwd(dir = "../../raw_files/"),
+         error = function(e) 1)
+
 mn_path <- 'BLL_MN_Raw.xlsx'
+
+if (exists("drop_get_from_root")) {
+    drop_get_from_root(mn_path)
+} else {
+    source("../scripts/00_drop_box_access.R")
+    drop_get_from_root(mn_path)
+}
 
 mn <- read_excel(mn_path) %>% 
   mutate(tested_2005_2010=ifelse(tested_2005_2010=='.',NA,tested_2005_2010)) %>% 
@@ -27,7 +36,7 @@ mn2011to2015 <- mn %>%
 
 ## Assume 2005 to 2010 average is the same every year.
 ## Assume 2011 to 2015 average is the same every year.
-
+# TODO: Check this!
 mn2005 <- mn2005to2010 %>% mutate(year=2005) %>% mutate(BLL_geq_5=NA)
 mn2006 <- mn2005to2010 %>% mutate(year=2006) %>% mutate(BLL_geq_5=NA)
 mn2007 <- mn2005to2010 %>% mutate(year=2007) %>% mutate(BLL_geq_5=NA)
@@ -46,3 +55,9 @@ mn <- rbind(mn2005,mn2006,mn2007,mn2008,mn2009,mn2010,mn2011,mn2012,mn2013,mn201
   mutate(state='MN') %>% 
   relocate(state)
 
+# remove unnecessary objects
+rm(mn2005to2010,mn2011to2015,mn2005,mn2006,mn2007,mn2008,mn2009,mn2010,mn2011,mn2012,mn2013,mn2014,mn2015)
+
+
+# save to csv
+write_csv(mn, file = "../../processed_files/mn.csv")

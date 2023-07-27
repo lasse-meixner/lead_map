@@ -7,10 +7,23 @@ library(openxlsx)
 library(stringr)
 library(naniar)
 
-setwd(dir = "/Users/peter/Documents/Oxford/Frank RA/Lead Project/Raw Files")
+tryCatch(setwd(dir = "../../raw_files/"),
+         error = function(e) 1)
+         
 nh_path <- 'BLL_NH_Raw.xlsx'
 nh2_path <- 'BLL_NH2_Raw.xlsx'
 
+# if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
+if (exists("drop_get_from_root")) {
+    drop_get_from_root(nc_path)
+    drop_get_from_root(nc2_path)
+} else {
+    source("../scripts/00_drop_box_access.R")
+    drop_get_from_root(nc_path)
+    drop_get_from_root(nc2_path)
+}
+
+#TODO: Check all this
 nh <- read.xlsx(nh_path,fillMergedCells = TRUE, colNames = FALSE,startRow=2)
 
 nhtested <- read_excel(nh2_path,skip=1,na=".") %>% 
@@ -80,12 +93,16 @@ nh <- nh %>%
   mutate(value = ifelse(value==".",NA,value)) %>% 
   pivot_wider(names_from = measure, values_from = value) %>% 
   rowwise() %>% 
-  mutate(BLL_geq_5 = sum(as.numeric(`6 - 9 µg/dL Venous`),as.numeric(`Capillary Tests`),as.numeric(`Existing 10 µg/dL`),as.numeric(`New 10 µg/dL Venous`),na.rm=TRUE)) %>% 
-  mutate(BLL_geq_10 = sum(as.numeric(`Capillary Tests`),as.numeric(`Existing 10 µg/dL`),as.numeric(`New 10 µg/dL Venous`),na.rm=TRUE)) %>% 
+  mutate(BLL_geq_5 = sum(as.numeric(`6 - 9 ï¿½g/dL Venous`),as.numeric(`Capillary Tests`),as.numeric(`Existing 10 ï¿½g/dL`),as.numeric(`New 10 ï¿½g/dL Venous`),na.rm=TRUE)) %>% 
+  mutate(BLL_geq_10 = sum(as.numeric(`Capillary Tests`),as.numeric(`Existing 10 ï¿½g/dL`),as.numeric(`New 10 ï¿½g/dL Venous`),na.rm=TRUE)) %>% 
   select(-tract) %>% 
   rename(tract=newtract) %>% 
   mutate(state="NH") %>% 
   relocate(state) %>% 
   mutate(year=factor(year))
 
+# remove unnecessary variables
+rm(nh2_path, nh_path, nhtested, countyindex, new_names)
 
+# save to csv
+write_csv(nh, "../../processed_files/nh.csv")

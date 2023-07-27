@@ -1,8 +1,19 @@
 library(tidyverse)
 library(readxl)
 # library(xlsx)
-setwd(dir = "/Users/peter/Documents/Oxford/Frank RA/Lead Project/Raw Files")
+tryCatch(setwd(dir = "../../raw_files/"),
+         error = function(e) 1)
+
 tn_path <- 'BLL_TN_Raw.xlsx'
+
+# if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
+if (exists("drop_get_from_root")) {
+    drop_get_from_root(tn_path)
+} else {
+    source("../scripts/00_drop_box_access.R")
+    drop_get_from_root(tn_path)
+}
+
 
 tn <- read_excel(tn_path,skip=2) %>% 
   select(1:4) %>% 
@@ -19,6 +30,7 @@ tn <- read_excel(tn_path,skip=2) %>%
   mutate(state='TN') %>% 
   relocate(state)
 
+# TODO: Check this!
 ## assumes each year is the same as the average blocks
 tn2005 <- tn %>% mutate(year=2005)
 tn2006 <- tn %>% mutate(year=2006)
@@ -35,3 +47,8 @@ tn <- rbind(tn2005,tn2006,tn2007,tn2010,tn2011,tn2012,tn2013,tn2014,tn2015) %>%
   mutate(year=factor(year))
 
 
+# remove unnecessary variables
+rm(tn2005,tn2006,tn2007,tn2010,tn2011,tn2012,tn2013,tn2014,tn2015)
+
+# save to csv
+write_csv(tn, file = "../../processed_files/tn.csv")

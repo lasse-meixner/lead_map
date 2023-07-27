@@ -1,8 +1,18 @@
 library(readxl)
 library(tidyverse)
 
-setwd(dir = "/Users/peter/Documents/Oxford/Frank RA/Lead Project/Raw Files")
+tryCatch(setwd(dir = "../../raw_files/"),
+         error = function(e) 1)
+         
 in_path <- 'BLL_IN_Raw.xlsx'
+
+# if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
+if (exists("drop_get_from_root")) {
+    drop_get_from_root(in_path)
+} else {
+    source("../scripts/00_drop_box_access.R")
+    drop_get_from_root(in_path)
+}
 
 ind <- read_excel(in_path) 
 
@@ -38,3 +48,6 @@ ind <- left_join(ind,ind_county_codes) %>%
   mutate(measure=ifelse(type=="Elev","BLL_geq_5","tested")) %>% 
   select(-type) %>% 
   pivot_wider(names_from=measure,values_from=value)
+
+# save to csv
+write_csv(ind, "../../processed_files/in.csv")
