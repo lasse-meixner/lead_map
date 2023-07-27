@@ -5,18 +5,21 @@ tryCatch(setwd(dir = "../../raw_files/"),
          error = function(e) 1)
          
 in_path <- 'BLL_IN_Raw.xlsx'
+in_path2 <- 'INDIANA_COUNTY.xlsx'
 
 # if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
 if (exists("drop_get_from_root")) {
     drop_get_from_root(in_path)
+    drop_get_from_root(in_path2)
 } else {
     source("../scripts/00_drop_box_access.R")
     drop_get_from_root(in_path)
+    drop_get_from_root(in_path2)
 }
 
 ind <- read_excel(in_path) 
 
-ind_county_codes <- read_excel('INDIANA_COUNTY.xlsx') %>% 
+ind_county_codes <- read_excel(in_path2) %>% 
   rename(County=NAME) %>% 
   select(County,GEOID)
 
