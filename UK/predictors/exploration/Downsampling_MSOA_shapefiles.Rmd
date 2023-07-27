@@ -40,7 +40,7 @@ For plotting purposes, the difference is barely noticeable, even though we kept 
 
 **NOTE:** Running this algorithm on the entire shapefile can lead the underlying mapshaper engine to run out of memory (see [here](https://github.com/ateucher/rmapshaper/issues/83#issuecomment-492775206)). One can alternatively run this on system using the `sys = TRUE` keyword, but it requires install node.
 
-Instead, we can do it in chunks:
+Instead, we can do it in chunks (keeping only ):
 
 ```{r}
 library(purrr)
@@ -50,8 +50,9 @@ msoa_simple <- msoa |>
     mutate(chunk = ceiling(row_number() / 200)) |> 
     group_by(chunk) |> 
     nest() |> 
-    mutate(data = purrr::map(data, ms_simplify)) |> 
-    unnest()
+    mutate(data = purrr::map(data, \(x) ms_simplify(x, keep = 0.03))) |> 
+    unnest() |> 
+    select(-chunk)
 ```
 
 This way we avoided any Memory issues.
