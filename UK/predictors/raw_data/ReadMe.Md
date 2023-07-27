@@ -5,4 +5,4 @@ Instead, save them to DropBox and point to the remote file in the scripts.
 This is to avoid bloating the git repository with raw data we have no intention of version controlling.
 
 ## Exception
-For quick-and-easy mapping purposes, we keep a **downsampled** shapefile of all England MSOAs. This is a 5% sample of the original shapefile, and is stored in the `shapefiles` folder for convenience, since this might be of use in interactive sessions. The original shapefile is too large to be stored in the repository, and is downloaded from DropBox when needed (see scripts/00_drop_box_access.R) for computation/modelling.
+For quick-and-easy mapping purposes, we keep a **downsampled** shapefile of all England MSOAs. This is a 3% sample of the original shapefile, and is stored in the `shapefiles` folder for convenience, since this might be of use in interactive sessions. The original shapefile is too large to be stored in the repository, and is downloaded from DropBox when needed (see scripts/00_drop_box_access.R) for computation/modelling.
