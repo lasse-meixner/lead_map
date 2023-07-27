@@ -3,12 +3,24 @@
 ## Census tract to ZIP code mapping
 
 
-setwd(dir = "/Users/peter/OneDrive/Documents/GitHub/leadmap-public/reuters/Tract-Zip Tables")
+# try to setwd to the raw_files folder, if cannot change directory, assume already in raw_files folder
+tryCatch(setwd(dir = "../raw_files/"),
+         error = function(e) 1)
 
+# Crosswalk file to be pulled from DropBox
 tract_path <- 'TRACT_ZIP_032010.xlsx'
+
+# if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
+if (exists("drop_get_from_root")) {
+    drop_get_from_root(tract_path)
+} else {
+    source("../scripts/00_drop_box_access.R")
+    drop_get_from_root(tract_path)
+}
 
 tracttozip <- read_excel(tract_path) %>% 
   rename(tract=TRACT)
+
 
 ## Ohio
 
