@@ -48,6 +48,7 @@ walk_tracttozip <- function(tb, state_string){
               rename(zip=ZIP) |> 
               mutate(state=state_string,
                      aggregated = TRUE)
+              # NOTE: One can think about computing some information about impact of the aggregation here as well
        zip
 }
 
