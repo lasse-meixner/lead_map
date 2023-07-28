@@ -2,16 +2,19 @@
 library(dplyr)
 library(tidyverse)
 
-## Run individual codes for each state
-list.files("/Users/peter/OneDrive/Documents/GitHub/leadmap-public/reuters/source files",
-           full.names = TRUE) %>% map(source)
+source("merging_functions.R")
+# imports the following:
+# lists: zip_states, tract_states
+# functions: load_states, merge_zip_states, merge_all_states
 
-## Adjust some states from fips codes to zip codes
-setwd(dir = "/Users/peter/OneDrive/Documents/GitHub/leadmap-public/reuters")
-source("tract-zip_code.R")
 
-## additional changes to ensure a full join is possible.
-## Make all values characters to have all dataframes able to be joined
+# TODO: Implement pre-merging changes as shown below (legacy Peter code). 
+# Not yet sure at which point in the pipeline this should happen.
+# If there is surpression also at the ZIP level, this has to be handled first.
+# Then probably a good idea to implement some type checking before the data is passed into the full_join.
+
+
+### START LEGACY CODE 
 
 al <- al %>% 
   mutate(BLL_geq_10=as.character(BLL_geq_10)) %>% 
@@ -118,11 +121,11 @@ co_zip <- co_zip %>%
   mutate(BLL_geq_5=as.character(BLL_geq_5)) %>% 
   mutate(state="CO")
 
-wi_zip <- wi_zip %>% 
-  mutate(tested=as.character(tested)) %>% 
-  mutate(BLL_geq_10=as.character(BLL_geq_10)) %>% 
-  mutate(BLL_geq_5=as.character(BLL_geq_5)) %>% 
-  mutate(state="WI")
+# wi_zip <- wi_zip %>% 
+#   mutate(tested=as.character(tested)) %>% 
+#   mutate(BLL_geq_10=as.character(BLL_geq_10)) %>% 
+#   mutate(BLL_geq_5=as.character(BLL_geq_5)) %>% 
+#   mutate(state="WI")
 
 ## List of states to merge
 prelim_list <- list(al,az,ri,ny,nyc_zip,il,la,oh_zip,pa_zip,nj,vt,md_zip,ca,mi,fl,
@@ -141,3 +144,5 @@ totals_list <- list(al_totals,ct_totals,mi_totals,mo_totals)
 mergedtotals <- totals_list %>% 
   reduce(full_join)
 
+
+## END LEGACY CODE
