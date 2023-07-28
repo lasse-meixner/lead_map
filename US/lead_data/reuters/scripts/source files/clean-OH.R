@@ -1,6 +1,5 @@
 library(tidyverse)
 library(readxl)
-# library(xlsx)
 
 tryCatch(setwd(dir = "../../raw_files/"),
          error = function(e) 1)
@@ -44,7 +43,11 @@ oh <- oh %>%
   mutate(BLL_geq_10=replace(BLL_geq_10, BLL_geq_10 == "(b)(6)", "<5"))%>%
   mutate(state = 'OH') %>%
   relocate(state) %>%
-  mutate(year = factor(year))
+  mutate(year = factor(year)) %>%
+  mutate(n=nchar(tract)) %>%  
+  filter(n==9) %>%  # get the right granularity of tracts (9+2 digits)
+  mutate(tract=paste0(39,tract)) |>
+  select(-n) 
 
 
 # remove unnecessary variables
@@ -52,3 +55,5 @@ rm(ohraw, `2005`,`2006`,`2007`,`2008`,`2009`,`2010`,`2011`,`2012`,`2013`,`2014`,
 
 # save to csv
 write_csv(oh, file = "../processed_files/oh.csv")
+
+# NOTE: Surpressed tracts have <5 but >0! If tested is surpressed, BLL_geq_5 and BLL_geq_10 are also surpressed.

@@ -33,7 +33,10 @@ md <- md_path %>%
   mutate(county = str_to_title(county)) %>% # Convert from all caps to "usual" caps
   mutate(across(tested:BLL_geq_10, ~as.integer(.))) %>%
   mutate(year = factor(year)) %>% 
-  mutate(tract=str_remove(tract,"[.]")) ## for some reason decimals were popping up
+  mutate(tract=str_remove(tract,"[.]")) %>% ## for some reason decimals were popping up
+  mutate(n=nchar(tract)) %>% # filter for the right granularity of tracts (11 digits)
+  filter(n==11) %>%
+  select(-n)
 
 
 # save to csv

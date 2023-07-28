@@ -28,7 +28,9 @@ or1 <- or_path %>%
          county = `County`,
          tractlabel = `Tract Label`
   )  %>%
-  select(-1) # Same comment as above
+  select(-1) %>% # Same comment as above
+  mutate(year = factor(year),
+         tract = as.character(tract))
 
 # Confirmed
 or2 <- or_path %>%
@@ -44,20 +46,19 @@ or2 <- or_path %>%
          county = `County`,
          tractlabel = `Tract Label`
   ) %>%
-  select(-1)
+  select(-1) %>%
+  mutate(year = factor(year),
+         tract = as.character(tract))
 
 
 # Better to use a "join" function from dplyr so you get a tibble. Also it's
 # a bit clearer what's happening
 
-or <- merge(or1, or2, by=c("tract","year")) %>%
-  select(-c("tractlabel.y","county.y")) %>%  # You don't need c() and quote here
-  # you can just use the tidy selection `-` operator
-  rename(tractlabel = `tractlabel.x`,
-         county = `county.x`)
+or <- inner_join(or1, or2, by=c("tract","year")) %>%
+  select(-tractlabel.y, -county.y, - tractlabel.x, -county.x) # none of these are needed if we have the tract
 
 # remove unnecessary objects
-rm(or1,or2)
+rm(or1, or2)
 
 # save to csv
 write_csv(or, "../processed_files/or.csv")

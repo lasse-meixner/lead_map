@@ -36,7 +36,10 @@ ma <- read_excel(ma_path, sheet = "2005-2015 Individual Years", skip = 0) %>%
   mutate(state = 'MA') %>%
   relocate(state) %>% 
   select(-`BLL_geq_5_est`,-`_Conf_Est_5+`) %>% ## decision to consider only confirmed instead of eastimed.
-  rename(`BLL_geq_5`=`BLL_geq_5_conf`)
+  rename(`BLL_geq_5`=`BLL_geq_5_conf`) %>%
+  mutate(n=nchar(tract)) %>% 
+  filter(n==11) %>%  # get the right granularity of tracts (11 digits)
+  select(-n)
 
 
 # save to csv

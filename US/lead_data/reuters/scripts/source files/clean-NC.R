@@ -53,7 +53,8 @@ nc <- nc %>%
   mutate(tract=paste0(substring(tract,first=1,last=3),substring(tract,first=5,last=10))) %>% 
   mutate(tract=paste0("37",tract)) %>% 
   mutate(newn=nchar(tract)) %>% 
-  filter(newn==11)
+  filter(newn==11) %>%
+  select(-n,-newn)
 
 # remove unnecessary variables
 rm(ncraw, `2005`,`2006`,`2007`,`2008`,`2009`,`2010`,`2011`,`2012`,`2013`,`2014`,`2015`)

@@ -22,291 +22,90 @@ tracttozip <- read_excel(tract_path) %>%
   rename(tract=TRACT)
 
 
-## Ohio
+# auxiliary function for tract -> zip crosswalking
+# NOTE: This coerces non-numeric entries (e.g. <5, i.e. surpressed values) to NA. 
+# Since surpression is more information than NA (namely e.g. that #EXPOSED>0), surpression must be handled for each cleaned file PRIOR to aggregation to avoid losing information.
 
-track_oh <- oh %>% 
-  mutate(n=nchar(tract)) %>% 
-  filter(n==9) %>% 
-  mutate(tract=paste0(39,tract)) %>% 
-  mutate(newn=nchar(tract))
+walk_tracttozip <- function(tb, state_string){
+       # if tb does not have "BLL_geq_10" column, fill with NAs
+       if(!"BLL_geq_10" %in% colnames(tb)){
+              tb <- tb |> 
+                     mutate(BLL_geq_5 = NA,
+                     tract = as.character(tract)) # cast to character for join
+       }
+       # perform ZIP aggregation
+       zip <- left_join(tb, tracttozip, by = "tract") |>  
+              mutate(BLL_geq_5 = as.numeric(BLL_geq_5),
+                     BLL_geq_10 = as.numeric(BLL_geq_10),
+                     tested=as.numeric(tested)) |>  
+              mutate(new_BLL_geq_5 = BLL_geq_5 * RES_RATIO,
+                     new_BLL_geq_10 = BLL_geq_10 * RES_RATIO,
+                     new_tested = tested * RES_RATIO) |> 
+              group_by(ZIP,year) |>  
+              summarise(BLL_geq_5 = sum(new_BLL_geq_5,na.rm = TRUE),
+                     BLL_geq_10 = sum(new_BLL_geq_10,na.rm = TRUE),
+                     tested = sum(new_tested,na.rm = TRUE)) |> 
+              rename(zip=ZIP) |> 
+              mutate(state=state_string,
+                     aggregated = TRUE)
+       zip
+}
 
-## make decision to call <5 = 0.
 
-oh_zip <- left_join(track_oh,tracttozip,key=tract) %>% 
-  mutate(BLL_geq_5 = as.numeric(BLL_geq_5),
-         BLL_geq_10 = as.numeric(BLL_geq_10),
-         tested=as.numeric(tested)) %>% 
-  mutate(new_BLL_geq_5 = BLL_geq_5*RES_RATIO,
-         new_BLL_geq_10 = BLL_geq_10*RES_RATIO,
-         new_tested = tested*RES_RATIO,
-         new_BLL_geq_5_max = BLL_geq_5_max*RES_RATIO,
-         new_BLL_geq_5_min = BLL_geq_5_min*RES_RATIO,
-         new_BLL_geq_10_max = BLL_geq_10_max*RES_RATIO,
-         new_BLL_geq_10_min = BLL_geq_10_min*RES_RATIO,
-         new_tested_max = tested_max*RES_RATIO,
-         new_tested_min = tested_min*RES_RATIO) %>% 
-  group_by(ZIP,year) %>% 
-  summarise(BLL_geq_5 = sum(new_BLL_geq_5,na.rm = TRUE),
-            BLL_geq_10 = sum(new_BLL_geq_10,na.rm = TRUE),
-            tested = sum(new_tested,na.rm = TRUE),
-            BLL_geq_5_max = sum(new_BLL_geq_5_max,na.rm = TRUE),
-            BLL_geq_5_min = sum(new_BLL_geq_5_min,na.rm = TRUE),
-            BLL_geq_10_max = sum(new_BLL_geq_10_max,na.rm = TRUE),
-            BLL_geq_10_min = sum(new_BLL_geq_10_min,na.rm = TRUE),
-            tested_max = sum(new_tested_max,na.rm = TRUE),
-            tested_min = sum(new_tested_min,na.rm = TRUE)) %>% 
-  rename(zip=ZIP) %>% 
-  mutate(state='OH')
+## OH
+# TODO: Handle surpression (e.g. <5) in OH data
+
+oh_zip <- walk_tracttozip(oh,"OH")
 
 ## PA
+# TODO: Handle surpression (e.g. <5) in PA data
 
-track_pa <- pa
-
-pa_zip <- left_join(track_pa,tracttozip,key=tract) %>% 
-  mutate(BLL_geq_5 = as.numeric(BLL_geq_5),
-         BLL_geq_10 = as.numeric(BLL_geq_10),
-         tested=as.numeric(tested)) %>% 
-  mutate(new_BLL_geq_5 = BLL_geq_5*RES_RATIO,
-         new_BLL_geq_10 = BLL_geq_10*RES_RATIO,
-         new_tested = tested*RES_RATIO,
-         new_BLL_geq_5_max = BLL_geq_5_max*RES_RATIO,
-         new_BLL_geq_5_min = BLL_geq_5_min*RES_RATIO,
-         new_BLL_geq_10_max = BLL_geq_10_max*RES_RATIO,
-         new_BLL_geq_10_min = BLL_geq_10_min*RES_RATIO,
-         new_tested_max = tested_max*RES_RATIO,
-         new_tested_min = tested_min*RES_RATIO) %>% 
-  group_by(ZIP,year) %>% 
-  summarise(BLL_geq_5 = sum(new_BLL_geq_5,na.rm = TRUE),
-            BLL_geq_10 = sum(new_BLL_geq_10,na.rm = TRUE),
-            tested = sum(new_tested,na.rm = TRUE),
-            BLL_geq_5_max = sum(new_BLL_geq_5_max,na.rm = TRUE),
-            BLL_geq_5_min = sum(new_BLL_geq_5_min,na.rm = TRUE),
-            BLL_geq_10_max = sum(new_BLL_geq_10_max,na.rm = TRUE),
-            BLL_geq_10_min = sum(new_BLL_geq_10_min,na.rm = TRUE),
-            tested_max = sum(new_tested_max,na.rm = TRUE),
-            tested_min = sum(new_tested_min,na.rm = TRUE)) %>% 
-  rename(zip=ZIP) %>% 
-  mutate(state="PA")
+pa_zip <- walk_tracttozip(pa,"PA")
 
 ## MD 
+# TODO: Handle surpression (e.g. <5) in MD data
 
-track_md <- md %>% 
-  mutate(n=nchar(tract)) %>% 
-  filter(n==11)
-
-md_zip <- left_join(track_md,tracttozip,key=tract) %>% 
-  mutate(BLL_geq_5 = as.numeric(BLL_geq_5),
-         BLL_geq_10 = as.numeric(BLL_geq_10),
-         tested=as.numeric(tested)) %>% 
-  mutate(new_BLL_geq_5 = BLL_geq_5*RES_RATIO,
-         new_BLL_geq_10 = BLL_geq_10*RES_RATIO,
-         new_tested = tested*RES_RATIO) %>% 
-  group_by(ZIP,year) %>% 
-  summarise(BLL_geq_5 = sum(new_BLL_geq_5,na.rm = TRUE),
-            BLL_geq_10 = sum(new_BLL_geq_10,na.rm = TRUE),
-            tested = sum(new_tested,na.rm = TRUE)) %>% 
-  rename(zip=ZIP) %>% 
-  mutate(state='MD')
+md_zip <- walk_tracttozip(md,"MD")
 
 ## MA
+# TODO: Handle surpression (e.g. <5) in MA data
 
-track_ma <- ma %>% 
-  mutate(n=nchar(tract)) %>% 
-  filter(n==11)
-
-ma_zip <- left_join(track_ma,tracttozip,key=tract) %>% 
-  mutate(BLL_geq_5 = as.numeric(BLL_geq_5),
-         tested=as.numeric(tested)) %>% 
-  mutate(new_BLL_geq_5 = BLL_geq_5*RES_RATIO,
-         new_tested = tested*RES_RATIO) %>% 
-  mutate(new_tested_max = tested_max*RES_RATIO,
-         new_tested_min = tested_min*RES_RATIO,
-         new_BLL_geq_5_max = BLL_geq_5_max*RES_RATIO,
-         new_BLL_geq_5_min = BLL_geq_5_min*RES_RATIO) %>% 
-  group_by(ZIP,year) %>% 
-  summarise(BLL_geq_5 = sum(new_BLL_geq_5,na.rm = TRUE),
-            tested = sum(new_tested,na.rm = TRUE),
-            BLL_geq_5_max = sum(new_BLL_geq_5_max,na.rm = TRUE),
-            BLL_geq_5_min = sum(new_BLL_geq_5_min,na.rm = TRUE),
-            tested_max = sum(new_tested_max,na.rm = TRUE),
-            tested_min = sum(new_tested_min,na.rm = TRUE)) %>% 
-  rename(zip=ZIP) 
+ma_zip <- walk_tracttozip(ma,"MA")
 
 ## NYC
+# TODO: Handle surpression (e.g. <5) in NYC data
 
-### setting to numerics will make >5 equal to NA.
-## PR 17/2 - Now incorporates max and min for range of impact for tract conversions
-
-track_nyc <- nyc
-
-nyc_zip <- left_join(track_nyc,tracttozip,key=tract)  %>% 
-  mutate(BLL_geq_5 = as.numeric(BLL_geq_5),
-         BLL_geq_10 = as.numeric(BLL_geq_10),
-         tested=as.numeric(tested)) %>% 
-  mutate(new_BLL_geq_5 = BLL_geq_5*RES_RATIO,
-         new_BLL_geq_10 = BLL_geq_10*RES_RATIO,
-         new_tested = tested*RES_RATIO,
-         new_tested_max = tested_max*RES_RATIO,
-         new_tested_min = tested_min*RES_RATIO,
-         new_BLL_geq_5_max = BLL_geq_5_max*RES_RATIO,
-         new_BLL_geq_5_min = BLL_geq_5_min*RES_RATIO,
-         new_BLL_geq_10_max = BLL_geq_10_max*RES_RATIO,
-         new_BLL_geq_10_min = BLL_geq_10_min*RES_RATIO) %>% 
-  group_by(ZIP,year) %>% 
-  summarise(BLL_geq_5 = sum(new_BLL_geq_5,na.rm = TRUE),
-            BLL_geq_10 = sum(new_BLL_geq_10,na.rm = TRUE),
-            tested = sum(new_tested,na.rm = TRUE),
-            BLL_geq_5_max = sum(new_BLL_geq_5_max,na.rm = TRUE),
-            BLL_geq_5_min = sum(new_BLL_geq_5_min,na.rm = TRUE),
-            BLL_geq_10_max = sum(new_BLL_geq_10_max,na.rm = TRUE),
-            BLL_geq_10_min = sum(new_BLL_geq_10_min,na.rm = TRUE),
-            tested_max = sum(new_tested_max,na.rm = TRUE),
-            tested_min = sum(new_tested_min,na.rm = TRUE)) %>% 
-  rename(zip=ZIP) 
+nyc_zip <- walk_tracttozip(track_nyc,"NYC")
 
 ## NC
+# TODO: Handle surpression (e.g. <5) in NC data. Here for many years most data is surpressed.
 
-track_nc <- nc %>% 
-  mutate(n=nchar(tract))
-
-nc_zip <- left_join(track_nc,tracttozip,key=tract) %>% 
-  mutate(BLL_geq_5 = as.numeric(BLL_geq_5),
-         tested=as.numeric(tested)) %>% 
-  mutate(new_BLL_geq_5 = BLL_geq_5*RES_RATIO,
-         new_tested = tested*RES_RATIO,
-         new_tested_max = tested_max*RES_RATIO,
-         new_tested_min = tested_min*RES_RATIO,
-         new_BLL_geq_5_max = BLL_geq_5_max*RES_RATIO,
-         new_BLL_geq_5_min = BLL_geq_5_min*RES_RATIO) %>% 
-  group_by(ZIP,year) %>% 
-  summarise(BLL_geq_5 = sum(new_BLL_geq_5,na.rm = TRUE),
-            tested = sum(new_tested,na.rm = TRUE),
-            BLL_geq_5_max = sum(new_BLL_geq_5_max,na.rm = TRUE),
-            BLL_geq_5_min = sum(new_BLL_geq_5_min,na.rm = TRUE),
-            tested_max = sum(new_tested_max,na.rm = TRUE),
-            tested_min = sum(new_tested_min,na.rm = TRUE)) %>% 
-  rename(zip=ZIP) 
+nc_zip <- walk_tracttozip(track_nc,"NC")
   
-### Indiana
-
-track_ind <- ind
+## Indiana
+# TODO: Handle surpression (e.g. <5) in IN data
   
-ind_zip <- left_join(track_ind,tracttozip,key=tract) %>% 
-  mutate(BLL_geq_5 = as.numeric(BLL_geq_5),
-         tested=as.numeric(tested)) %>% 
-  mutate(new_BLL_geq_5 = BLL_geq_5*RES_RATIO,
-         new_tested = tested*RES_RATIO) %>% 
-  group_by(ZIP,year) %>% 
-  summarise(BLL_geq_5 = sum(new_BLL_geq_5,na.rm = TRUE),
-            tested = sum(new_tested,na.rm = TRUE)) %>% 
-  rename(zip=ZIP) 
+ind_zip <- walk_tracttozip(track_ind,"IN")
 
 ## OR
+# TODO: Handle surpression (e.g. <5) in OR data
+or_zip <- walk_tracttozip(or,"OR")
 
-track_or <- or %>% 
-  mutate(tract=as.character(tract))
-
-or_zip <- left_join(track_or,tracttozip,key=tract) %>% 
-  mutate(BLL_geq_5 = as.numeric(BLL_geq_5),
-         tested=as.numeric(tested)) %>% 
-  mutate(new_BLL_geq_5 = BLL_geq_5*RES_RATIO,
-         new_tested = tested*RES_RATIO,
-         new_BLL_geq_5_max = BLL_geq_5_max*RES_RATIO,
-         new_BLL_geq_5_min = BLL_geq_5_min*RES_RATIO,
-         new_tested_max = tested_max*RES_RATIO,
-         new_tested_min = tested_min*RES_RATIO) %>% 
-  group_by(ZIP,year) %>% 
-  summarise(BLL_geq_5 = sum(new_BLL_geq_5,na.rm = TRUE),
-            tested = sum(new_tested,na.rm = TRUE),
-            BLL_geq_5_max = sum(new_BLL_geq_5_max,na.rm = TRUE),
-            BLL_geq_5_min = sum(new_BLL_geq_5_min,na.rm = TRUE),
-            tested_max = sum(new_tested_max,na.rm = TRUE),
-            tested_min = sum(new_tested_min,na.rm = TRUE)) %>% 
-  rename(zip=ZIP) 
-  
 ## MN
+# TODO: Handle surpression (e.g. <5) in MN data
 
-track_mn <- mn %>% 
-  mutate(tract=as.character(tract))
-
-mn_zip <- left_join(track_mn,tracttozip,key=tract) %>% 
-  mutate(BLL_geq_5 = as.numeric(BLL_geq_5),
-         BLL_geq_10 = as.numeric(BLL_geq_10),
-         tested=as.numeric(tested)) %>% 
-  mutate(new_BLL_geq_5 = BLL_geq_5*RES_RATIO,
-         new_BLL_geq_10 = BLL_geq_10*RES_RATIO,
-         new_tested = tested*RES_RATIO) %>% 
-  group_by(ZIP,year) %>% 
-  summarise(BLL_geq_5 = sum(new_BLL_geq_5,na.rm = TRUE),
-            BLL_geq_10 = sum(new_BLL_geq_10,na.rm=TRUE),
-            tested = sum(new_tested,na.rm = TRUE)) %>% 
-  rename(zip=ZIP) 
-
+mn_zip <- walk_tracttozip(track_mn,"MN")
 
 ## Colorado
+# TODO: Handle surpression (e.g. <5) in CO data
 
-track_co <- co %>% 
-  mutate(tract=as.character(tract))
-
-co_zip <- left_join(track_co,tracttozip,key=tract) %>% 
-  mutate(BLL_geq_5 = as.numeric(BLL_geq_5),
-         BLL_geq_10 = as.numeric(BLL_geq_10),
-         tested=as.numeric(tested)) %>% 
-  mutate(new_BLL_geq_5 = BLL_geq_5*RES_RATIO,
-         new_BLL_geq_10 = BLL_geq_10*RES_RATIO,
-         new_tested = tested*RES_RATIO,
-         new_BLL_geq_5_max = BLL_geq_5_max*RES_RATIO,
-         new_BLL_geq_5_min = BLL_geq_5_min*RES_RATIO,
-         new_BLL_geq_10_max = BLL_geq_10_max*RES_RATIO,
-         new_BLL_geq_10_min = BLL_geq_10_min*RES_RATIO,
-         new_tested_max = tested_max*RES_RATIO,
-         new_tested_min = tested_min*RES_RATIO) %>% 
-  group_by(ZIP,year) %>% 
-  summarise(BLL_geq_5 = sum(new_BLL_geq_5,na.rm = TRUE),
-            BLL_geq_10 = sum(new_BLL_geq_10,na.rm=TRUE),
-            tested = sum(new_tested,na.rm = TRUE),
-            BLL_geq_5_max = sum(new_BLL_geq_5_max,na.rm = TRUE),
-            BLL_geq_5_min = sum(new_BLL_geq_5_min,na.rm = TRUE),
-            BLL_geq_10_max = sum(new_BLL_geq_10_max,na.rm=TRUE),
-            BLL_geq_10_min = sum(new_BLL_geq_10_min,na.rm=TRUE),
-            tested_max = sum(new_tested_max,na.rm = TRUE),
-            tested_min = sum(new_tested_min,na.rm = TRUE)) %>% 
-  rename(zip=ZIP) 
+co_zip <- walk_tracttozip(track_co,"CO")
 
 
 ## New Hampshire
 
-track_nh <- nh %>% 
-  mutate(tract=as.character(tract))
-
-nh_zip <- left_join(track_nh,tracttozip,key=tract) %>% 
-  mutate(BLL_geq_5 = as.numeric(BLL_geq_5),
-         BLL_geq_10 = as.numeric(BLL_geq_10),
-         tested=as.numeric(tested)) %>% 
-  mutate(new_BLL_geq_5 = BLL_geq_5*RES_RATIO,
-         new_BLL_geq_10 = BLL_geq_10*RES_RATIO,
-         new_tested = tested*RES_RATIO) %>% 
-  group_by(ZIP,year) %>% 
-  summarise(BLL_geq_5 = sum(new_BLL_geq_5,na.rm = TRUE),
-            BLL_geq_10 = sum(new_BLL_geq_10,na.rm=TRUE),
-            tested = sum(new_tested,na.rm = TRUE)) %>% 
-  rename(zip=ZIP) 
+nh_zip <- walk_tracttozip(track_nh,"NH")
 
 ## Wisconsin 
 
-# track_wi <- wi %>% 
-#   mutate(tract=as.character(tract))
-# 
-# wi_zip <- left_join(track_wi,tracttozip,key=tract) %>% 
-#   mutate(BLL_geq_5 = as.numeric(BLL_geq_5),
-#          BLL_geq_10 = as.numeric(BLL_geq_10),
-#          tested=as.numeric(tested)) %>% 
-#   mutate(new_BLL_geq_5 = BLL_geq_5*RES_RATIO,
-#          new_BLL_geq_10 = BLL_geq_10*RES_RATIO,
-#          new_tested = tested*RES_RATIO) %>% 
-#   group_by(ZIP,year) %>% 
-#   summarise(BLL_geq_5 = sum(new_BLL_geq_5,na.rm = TRUE),
-#             BLL_geq_10 = sum(new_BLL_geq_10,na.rm=TRUE),
-#             tested = sum(new_tested,na.rm = TRUE)) %>% 
-#   rename(zip=ZIP) 
-
+# TODO: Implement (from State Health Dept. file)
