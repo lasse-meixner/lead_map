@@ -3,8 +3,7 @@
 
 library(haven)
 
-tryCatch(setwd(dir = "../../raw_files/"),
-         error = function(e) 1)
+
          
 tx_path <- "BLL_TX_Raw.sas7bdat"
 
@@ -29,4 +28,4 @@ tx <- read_sas(tx_path) %>%
          
 
 # save to csv
-write_csv(tx, "../processed_files/tx.csv")
+write_csv(tx, "../../processed_files/tx.csv")

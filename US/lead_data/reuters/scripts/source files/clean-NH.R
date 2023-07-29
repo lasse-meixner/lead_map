@@ -7,11 +7,10 @@ library(openxlsx)
 library(stringr)
 library(naniar)
 
-tryCatch(setwd(dir = "../../raw_files/"),
-         error = function(e) 1)
+
          
-nh_path <- 'BLL_NH_Raw.xlsx'
-nh2_path <- 'BLL_NH2_Raw.xlsx'
+nh_path <- '../../raw_files/BLL_NH_Raw.xlsx'
+nh2_path <- '../../raw_files/BLL_NH2_Raw.xlsx'
 
 # if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
 if (exists("drop_get_from_root")) {
@@ -105,4 +104,4 @@ nh <- nh %>%
 rm(nh2_path, nh_path, nhtested, countyindex, new_names)
 
 # save to csv
-write_csv(nh, "../processed_files/nh.csv")
+write_csv(nh, "../../processed_files/nh.csv")

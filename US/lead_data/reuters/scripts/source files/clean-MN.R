@@ -2,10 +2,9 @@ library(tidyverse)
 library(readxl)
 # library(xlsx)
 
-tryCatch(setwd(dir = "../../raw_files/"),
-         error = function(e) 1)
 
-mn_path <- 'BLL_MN_Raw.xlsx'
+
+mn_path <- '../../raw_files/BLL_MN_Raw.xlsx'
 
 if (exists("drop_get_from_root")) {
     drop_get_from_root(mn_path)
@@ -60,4 +59,4 @@ rm(mn2005to2010,mn2011to2015,mn2005,mn2006,mn2007,mn2008,mn2009,mn2010,mn2011,mn
 
 
 # save to csv
-write_csv(mn, file = "../processed_files/mn.csv")
+write_csv(mn, file = "../../processed_files/mn.csv")

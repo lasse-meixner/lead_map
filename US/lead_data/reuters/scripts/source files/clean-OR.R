@@ -1,10 +1,9 @@
 library(readxl)
 library(tidyverse)
 
-tryCatch(setwd(dir = "../../raw_files/"),
-         error = function(e) 1)
+
          
-or_path <- 'BLL_OR_Raw.xlsx'
+or_path <- '../../raw_files/BLL_OR_Raw.xlsx'
 
 # if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
 if (exists("drop_get_from_root")) {
@@ -61,4 +60,4 @@ or <- inner_join(or1, or2, by=c("tract","year")) %>%
 rm(or1, or2)
 
 # save to csv
-write_csv(or, "../processed_files/or.csv")
+write_csv(or, "../../processed_files/or.csv")

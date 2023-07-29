@@ -1,10 +1,9 @@
 library(tidyverse)
 library(readxl)
 
-tryCatch(setwd(dir = "../../raw_files/"),
-         error = function(e) 1)
+
          
-md_path <- 'BLL_MD_Raw.xlsx'
+md_path <- '../../raw_files/BLL_MD_Raw.xlsx'
 
 # if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
 if (exists("drop_get_from_root")) {
@@ -40,4 +39,4 @@ md <- md_path %>%
 
 
 # save to csv
-write_csv(md, "../processed_files/md.csv")
+write_csv(md, "../../processed_files/md.csv")

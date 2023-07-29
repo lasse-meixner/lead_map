@@ -2,10 +2,9 @@ library(tidyverse)
 library(readxl)
 # library(xlsx)
 
-tryCatch(setwd(dir = "../../raw_files/"),
-         error = function(e) 1)
+
          
-va_path <- 'BLL_VA_Raw.xlsx'
+va_path <- '../../raw_files/BLL_VA_Raw.xlsx'
 
 # if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
 if (exists("drop_get_from_root")) {
@@ -47,4 +46,4 @@ va <- rbind(va2005,va2006,va2007,va2008,va2009,va2010,va2011) %>%
 rm(va2005,va2006,va2007,va2008,va2009,va2010,va2011)
 
 # save to csv
-write_csv(va, file = "../processed_files/va.csv")
+write_csv(va, file = "../../processed_files/va.csv")

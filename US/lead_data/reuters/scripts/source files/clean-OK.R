@@ -2,10 +2,9 @@ library(tidyverse)
 library(readxl)
 # library(xlsx)
 
-tryCatch(setwd(dir = "../../raw_files/"),
-         error = function(e) 1)
+
          
-ok_path <- 'BLL_OK_Raw.xlsx'
+ok_path <- '../../raw_files/BLL_OK_Raw.xlsx'
 
 # if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
 if (exists("drop_get_from_root")) {
@@ -43,4 +42,4 @@ rm(okraw, `2005`,`2006`,`2007`,`2008`,`2009`,`2010`,`2011`,`2012`,`2013`,`2014`,
 
 
 # save to csv
-write_csv(ok, file = "../processed_files/ok.csv")
+write_csv(ok, file = "../../processed_files/ok.csv")

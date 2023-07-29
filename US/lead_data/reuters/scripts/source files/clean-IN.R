@@ -1,10 +1,9 @@
 library(readxl)
 library(tidyverse)
 
-tryCatch(setwd(dir = "../../raw_files/"),
-         error = function(e) 1)
+
          
-in_path <- 'BLL_IN_Raw.xlsx'
+in_path <- '../../raw_files/BLL_IN_Raw.xlsx'
 in_path2 <- 'INDIANA_COUNTY.xlsx'
 
 # if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
@@ -53,4 +52,4 @@ ind <- left_join(ind,ind_county_codes) %>%
   pivot_wider(names_from=measure,values_from=value)
 
 # save to csv
-write_csv(ind, "../processed_files/in.csv")
+write_csv(ind, "../../processed_files/in.csv")

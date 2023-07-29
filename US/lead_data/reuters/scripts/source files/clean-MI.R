@@ -1,10 +1,9 @@
 library(readxl)
 library(tidyverse)
 
-tryCatch(setwd(dir = "../../raw_files/"),
-         error = function(e) 1)
+
          
-mi_path <- 'BLL_MI_Raw.xlsx'
+mi_path <- '../../raw_files/BLL_MI_Raw.xlsx'
 
 # if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
 if (exists("drop_get_from_root")) {
@@ -30,4 +29,4 @@ mi <- read_excel(mi_path) %>%
   relocate(state)
   
 # save to csv
-write_csv(mi, "../processed_files/mi.csv")
+write_csv(mi, "../../processed_files/mi.csv")

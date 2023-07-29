@@ -2,10 +2,9 @@ library(tidyverse)
 library(readxl)
 # library(xlsx)
 
-tryCatch(setwd(dir = "../../raw_files/"),
-         error = function(e) 1)
+
          
-nyc_path <- 'BLL_NYC_Raw.xlsx'
+nyc_path <- '../../raw_files/BLL_NYC_Raw.xlsx'
 
 # if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
 if (exists("drop_get_from_root")) {
@@ -57,4 +56,4 @@ nyc <- nyc %>%
 rm(nycraw, `2005`,`2006`,`2007`,`2008`,`2009`,`2010`,`2011`,`2012`,`2013`,`2014`,`2015`)
 
 # save to csv
-write_csv(nyc, file = "../processed_files/nyc.csv")
+write_csv(nyc, file = "../../processed_files/nyc.csv")
