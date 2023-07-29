@@ -51,5 +51,8 @@ ind <- left_join(ind,ind_county_codes) %>%
   select(-type) %>% 
   pivot_wider(names_from=measure,values_from=value)
 
+# remove unnecessary variables
+rm(ind_county_codes)
+
 # save to csv
 write_csv(ind, "../processed_files/in.csv")
