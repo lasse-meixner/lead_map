@@ -22,14 +22,14 @@ az <- read_excel(az_path, sheet ='ALL',skip=2) %>%
   pivot_wider(names_from=measure,
               values_from=value) %>% 
   select(-starts_with("*")) %>% 
-  mutate(BLL_leq_5 = as.integer(`<5 µg/dL`)) %>% #TODO: This coerces suppressed "*" to NA
-  mutate(BLL_geq_10 = as.integer(`10+ µg/dL`)) %>% 
-  mutate(BLL_59=as.integer(`5-9 µg/dL`)) %>% 
+  rename(BLL_leq_5 = `<5 µg/dL`, 
+         BLL_geq_10 = `10+ µg/dL`,
+         BLL_59=as.integer(`5-9 µg/dL`)) %>% 
   mutate(tested=BLL_leq_5+BLL_geq_10+BLL_59) %>% 
   mutate(BLL_geq_5 = BLL_59+BLL_geq_10) %>% 
   rename(zip=`ZIP CODE`,
-         county = COUNTY) %>% 
-  mutate(year=factor(year)) %>%
-
+         county = COUNTY,
+         year = factor(year),
+         state = "AZ")
 # save to csv
 write_csv(az, "../../processed_files/az.csv")
