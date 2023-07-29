@@ -2,8 +2,6 @@ library(tidyverse)
 library(readxl)
 library(zoo)
 library(purrr)
-library(xlsx)
-library(openxlsx)
 library(stringr)
 library(naniar)
 
@@ -11,19 +9,22 @@ library(naniar)
          
 nh_path <- 'BLL_NH_Raw.xlsx'
 nh2_path <- 'BLL_NH2_Raw.xlsx'
+nh3_path <- 'NH_COUNTY.xlsx'
 
 # if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
 if (exists("drop_get_from_root")) {
-    drop_get_from_root(nc_path)
-    drop_get_from_root(nc2_path)
+    drop_get_from_root(nh_path)
+    drop_get_from_root(nh2_path)
+    drop_get_from_root(nh3_path)
 } else {
     source("../00_drop_box_access.R")
-    drop_get_from_root(nc_path)
-    drop_get_from_root(nc2_path)
+    drop_get_from_root(nh_path)
+    drop_get_from_root(nh2_path)
+    drop_get_from_root(nh3_path)
 }
 
-#TODO: Check all this
-nh <- read.xlsx(nh_path,fillMergedCells = TRUE, colNames = FALSE,startRow=2)
+# read in data
+nh <- read_excel(nh_path, col_names = FALSE, skip = 1)
 
 nhtested <- read_excel(nh2_path,skip=1,na=".") %>% 
   select(-`Missing Census Tract`,-`Total Number of Tests`) %>% 
@@ -40,14 +41,13 @@ nhtested <- read_excel(nh2_path,skip=1,na=".") %>%
          tested=value) %>% 
   select(-n)
 
-countyindex <- read_excel('NH_COUNTY.XLSX') %>% 
+countyindex <- read_excel(nh3_path) %>% 
   mutate(tract = str_sub(GEOID,-6,-1)) %>% 
   mutate(fips = str_sub(GEOID,3,5)) %>% 
   select(GEOID,tract,fips)
 
 ## merging two titles per column into one column name
 new_names <- paste(as.character(nh[1,]), as.character(nh[2,]),sep="_")
-
 names(nh) <- new_names          # assign the new column names
 
 #removing now defunct rows
@@ -56,7 +56,7 @@ nh <- nh %>%
 
 # clean BLL data
 nh <- nh %>% 
-  pivot_longer(cols=!1,names_to = c("tract","measure"),names_sep = "_") %>% 
+  pivot_longer(cols=!1, names_to = c("tract","measure"),names_sep = "_") %>% 
   rename(year=NA_NA) %>% 
   filter(tract!="Missing Census Tract") %>% 
   mutate(tract = str_remove(tract,"Census Tract ")) %>% 
@@ -92,13 +92,14 @@ nh <- nh %>%
   mutate(value = ifelse(value==".",NA,value)) %>% 
   pivot_wider(names_from = measure, values_from = value) %>% 
   rowwise() %>% 
-  mutate(BLL_geq_5 = sum(as.numeric(`6 - 9 �g/dL Venous`),as.numeric(`Capillary Tests`),as.numeric(`Existing 10 �g/dL`),as.numeric(`New 10 �g/dL Venous`),na.rm=TRUE)) %>% 
-  mutate(BLL_geq_10 = sum(as.numeric(`Capillary Tests`),as.numeric(`Existing 10 �g/dL`),as.numeric(`New 10 �g/dL Venous`),na.rm=TRUE)) %>% 
+  mutate(BLL_geq_5 = sum(as.numeric(`6 - 9 µg/dL Venous`),as.numeric(`Capillary Tests`),as.numeric(`Existing 10 µg/dL`),as.numeric(`New 10 µg/dL Venous`),na.rm=TRUE)) %>% 
+  mutate(BLL_geq_10 = sum(as.numeric(`Capillary Tests`),as.numeric(`Existing 10 µg/dL`),as.numeric(`New 10 µg/dL Venous`),na.rm=TRUE)) %>% 
   select(-tract) %>% 
   rename(tract=newtract) %>% 
   mutate(state="NH") %>% 
   relocate(state) %>% 
-  mutate(year=factor(year))
+  mutate(year=factor(year)) %>%
+  select(state, year, tested, tract, BLL_geq_5, BLL_geq_10)
 
 # remove unnecessary variables
 rm(nh2_path, nh_path, nhtested, countyindex, new_names)
