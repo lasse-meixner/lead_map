@@ -18,7 +18,7 @@ source("merging_functions.R")
 
 al <- al %>% 
   mutate(BLL_geq_10=as.character(BLL_geq_10)) %>% 
-  mutate(state="AZ")
+  mutate(state="AL")
 
 il <- il %>% 
   mutate(BLL_geq_10=as.character(BLL_geq_10)) %>% 
