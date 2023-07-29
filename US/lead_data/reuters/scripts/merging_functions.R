@@ -1,6 +1,8 @@
 library(dplyr)
 library(tidyverse)
 
+setwd("../scripts/source files/")
+
 ## This script contains functions to merge the data from the individual states into one dataframe
 
 # list of zip states
@@ -11,23 +13,23 @@ zip_states <- c("AL", "AZ", "IL", "NY", "RI", "LA", "NJ", "VT", "CA", "FL", "IO"
 tract_states <- c("OH", "PA", "CO", "MD", "MA", "MN", "NYC", "NC", "IN", "OR", "NH")
 
 # auxiliary function to load a list of states in case they are not already in memory
-load_states <- function(state_str_list){
-
-  # auxiliary method for single state (function scope)
-  load_state <- function(state_str){
-    # check if the state is already in memory
-    if (exists(str_to_lower(state_str)) == FALSE){
-      # try to source the file, otherwise throw error
-      tryCatch(source(paste0("/Users/peter/OneDrive/Documents/GitHub/leadmap-public/reuters/source files/clean-", state_str, ".R")),
-               error = function(e) {
-                 print(paste0("Error loading ", state_str, " file"))
-               })
-    } else {
-      print(paste0(state_str, " already loaded"))
-    }
-  }
+load_states <- function(state_str_list) {
   # for each state in state_str_list, apply load_state function
   state_str_list |> map(load_state)
+}
+
+# auxiliary method for single state
+load_state <- function(state_str) {
+  # check if get(state_str) throws an error
+  if (exists(str_to_lower(state_str))  == FALSE) {
+  # try to source the file, otherwise throw error
+    tryCatch(source(paste0("clean-", state_str, ".R")),
+              error = function(e) {
+                print(paste0("Error loading ", state_str, " file: ", e$message))
+              })
+  } else {
+    print(paste0(state_str, " already loaded"))
+  }
 }
 
 # function to merge all ZIP states
