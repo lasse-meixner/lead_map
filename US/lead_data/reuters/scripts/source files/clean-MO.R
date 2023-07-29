@@ -46,7 +46,7 @@ mo <- rbind(mo1,mo2,mo3) %>%
   relocate(measure) %>% 
   pivot_longer(cols=3:8,
                names_to = 'year') %>% 
-  mutate(value=as.numeric(value)) %>%
+  mutate(value = replace(value, value=="x", "<5")) %>% # TODO: Check with answer from Missouri State Hleath Dept to confirm confidentiality trigger
   distinct() %>% 
   pivot_wider(names_from = 'measure',
               values_from = 'value') %>% 
