@@ -3,13 +3,13 @@ library(tidyverse)
 
 
          
-ct_path <- '../../raw_files/BLL_CT_Raw.xlsx'
+ct_path <- 'BLL_CT_Raw.xlsx'
 
 # if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
 if (exists("drop_get_from_root")) {
     drop_get_from_root(ct_path)
 } else {
-    source("../scripts/00_drop_box_access.R")
+    source("../00_drop_box_access.R")
     drop_get_from_root(ct_path)
 }
 
@@ -21,8 +21,10 @@ ct <- read_excel(ct_path) %>%
   rename(BLL_geq_5=VGT5_,
          zip=Zip_Code) %>% 
   mutate(state="CT",
-         year=factor(year))
+         year=factor(year),
+         tested = na_if(tested, "."), # . represents NA, not suppression
+         BLL_geq_5 = na_if(BLL_geq_5, "."))
 
          
 # save to csv
-write_csv(ct, "../../processed_files/ct.csv")
+write_csv(ct, "../processed_files/ct.csv")
