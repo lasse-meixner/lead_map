@@ -32,7 +32,6 @@ ga <-  bind_rows(`2005`,`2006`,`2007`,`2008`,`2009`,`2010`,`2011`,`2012`,`2013`,
 
 ga <- ga %>% 
   rename(zip=...1) %>% 
-  mutate(BLL_geq_5=ifelse(is.na(BLL_geq_5),0,BLL_geq_5)) %>% 
   mutate(tested=BLL_geq_5+BLL_leq_5) %>% 
   filter(zip!="NA",
          zip!="All",
@@ -43,7 +42,7 @@ ga <- ga %>%
   relocate(state)
 
 # remove unnecessary variables
-rm(garaw, `2005`,`2006`,`2007`,`2008`,`2009`,`2010`,`2011`,`2012`,`2013`,`2014`,`2015`)
+rm(garaw, df, `2005`,`2006`,`2007`,`2008`,`2009`,`2010`,`2011`,`2012`,`2013`,`2014`,`2015`)
 
 # save to csv
 write_csv(ga, file = "../processed_files/ga.csv")
