@@ -34,8 +34,9 @@ ma <- read_excel(ma_path, sheet = "2005-2015 Individual Years", skip = 0) %>%
   select(-c(COUNTY, TRACT))%>%
   mutate(state = 'MA') %>%
   relocate(state) %>% 
-  select(-`BLL_geq_5_est`,-`_Conf_Est_5+`) %>% ## decision to consider only confirmed instead of eastimed.
+  select(-`BLL_geq_5_est`,-`_Conf_Est_5+`) %>% # decision to consider only confirmed instead of eastimed.
   rename(`BLL_geq_5`=`BLL_geq_5_conf`) %>%
+  mutate(BLL_geq_5 = replace(BLL_geq_5, BLL_geq_5 == "1-5", "<5")) %>% # set "1-5" to "<5"
   mutate(n=nchar(tract)) %>% 
   filter(n==11) %>%  # get the right granularity of tracts (11 digits)
   select(-n)
