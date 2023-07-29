@@ -41,10 +41,11 @@ la <- la %>%
   mutate(BLL_geq_10=replace(BLL_geq_10, BLL_geq_10 == "(b)(6)", "<5"))%>%
   mutate(state = 'LA') %>%
   relocate(state) %>%
-  mutate(year = factor(year))
+  mutate(year = factor(year)) %>%
+  filter(nchar(zip) == 5) # removes 240 of ~20k entries (where ZIP is missing or illegal)
 
 # remove unnecessary variables
-rm(laraw, `2005`,`2006`,`2007`,`2008`,`2009`,`2010`,`2011`,`2012`,`2013`,`2014`,`2015`)
+rm(laraw, df, `2005`,`2006`,`2007`,`2008`,`2009`,`2010`,`2011`,`2012`,`2013`,`2014`,`2015`)
 
 # save to csv
 write_csv(la, file = "../processed_files/la.csv")
