@@ -2,16 +2,15 @@ library(readxl)
 library(tidyverse)
 library(dplyr)
 
-# try to setwd to the raw_files folder, if cannot change directory, assume already in raw_files folder
 
 
-al_path <- '../../raw_files/BLL_AL_Raw.xlsx'
+al_path <- 'BLL_AL_Raw.xlsx'
 
 # if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
 if (exists("drop_get_from_root")) {
     drop_get_from_root(al_path)
 } else {
-    source("../scripts/00_drop_box_access.R")
+    source("../00_drop_box_access.R")
     drop_get_from_root(al_path)
 }
 
@@ -38,4 +37,4 @@ al <- al_path %>%
 
 
 # save to csv
-write_csv(al, "../../processed_files/al.csv")
+write_csv(al, "../processed_files/al.csv")

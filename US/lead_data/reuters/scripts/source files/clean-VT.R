@@ -4,13 +4,13 @@ library(readxl)
 
 
          
-vt_path <- '../../raw_files/BLL_VT_Raw.xlsx'
+vt_path <- 'BLL_VT_Raw.xlsx'
 
 # if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
 if (exists("drop_get_from_root")) {
     drop_get_from_root(vt_path)
 } else {
-    source("../scripts/00_drop_box_access.R")
+    source("../00_drop_box_access.R")
     drop_get_from_root(vt_path)
 }
 # Read in all sheets and bind into a single tibble
@@ -48,4 +48,4 @@ rm(vtraw, `2005`,`2006`,`2007`,`2008`,`2009`,`2010`,`2011`,`2012`,`2013`,`2014`,
 
 
 # save to csv
-write_csv(vt, file = "../../processed_files/vt.csv")
+write_csv(vt, file = "../processed_files/vt.csv")

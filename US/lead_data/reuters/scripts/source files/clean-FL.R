@@ -3,13 +3,13 @@ library(tidyverse)
 
 
          
-fl_path <- '../../raw_files/BLL_FL_Raw.xlsx'
+fl_path <- 'BLL_FL_Raw.xlsx'
 
 # if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
 if (exists("drop_get_from_root")) {
     drop_get_from_root(fl_path)
 } else {
-    source("../scripts/00_drop_box_access.R")
+    source("../00_drop_box_access.R")
     drop_get_from_root(fl_path)
 }
 
@@ -28,4 +28,4 @@ fl <- read_excel(fl_path, skip = 1) %>%
 
 
 # save to csv
-write_csv(fl, "../../processed_files/fl.csv")
+write_csv(fl, "../processed_files/fl.csv")

@@ -3,13 +3,13 @@ library(readxl)
 
 
          
-io_path <- '../../raw_files/BLL_IO_Raw.xlsx'
+io_path <- 'BLL_IO_Raw.xlsx'
 
 # if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
 if (exists("drop_get_from_root")) {
     drop_get_from_root(io_path)
 } else {
-    source("../scripts/00_drop_box_access.R")
+    source("../00_drop_box_access.R")
     drop_get_from_root(io_path)
 }
 
@@ -32,4 +32,4 @@ io <- io_path %>%
   mutate(year = factor(year))
 
 # save to csv
-write_csv(io, file = "../../processed_files/io.csv")
+write_csv(io, file = "../processed_files/io.csv")

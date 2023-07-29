@@ -4,13 +4,13 @@ library(readxl)
 
 
          
-nj_path <- '../../raw_files/BLL_NJ_Raw.xlsx'
+nj_path <- 'BLL_NJ_Raw.xlsx'
 
 # if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
 if (exists("drop_get_from_root")) {
     drop_get_from_root(nj_path)
 } else {
-    source("../scripts/00_drop_box_access.R")
+    source("../00_drop_box_access.R")
     drop_get_from_root(nj_path)
 }
 
@@ -51,4 +51,4 @@ nj <- nj %>%
 rm(njraw, `2005`,`2006`,`2007`,`2008`,`2009`,`2010`,`2011`,`2012`,`2013`,`2014`,`2015`)
 
 # save to csv
-write_csv(nj, file = "../../processed_files/nj.csv")
+write_csv(nj, file = "../processed_files/nj.csv")

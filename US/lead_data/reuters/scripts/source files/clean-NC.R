@@ -3,13 +3,13 @@ library(readxl)
 
 
          
-nc_path <- '../../raw_files/BLL_NC_Raw.xlsx'
+nc_path <- 'BLL_NC_Raw.xlsx'
 
 # if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
 if (exists("drop_get_from_root")) {
     drop_get_from_root(nc_path)
 } else {
-    source("../scripts/00_drop_box_access.R")
+    source("../00_drop_box_access.R")
     drop_get_from_root(nc_path)
 }
 
@@ -59,4 +59,4 @@ nc <- nc %>%
 rm(ncraw, `2005`,`2006`,`2007`,`2008`,`2009`,`2010`,`2011`,`2012`,`2013`,`2014`,`2015`)
 
 # save to csv
-write_csv(nc, file = "../../processed_files/nc.csv")
+write_csv(nc, file = "../processed_files/nc.csv")

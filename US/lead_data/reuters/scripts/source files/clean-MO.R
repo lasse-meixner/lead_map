@@ -3,13 +3,13 @@ library(tidyverse)
 
 
          
-mo_path <- '../../raw_files/BLL_MO_Raw.xlsx'
+mo_path <- 'BLL_MO_Raw.xlsx'
 
 # if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
 if (exists("drop_get_from_root")) {
     drop_get_from_root(mo_path)
 } else {
-    source("../scripts/00_drop_box_access.R")
+    source("../00_drop_box_access.R")
     drop_get_from_root(mo_path)
 }
 
@@ -59,4 +59,4 @@ mo <- rbind(mo1,mo2,mo3) %>%
 rm(mo1,mo2,mo3)
 
 # save to csv
-write_csv(mo, "../../processed_files/mo.csv")
+write_csv(mo, "../processed_files/mo.csv")

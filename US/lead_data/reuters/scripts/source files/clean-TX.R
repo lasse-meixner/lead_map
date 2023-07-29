@@ -11,7 +11,7 @@ tx_path <- "BLL_TX_Raw.sas7bdat"
 if (exists("drop_get_from_root")) {
     drop_get_from_root(tx_path)
 } else {
-    source("../scripts/00_drop_box_access.R")
+    source("../00_drop_box_access.R")
     drop_get_from_root(tx_path)
 }
 
@@ -28,4 +28,4 @@ tx <- read_sas(tx_path) %>%
          
 
 # save to csv
-write_csv(tx, "../../processed_files/tx.csv")
+write_csv(tx, "../processed_files/tx.csv")

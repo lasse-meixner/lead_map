@@ -3,13 +3,13 @@ library(readxl)
 # library(xlsx)
 
 
-az_path <- '../../raw_files/BLL_AZ_Raw.xlsx'
+az_path <- 'BLL_AZ_Raw.xlsx'
 
 # if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
 if (exists("drop_get_from_root")) {
     drop_get_from_root(az_path)
 } else {
-    source("../scripts/00_drop_box_access.R")
+    source("../00_drop_box_access.R")
     drop_get_from_root(az_path)
 }
 
@@ -32,4 +32,4 @@ az <- read_excel(az_path, sheet ='ALL',skip=2) %>%
          year = factor(year),
          state = "AZ")
 # save to csv
-write_csv(az, "../../processed_files/az.csv")
+write_csv(az, "../processed_files/az.csv")

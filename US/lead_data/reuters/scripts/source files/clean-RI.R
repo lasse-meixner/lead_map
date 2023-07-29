@@ -7,13 +7,13 @@ library(tidyverse)
 # See also *R for Data Science* Chapter 12
 
          
-ri_path <- '../../raw_files/BLL_RI_Raw.xlsx'
+ri_path <- 'BLL_RI_Raw.xlsx'
 
 # if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
 if (exists("drop_get_from_root")) {
     drop_get_from_root(ri_path)
 } else {
-    source("../scripts/00_drop_box_access.R")
+    source("../00_drop_box_access.R")
     drop_get_from_root(ri_path)
 }
 
@@ -37,4 +37,4 @@ ri <- read_excel(ri_path, skip = 5) %>%
   mutate(BLL_geq_5=as.character(BLL_geq_5))
   
 # save to csv
-write_csv(ri, file = "../../processed_files/ri.csv")
+write_csv(ri, file = "../processed_files/ri.csv")

@@ -4,13 +4,13 @@ library(readxl)
 
 
          
-co_path <- '../../raw_files/BLL_CO_Raw.xlsx'
+co_path <- 'BLL_CO_Raw.xlsx'
 
 # if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
 if (exists("drop_get_from_root")) {
     drop_get_from_root(co_path)
 } else {
-    source("../scripts/00_drop_box_access.R")
+    source("../00_drop_box_access.R")
     drop_get_from_root(co_path)
 }
 
@@ -38,4 +38,4 @@ co <- rbind(co2010,co2011,co2012,co2013,co2014) %>%
 rm(co2010,co2011,co2012,co2013,co2014)
 
 # save to csv
-write_csv(co, "../../processed_files/co.csv")
+write_csv(co, "../processed_files/co.csv")

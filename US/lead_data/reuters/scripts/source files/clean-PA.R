@@ -4,13 +4,13 @@ library(readxl)
 
 
          
-pa_path <- '../../raw_files/BLL_PA_Raw.xlsx'
+pa_path <- 'BLL_PA_Raw.xlsx'
 
 # if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
 if (exists("drop_get_from_root")) {
     drop_get_from_root(pa_path)
 } else {
-    source("../scripts/00_drop_box_access.R")
+    source("../00_drop_box_access.R")
     drop_get_from_root(pa_path)
 }
 
@@ -53,4 +53,4 @@ pa <- pa %>%
 rm(paraw, `2005`,`2006`,`2007`,`2008`,`2009`,`2010`,`2011`,`2012`,`2013`,`2014`,`2015`)
 
 # save to csv
-write_csv(pa, file = "../../processed_files/pa.csv")
+write_csv(pa, file = "../processed_files/pa.csv")

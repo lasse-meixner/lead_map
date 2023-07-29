@@ -5,13 +5,13 @@ library(dplyr)
 
 
 
-sc_path <- '../../raw_files/BLL_SC_Raw.xlsx'
+sc_path <- 'BLL_SC_Raw.xlsx'
 
 # if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
 if (exists("drop_get_from_root")) {
     drop_get_from_root(sc_path)
 } else {
-    source("../scripts/00_drop_box_access.R")
+    source("../00_drop_box_access.R")
     drop_get_from_root(sc_path)
 }
 
@@ -35,4 +35,4 @@ sc <- sc_path %>%
   mutate(state="SC")
   
 # save to csv
-write_csv(sc, file = "../../processed_files/sc.csv")
+write_csv(sc, file = "../processed_files/sc.csv")

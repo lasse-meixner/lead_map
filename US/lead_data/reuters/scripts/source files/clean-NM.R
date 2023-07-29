@@ -3,13 +3,13 @@ library(readxl)
 # library(xlsx)
 
          
-nm_path <- '../../raw_files/BLL_NM_Raw.xlsx'
+nm_path <- 'BLL_NM_Raw.xlsx'
 
 # if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
 if (exists("drop_get_from_root")) {
     drop_get_from_root(nm_path)
 } else {
-    source("../scripts/00_drop_box_access.R")
+    source("../00_drop_box_access.R")
     drop_get_from_root(nm_path)
 }
 
@@ -33,4 +33,4 @@ nm <- nmraw %>%
   relocate(state)
 
 # save to csv
-write_csv(nm, "../../processed_files/nm.csv")
+write_csv(nm, "../processed_files/nm.csv")

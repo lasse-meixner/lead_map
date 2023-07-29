@@ -4,13 +4,13 @@ library(readxl)
 
 
 
-ks_path <- '../../raw_files/BLL_KS_Raw.xlsx'
+ks_path <- 'BLL_KS_Raw.xlsx'
 
 # if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
 if (exists("drop_get_from_root")) {
     drop_get_from_root(ks_path)
 } else {
-    source("../scripts/00_drop_box_access.R")
+    source("../00_drop_box_access.R")
     drop_get_from_root(ks_path)
 }
 
@@ -48,4 +48,4 @@ ks <- rbind(ks2005,ks2006,ks2007,ks2008,ks2009,ks2010,ks2011,ks2012) %>%
 rm(ks2005,ks2006,ks2007,ks2008,ks2009,ks2010,ks2011,ks2012)
 
 # save to csv
-write_csv(ks, file = "../../processed_files/ks.csv")
+write_csv(ks, file = "../processed_files/ks.csv")
