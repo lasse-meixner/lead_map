@@ -48,7 +48,7 @@ nyc <- nyc %>%
   mutate(tract=substring(tract,2)) %>% 
   mutate(tract=paste0("36",tract)) %>% 
   mutate(n=nchar(tract)) %>% 
-  mutate(tract=ifelse(n==9,paste0(tract,"00"), # I believe this introduces some errors into the tracts!
+  mutate(tract=ifelse(n==9,paste0(tract,"00"), # I believe this introduces some errors into the tracts (it falsely adds some tracts to lower levels - some eye-checked sums didnt work out...) TODO: Check this!
                       ifelse(n==10,paste0(substring(tract,1,5),"0",substring(tract,6,10)),tract)))  %>% 
   distinct()
   
