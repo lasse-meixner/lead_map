@@ -24,8 +24,9 @@ ny <- read_excel(ny_path) %>%
   select(-`County Code`, -`County`) %>% 
   mutate(year=factor(year)) %>% 
   relocate(state) %>% 
-  mutate(tested=ifelse(tested=='*',"<5",tested)) %>% 
-  mutate(BLL_geq_5=ifelse(BLL_geq_5=='*',"<5",BLL_geq_5)) %>% 
+  mutate(tested=ifelse(tested=='*',"<7",tested)) %>% # replace * with <7, as this appears to be the empirical cutoff
+  mutate(BLL_geq_5=ifelse(BLL_geq_5 == '*', "<7", BLL_geq_5)) %>% 
+  mutate(BLL_geq_5=ifelse(BLL_geq_5 == '.', NA, BLL_geq_5)) %>% # replace . with NA
   mutate(zip=as.character(zip))
 
 # save to csv
