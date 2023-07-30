@@ -13,30 +13,45 @@ zip_states <- c("AL", "AZ", "IL", "NY", "RI", "LA", "NJ", "VT", "CA", "FL", "IO"
 tract_states <- c("OH", "PA", "CO", "MD", "MA", "MN", "NYC", "NC", "IN", "OR", "NH")
 
 # auxiliary function to load a list of states in case they are not already in memory
-load_states <- function(state_str_list) {
+load_states <- function(state_str_list, from_raw = TRUE) {
   # for each state in state_str_list, apply load_state function
-  state_str_list |> map(load_state)
+  state_str_list |> map(~load_state(.x, from_raw))
 }
 
 # auxiliary method for single state
-load_state <- function(state_str) {
-  # check if get(state_str) throws an error
-  if (exists(str_to_lower(state_str))  == FALSE) {
-  # try to source the file, otherwise throw error
-    tryCatch(source(paste0("clean-", state_str, ".R")),
-              error = function(e) {
-                print(paste0("Error loading ", state_str, " file: ", e$message))
-              })
+load_state <- function(state_str, from_raw = TRUE) {
+  # check first if data exists in environment
+  if (exists(str_to_lower(state_str)) == FALSE) {
+    if (from_raw) {
+      # try to source the file, otherwise throw error
+      tryCatch(source(paste0("clean-", state_str, ".R")),
+                error = function(e) {
+                  print(paste0("Error loading ", state_str, " file: ", e$message))
+                })
+    } else {
+      # check if the corresponding CSV file exists
+      file_path <- paste0("../../processed_files/", str_to_lower(state_str), ".csv")
+      if (file.exists(file_path)) {
+        # read the CSV file and assign it to the global environment
+        assign(state_str, read_csv(file_path), envir = .GlobalEnv)
+      } else {
+        # try to source the file, otherwise throw error
+        tryCatch(source(paste0("clean-", state_str, ".R")),
+                  error = function(e) {
+                    print(paste0("Error loading ", state_str, " file: ", e$message))
+                  })
+      }
+    }
   } else {
     print(paste0(state_str, " already loaded"))
   }
 }
 
 # function to merge all ZIP states
-merge_zip_states <- function(save = FALSE) {
+merge_zip_states <- function(save = FALSE, from_raw = TRUE) {
 
   # load all zip states
-  load_states(zip_states)
+  load_states(zip_states, from_raw)
   # get list of successfully loaded files (of 2 characters)
   loaded_files <- ls() |> str_subset("^.{2}$")
   # merge them
@@ -51,9 +66,9 @@ merge_zip_states <- function(save = FALSE) {
 }
 
 # function to merge all states (zip & tract)
-merge_all_states <- function(save = FALSE) {
+merge_all_states <- function(save = FALSE, from_raw = TRUE) {
   # load all zip & tract states
-  load_states(c(zip_states, tract_states))
+  load_states(c(zip_states, tract_states), from_raw)
   # source tract-zip_code.R to aggregate tract_states to zip code level and remove tract state objects
   source("tract-zip_code.R")
   rm(list = tract_states) # -> use "_zip" aggregations
