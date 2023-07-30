@@ -41,10 +41,11 @@ vt <- vt %>%
   mutate(BLL_geq_10=replace(BLL_geq_10, BLL_geq_10 == "(b)(6)", "<5"))%>%
   mutate(state = 'VT') %>%
   relocate(state) %>%
-  mutate(year = factor(year))
+  mutate(year = factor(year)) %>%
+  filter(zip != "Missing")
 
 # remove unnecessary variables
-rm(vtraw, `2005`,`2006`,`2007`,`2008`,`2009`,`2010`,`2011`,`2012`,`2013`,`2014`,`2015`)
+rm(vtraw, df, `2005`,`2006`,`2007`,`2008`,`2009`,`2010`,`2011`,`2012`,`2013`,`2014`,`2015`)
 
 
 # save to csv
