@@ -1,6 +1,5 @@
 library(tidyverse)
 library(readxl)
-# library(xlsx)
 
          
 nm_path <- 'BLL_NM_Raw.xlsx'
@@ -31,6 +30,9 @@ nm <- nmraw %>%
   mutate(year=factor(year)) %>% 
   mutate(state="NM") %>% 
   relocate(state)
+
+# remove unnecessary variables
+rm(nmraw)
 
 # save to csv
 write_csv(nm, "../processed_files/nm.csv")

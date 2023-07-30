@@ -56,7 +56,7 @@ nc <- nc %>%
   select(-n,-newn)
 
 # remove unnecessary variables
-rm(ncraw, `2005`,`2006`,`2007`,`2008`,`2009`,`2010`,`2011`,`2012`,`2013`,`2014`,`2015`)
+rm(ncraw, df, `2005`,`2006`,`2007`,`2008`,`2009`,`2010`,`2011`,`2012`,`2013`,`2014`,`2015`)
 
 # save to csv
 write_csv(nc, file = "../processed_files/nc.csv")

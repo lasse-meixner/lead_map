@@ -44,11 +44,12 @@ nj <- nj %>%
   relocate(state) %>%
   mutate(year = factor(year)) %>% 
   mutate(n=nchar(zip)) %>% 
-  mutate(zip=ifelse(n==2,paste0("000",zip),ifelse(n==3,paste0("00",zip),ifelse(n==4,paste0("0",zip),zip))))
+  mutate(zip=ifelse(n==2,paste0("000",zip),ifelse(n==3,paste0("00",zip),ifelse(n==4,paste0("0",zip),zip)))) %>% # add leading zeros
+  filter(nchar(zip) == 5) # remove "missing" and illegal zips
 
 
 # remove unnecessary variables
-rm(njraw, `2005`,`2006`,`2007`,`2008`,`2009`,`2010`,`2011`,`2012`,`2013`,`2014`,`2015`)
+rm(njraw, df, `2005`,`2006`,`2007`,`2008`,`2009`,`2010`,`2011`,`2012`,`2013`,`2014`,`2015`)
 
 # save to csv
 write_csv(nj, file = "../processed_files/nj.csv")
