@@ -5,7 +5,7 @@ library(tabulizer)
 
 
          
-ca_path <- "../../raw_files/BLL_CA_Raw.pdf"
+ca_path <- "/BLL_CA_Raw.pdf"
 
 # if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
 if (exists("drop_get_from_root")) {
