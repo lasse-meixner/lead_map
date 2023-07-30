@@ -50,9 +50,7 @@ oh <- oh %>%
 
 
 # remove unnecessary variables
-rm(ohraw, `2005`,`2006`,`2007`,`2008`,`2009`,`2010`,`2011`,`2012`,`2013`,`2014`,`2015`)
+rm(ohraw, df, `2005`,`2006`,`2007`,`2008`,`2009`,`2010`,`2011`,`2012`,`2013`,`2014`,`2015`)
 
 # save to csv
 write_csv(oh, file = "../processed_files/oh.csv")
-
-# NOTE: Surpressed tracts have <5 but >0! If tested is surpressed, BLL_geq_5 and BLL_geq_10 are also surpressed.
