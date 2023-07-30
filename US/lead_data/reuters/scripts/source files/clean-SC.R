@@ -31,8 +31,11 @@ sc <- sc_path %>%
          BLL_geq_10=5) %>% 
   filter(zip!="UNKNOWN",
          zip!="SOUTH CAROLINA") %>% 
-  mutate(year=factor(year)) %>% 
-  mutate(state="SC")
+  mutate(year=factor(year),
+         state="SC",
+         tested=replace(tested, tested == "~", "<5"),
+         BLL_geq_5=replace(BLL_geq_5, BLL_geq_5 == "~", "<5"),
+         BLL_geq_10=replace(BLL_geq_10, BLL_geq_10 == "~", "<5"))
   
 # save to csv
 write_csv(sc, file = "../processed_files/sc.csv")
