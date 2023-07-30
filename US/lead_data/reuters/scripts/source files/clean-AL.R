@@ -28,12 +28,9 @@ al <- al_path %>%
   rename(year = sheet,
          tested = Total,
          BLL_geq_10 = `10 and greater`) %>%
-  mutate(state = 'AL') %>%
-  relocate(state) %>%
-  mutate(across(tested:BLL_geq_10, ~as.integer(.))) %>%
-  mutate(year = factor(year)) %>% 
-  mutate(tested=as.character(tested)) %>% 
-  mutate(BLL_geq_5=as.character(BLL_geq_5))
+  mutate(state = 'AL',
+         year = factor(year)) %>%
+  relocate(state)
 
 
 # save to csv
