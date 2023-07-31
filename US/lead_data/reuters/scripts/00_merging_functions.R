@@ -35,21 +35,26 @@ load_state <- function(state_str, from_raw = FALSE) {
   # check first if data exists in environment
   if (exists(str_to_lower(state_str)) == FALSE) {
     if (from_raw) {
-      # try to source the file, otherwise throw error
-      tryCatch(source(paste0("clean-", state_str, ".R")),
-                error = function(e) {
-                  print(paste0("Error loading ", state_str, " file: ", e$message))
-                })
+      print(paste0("Building ", state_str, " from raw_files"))
+      # try to set wd to ../../raw_files and then source the file script, otherwise catch error
+        tryCatch(setwd("../../raw_files"), error = function(e) e$message)
+        tryCatch(source(paste0("../scripts/source files/clean-", state_str, ".R")),
+                  error = function(e) {
+                    print(paste0("Error loading ", state_str, " file: ", e$message))
+                  })
     } else {
+      print(paste0("Loading ", state_str, " from processed_files"))
       # check if the corresponding CSV file exists
       file_path <- paste0("../../processed_files/", str_to_lower(state_str), ".csv")
       if (file.exists(file_path)) {
         # read the CSV file and assign it to the global environment, and do not return anything
         data <- read_csv(file_path)
         assign(str_to_lower(state_str), data, envir = .GlobalEnv)
-      } else {
-        # try to source the file, otherwise throw error
-        tryCatch(source(paste0("clean-", state_str, ".R")),
+      } else { # if the from_disk option fails, try to source anyway:
+        print(paste0("No processed file for ", state_str, " found, loading from source files"))
+        # try to set wd to ../../raw_files and then source the file script, otherwise catch error
+        tryCatch(setwd("../../raw_files"), error = function(e) e$message)
+        tryCatch(source(paste0("../scripts/source files/clean-", state_str, ".R")),
                   error = function(e) {
                     print(paste0("Error loading ", state_str, " file: ", e$message))
                   })
@@ -64,11 +69,21 @@ load_state <- function(state_str, from_raw = FALSE) {
 merge_loaded_data <- function(states_list) {
   # get list of loaded data frames
   loaded_data <- mget(states_list, envir = .GlobalEnv)
+  # add BLL_geq_5 and BLL_geq_10 columns with NA values if they don't exist
+  loaded_data <- lapply(loaded_data, function(x) {
+    if (!("BLL_geq_5" %in% colnames(x))) {
+      x$BLL_geq_5 <- NA
+    }
+    if (!("BLL_geq_10" %in% colnames(x))) {
+      x$BLL_geq_10 <- NA
+    }
+    x
+  })
   # select the zip vars for and combine the data frames into a single data frame
   combined_data <- loaded_data |>
     map(~ .x %>%
           select(all_of(zip_var_list)) %>%
-          mutate(across(c(BLL_geq_5, BLL_geq_10, tested), as.character))) |>
+          mutate(across(c(zip, state, BLL_geq_5, BLL_geq_10, tested), as.character))) |>
     bind_rows()
   # return the combined data frame
   combined_data
