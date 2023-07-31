@@ -14,8 +14,8 @@ zip_states <- c("AL", "AZ", "IL", "NY", "RI", "LA", "NJ", "VT", "CA", "FL", "IO"
 # list of tract states
 tract_states <- c("OH", "PA", "CO", "MD", "MA", "MN", "NYC", "NC", "IN", "OR", "NH")
 
-# list of variables for zip merge
-zip_var_list <- c("state", "year", "zip", "BLL_geq_5", "BLL_geq_10", "tested")
+# list of variables except zip OR tract
+var_list <- c("state", "year", "BLL_geq_5", "BLL_geq_10", "tested")
 
 # auxiliary function to run all cleaning scripts
 run_all_states <- function() {
@@ -66,7 +66,7 @@ load_state <- function(state_str, from_raw = FALSE) {
 }
 
 # auxiliary function to merge SELECTED data that is in memory
-merge_loaded_data <- function(states_list) {
+merge_loaded_data <- function(states_list, level = "zip") {
   # get list of loaded data frames
   loaded_data <- mget(states_list, envir = .GlobalEnv)
   # add BLL_geq_5 and BLL_geq_10 columns with NA values if they don't exist
@@ -82,8 +82,8 @@ merge_loaded_data <- function(states_list) {
   # select the zip vars for and combine the data frames into a single data frame
   combined_data <- loaded_data |>
     map(~ .x %>%
-          select(all_of(zip_var_list)) %>%
-          mutate(across(c(zip, state, BLL_geq_5, BLL_geq_10, tested), as.character))) |>
+          select(all_of(c(var_list, {{level}}))) %>%
+          mutate(across(c({{level}}, state, BLL_geq_5, BLL_geq_10, tested), as.character))) |>
     bind_rows()
   # return the combined data frame
   combined_data
