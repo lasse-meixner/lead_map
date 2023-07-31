@@ -34,14 +34,33 @@ desc
 
 ## ZIP level
 
+From the table we already know that among the zip-level states, some do not suppress any data:
+
+```{r}
+desc |>
+  rename(level = "Reporting Level") |> 
+  filter((level == "zip") & (Suppression == "FALSE"))
+```
+
+
 ```{r}
 # load and merge all ZIP states
 # setwd to source files
 setwd("../scripts/source files/")
 source("../00_merging_functions.R")
 load_states(zip_states)
-merged <- merge_loaded_data(str_to_lower(zip_states))
 ```
+
+Merging:
+
+```{r}
+merged <- merge_loaded_data(str_to_lower(zip_states))
+# get rid of individual zip state files
+rm(list = str_to_lower(zip_states))
+dim(merged)
+```
+
+The combined zip data has around 290k observations.
 
 How many zips are suppressed in each state?
 
@@ -71,12 +90,83 @@ suppr_summ |>
 
 ```{r}
 # plot a scatter of the suppressed tested and BLL_geq_5 ratios
-suppr_summ |> 
+suppr_summ |>
+  filter((perc_BLL_5_sup != 0) & (perc_tested_sup != 0)) |> 
   ggplot(aes(x = perc_tested_sup, y = perc_BLL_5_sup)) +
   geom_point() +
-  labs(x = "Percent of ZIPs with suppressed tested counts",
-       y = "Percent of ZIPs with suppressed BLL_geq_5 counts",
+  labs(x = "% of ZIPs with suppressed tested counts",
+       y = "% of ZIPs with suppressed BLL_geq_5 counts",
        title = "Scatter of ZIP suppression rates") +
-  geom_text(aes(label = state), nudge_x = 0.01, nudge_y = 0.01) +
+  geom_text(aes(label = state), nudge_x = 0.03, nudge_y = - 0.03) +
+  scale_x_continuous(limits = c(0, 1)) +
+  scale_y_continuous(limits = c(0, 1)) +
   theme_bw()
 ```
+
+## Tract level
+
+```{r}
+load_states(tract_states)
+```
+
+The combined tract level data has around 300k observations.
+
+```{r}
+merged_tract <- merge_loaded_data(str_to_lower(tract_states), level = "tract")
+# remove individual states
+rm(list = str_to_lower(tract_states))
+dim(merged_tract)
+```
+
+Let's look at the same suppression statistics as for zips.
+
+First, note that again, there are some states that report at tracts and do not suppress at all:
+
+```{r}
+desc |>
+  rename(level = "Reporting Level") |> 
+  filter((str_detect(str_to_lower(level), "tract")) & (Suppression == "FALSE"))
+```
+For the others, suppression rates vary:
+
+```{r}
+merged_tract <- merged_tract |> 
+  # check suppression using whether first character is "<"
+  mutate(BLL_geq_5_sup = str_detect(BLL_geq_5, "<"),
+         BLL_geq_10_sup = str_detect(BLL_geq_10, "<"),
+         tested_sup = str_detect(tested, "<"))
+
+```
+
+```{r}
+suppr_summ_tract <- merged_tract |> 
+  group_by(state) |> 
+  summarize(n_tracts = n(),
+            n_BLL_5_sup = sum(BLL_geq_5_sup, na.rm = TRUE),
+            n_BLL_10_sup = sum(BLL_geq_10_sup, na.rm = TRUE),
+            n_tested_sup = sum(tested_sup, na.rm = TRUE)) |> 
+  mutate(perc_BLL_5_sup = n_BLL_5_sup / n_tracts,
+         perc_BLL_10_sup = n_BLL_10_sup / n_tracts,
+         perc_tested_sup = n_tested_sup / n_tracts)
+
+# display results sorted by tested_sup
+suppr_summ_tract |> 
+  arrange(desc(perc_tested_sup))
+```
+```{r}
+# plot a scatter of the suppressed tested and BLL_geq_5 ratios
+suppr_summ_tract |>
+  filter((perc_BLL_5_sup != 0) & (perc_tested_sup != 0)) |> 
+  ggplot(aes(x = perc_tested_sup, y = perc_BLL_5_sup)) +
+  geom_point() +
+  labs(x = "% of tracts with suppressed tested counts",
+       y = "% of tracts with suppressed BLL_geq_5 counts",
+       title = "Scatter of ZIP suppression rates") +
+  geom_text(aes(label = state), nudge_x = 0.03, nudge_y = - 0.03) +
+  scale_x_continuous(limits = c(0, 1)) +
+  scale_y_continuous(limits = c(0, 1)) +
+  theme_bw()
+```
+### Aggregation to ZIPs
+
+# TODO:
