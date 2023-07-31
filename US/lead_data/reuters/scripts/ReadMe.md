@@ -18,20 +18,25 @@ All source files compute the following variables for each state:
 - BLL_geq_10
 
 Suppression for tested, BLL_geq_5, and BLL_geq_10 varies from state to state, and is encoded differently in the raw files. We do not want to get rid of the information contained in suppressed counts, even though they are a bit harder to handle.
-The source scripts take care of this, by representing suppression consistently as follows: "\<X" means the value is suppressed, and moreover a non-zero number lower than X.
-In some states, the number of tested (and/or BLL_geq_5) is computed from suppressed variables themselves. In this case, the number is correspondingly represented as "\<X&\>Y", where X is the upper bound of the suppressed range, and Y is the lower bound.
+The source scripts take care of this, by representing suppression consistently as follows: 
 
-This representation of suppression across all states' data allows to parse and handle suppression consistently all the way down the pipeline.
+- "\<X" means the value is suppressed, and moreover a non-zero number lower than X.
+- 
+In some states, the number of tested (and/or BLL_geq_5) is computed from suppressed variables themselves. In this case, the number is correspondingly represented as:
+
+- "\<X&\>Y", where X is the upper bound of the suppressed range, and Y is the lower bound.
+
+This representation of suppression across all states' data could allow us to parse and handle suppression consistently all the way down the pipeline.
 
 ## merging_functions.R
 This file contains a range of low-level wrapper functions that help clean, process, and merge the data from individual states. 
-It also contains two HIGH-level wrappers that call the entire pipeline.
+It also contains two HIGH-level wrappers that call the entire cleaning and merging pipeline.
 
 ## Running source files:
 DropBox authentication will set the working directory into /raw_files. 
 Call any script from there, e.g. `source("../scripts/source files/clean-IL.R")`
 
-If you wish to run all states at once, you can use the *run_all_states()* function after source `source("../scripts/merging_functions.R")`.
+If you wish to run all states at once, you can use the *run_all_states()* function after `source("../scripts/merging_functions.R")`.
 
 
 ## mergingstates.R
