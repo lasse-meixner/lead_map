@@ -21,7 +21,7 @@ Suppression for tested, BLL_geq_5, and BLL_geq_10 varies from state to state, an
 The source scripts take care of this, by representing suppression consistently as follows: 
 
 - "\<X" means the value is suppressed, and moreover a non-zero number lower than X.
-- 
+  
 In some states, the number of tested (and/or BLL_geq_5) is computed from suppressed variables themselves. In this case, the number is correspondingly represented as:
 
 - "\<X&\>Y", where X is the upper bound of the suppressed range, and Y is the lower bound.
