@@ -47,6 +47,7 @@ ind <- left_join(ind,ind_county_codes) %>%
   select(-test) %>% 
   mutate(year=substring(year,1,4)) %>% 
   mutate(year=factor(year)) %>% 
+  mutate(state = "IN") %>%
   mutate(measure=ifelse(type=="Elev","BLL_geq_5","tested")) %>% 
   select(-type) %>% 
   pivot_wider(names_from=measure,values_from=value)

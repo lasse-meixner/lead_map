@@ -47,7 +47,8 @@ or2 <- or_path %>%
   ) %>%
   select(-1) %>%
   mutate(year = factor(year),
-         tract = as.character(tract))
+         tract = as.character(tract),
+         state = "OR")
 
 
 # Better to use a "join" function from dplyr so you get a tibble. Also it's
