@@ -1,0 +1,82 @@
+This notebook analyses some of the suppression issues present in the cleaned data files.
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(readxl)
+```
+
+# Motivating questions:
+
+1.  Find out if any zips / tracts suppress counts of tests in addition to counts of elevated BLLs. I think the answer is yes, but this may potentially vary by State.
+2.  Create summaries / counts / histograms that explain the pattern and extent of suppressed counts, including:
+
+<!-- -->
+
+a.  How many zips / tracts are suppressed in each state?
+b.  If we were to aggregate tracts to zips, how often would we be aggregating 1 suppressed, 2 suppressed, etc. units. I'm not sure the best way of displaying this. Maybe a histogram?
+
+<!-- -->
+
+3.  Make a spreadsheet with the state-level conventions for cell suppression: what is suppressed, and what is the cutoff? Any other relevant information?
+
+The answer to 1 & 3 is contained in the excel sheet in which we collect all information regarding raw BLL data files: "description-of-raw-BLL_data.xlsx". **This notebook will focus on 2.**
+
+## Read in Excel sheet
+
+```{r}
+# read in "description-of-raw-BLL_data.xlsx"
+desc <- read_excel("../description-of-raw-BLL-data.xlsx", sheet = 1) |> 
+  select(State, "Reporting Level", Suppression) 
+
+desc
+```
+
+## ZIP level
+
+```{r}
+# load and merge all ZIP states
+# setwd to source files
+setwd("../scripts/source files/")
+source("../00_merging_functions.R")
+load_states(zip_states)
+merged <- merge_loaded_data(str_to_lower(zip_states))
+```
+
+How many zips are suppressed in each state?
+
+```{r}
+merged <- merged |> 
+  # check suppression using whether first character is "<"
+  mutate(BLL_geq_5_sup = str_detect(BLL_geq_5, "<"),
+         BLL_geq_10_sup = str_detect(BLL_geq_10, "<"),
+         tested_sup = str_detect(tested, "<"))
+```
+
+```{r}
+suppr_summ <- merged |> 
+  group_by(state) |> 
+  summarize(n_zips = n(),
+            n_BLL_5_sup = sum(BLL_geq_5_sup, na.rm = TRUE),
+            n_BLL_10_sup = sum(BLL_geq_10_sup, na.rm = TRUE),
+            n_tested_sup = sum(tested_sup, na.rm = TRUE)) |> 
+  mutate(perc_BLL_5_sup = n_BLL_5_sup / n_zips,
+         perc_BLL_10_sup = n_BLL_10_sup / n_zips,
+         perc_tested_sup = n_tested_sup / n_zips)
+
+# display results sorted by tested_sup
+suppr_summ |> 
+  arrange(desc(perc_tested_sup))
+```
+
+```{r}
+# plot a scatter of the suppressed tested and BLL_geq_5 ratios
+suppr_summ |> 
+  ggplot(aes(x = perc_tested_sup, y = perc_BLL_5_sup)) +
+  geom_point() +
+  labs(x = "Percent of ZIPs with suppressed tested counts",
+       y = "Percent of ZIPs with suppressed BLL_geq_5 counts",
+       title = "Scatter of ZIP suppression rates") +
+  geom_text(aes(label = state), nudge_x = 0.01, nudge_y = 0.01) +
+  theme_bw()
+```
