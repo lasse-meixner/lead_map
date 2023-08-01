@@ -12,12 +12,11 @@ library(dplyr)
 ma_path <- 'BLL_MA_Raw.xlsx'
 
 # if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
-if (exists("drop_get_from_root")) {
-    drop_get_from_root(ma_path)
-} else {
+if (!exists("drop_get_from_root")) {
     source("../00_drop_box_access.R")
-    drop_get_from_root(ma_path)
 }
+
+drop_get_from_root(ma_path)
 
 ma <- read_excel(ma_path, sheet = "2005-2015 Individual Years", skip = 0) %>%
   mutate_at(vars(contains("Num_Scr")), as.character) %>%

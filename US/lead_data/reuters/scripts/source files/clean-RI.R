@@ -10,12 +10,11 @@ library(tidyverse)
 ri_path <- 'BLL_RI_Raw.xlsx'
 
 # if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
-if (exists("drop_get_from_root")) {
-    drop_get_from_root(ri_path)
-} else {
+if (!exists("drop_get_from_root")) {
     source("../00_drop_box_access.R")
-    drop_get_from_root(ri_path)
 }
+
+drop_get_from_root(ri_path)
 
 
 ri <- read_excel(ri_path, skip = 5) %>%

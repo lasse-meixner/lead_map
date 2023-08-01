@@ -7,12 +7,11 @@ library(dplyr)
 al_path <- 'BLL_AL_Raw.xlsx'
 
 # if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
-if (exists("drop_get_from_root")) {
-    drop_get_from_root(al_path)
-} else {
+if (!exists("drop_get_from_root")) {
     source("../00_drop_box_access.R")
-    drop_get_from_root(al_path)
 }
+
+drop_get_from_root(al_path)
 
 # Read in all sheets and bind into a single tibble
 # (based on <https://readxl.tidyverse.org/articles/readxl-workflows.html>)

@@ -8,12 +8,11 @@ library(haven)
 tx_path <- "BLL_TX_Raw.sas7bdat"
 
 # if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
-if (exists("drop_get_from_root")) {
-    drop_get_from_root(tx_path)
-} else {
+if (!exists("drop_get_from_root")) {
     source("../00_drop_box_access.R")
-    drop_get_from_root(tx_path)
 }
+
+drop_get_from_root(tx_path)
 
 tx <- read_sas(tx_path) %>% 
   rename(year = year_test,

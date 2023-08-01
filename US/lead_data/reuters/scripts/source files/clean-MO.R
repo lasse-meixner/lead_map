@@ -6,12 +6,11 @@ library(tidyverse)
 mo_path <- 'BLL_MO_Raw.xlsx'
 
 # if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
-if (exists("drop_get_from_root")) {
-    drop_get_from_root(mo_path)
-} else {
+if (!exists("drop_get_from_root")) {
     source("../00_drop_box_access.R")
-    drop_get_from_root(mo_path)
 }
+
+drop_get_from_root(mo_path)
 
 
 ## Missouri stored data in different sheets. This aggregates those sheets and brings them together

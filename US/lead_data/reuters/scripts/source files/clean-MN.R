@@ -6,12 +6,11 @@ library(readxl)
 
 mn_path <- 'BLL_MN_Raw.xlsx'
 
-if (exists("drop_get_from_root")) {
-    drop_get_from_root(mn_path)
-} else {
+if (!exists("drop_get_from_root")) {
     source("../00_drop_box_access.R")
-    drop_get_from_root(mn_path)
 }
+
+drop_get_from_root(mn_path)
 
 mn <- read_excel(mn_path) %>% 
   mutate(tested_2005_2010=ifelse(tested_2005_2010=='.',NA,tested_2005_2010)) %>% 

@@ -6,12 +6,11 @@ library(readxl)
 ga_path <- 'BLL_GA_Raw.xlsx'
 
 # if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
-if (exists("drop_get_from_root")) {
-    drop_get_from_root(ga_path)
-} else {
+if (!exists("drop_get_from_root")) {
     source("../00_drop_box_access.R")
-    drop_get_from_root(ga_path)
 }
+
+drop_get_from_root(ga_path)
 
 garaw <- ga_path %>%
   excel_sheets() %>% # Read in the names of all sheets in the .xlsx file

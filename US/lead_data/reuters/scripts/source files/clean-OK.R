@@ -7,12 +7,11 @@ library(readxl)
 ok_path <- 'BLL_OK_Raw.xlsx'
 
 # if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
-if (exists("drop_get_from_root")) {
-    drop_get_from_root(ok_path)
-} else {
+if (!exists("drop_get_from_root")) {
     source("../00_drop_box_access.R")
-    drop_get_from_root(ok_path)
 }
+
+drop_get_from_root(ok_path)
 
 okraw <- ok_path %>%
   excel_sheets() %>% # Read in the names of all sheets in the .xlsx file

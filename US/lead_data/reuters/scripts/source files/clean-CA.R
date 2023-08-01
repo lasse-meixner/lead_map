@@ -8,12 +8,11 @@ library(readxl)
 ca_path <- "BLL_CA_Raw.xlsx"
 
 # if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
-if (exists("drop_get_from_root")) {
-    drop_get_from_root(ca_path)
-} else {
+if (!exists("drop_get_from_root")) {
     source("../00_drop_box_access.R")
-    drop_get_from_root(ca_path)
 }
+
+drop_get_from_root(ca_path)
 
 ca <- read_excel(ca_path) |> 
     rename(zip = ZIP) |>

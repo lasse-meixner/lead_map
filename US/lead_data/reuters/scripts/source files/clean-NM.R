@@ -5,12 +5,11 @@ library(readxl)
 nm_path <- 'BLL_NM_Raw.xlsx'
 
 # if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
-if (exists("drop_get_from_root")) {
-    drop_get_from_root(nm_path)
-} else {
+if (!exists("drop_get_from_root")) {
     source("../00_drop_box_access.R")
-    drop_get_from_root(nm_path)
 }
+
+drop_get_from_root(nm_path)
 
 nmraw <- nm_path %>%
   excel_sheets() %>% # Read in the names of all sheets in the .xlsx file

@@ -7,12 +7,11 @@ library(dplyr)
 ny_path <- 'BLL_NY_Raw.xlsx'
 
 # if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
-if (exists("drop_get_from_root")) {
-    drop_get_from_root(ny_path)
-} else {
+if (!exists("drop_get_from_root")) {
     source("../00_drop_box_access.R")
-    drop_get_from_root(ny_path)
 }
+
+drop_get_from_root(ny_path)
 
 
 ny <- read_excel(ny_path) %>%

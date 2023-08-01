@@ -7,12 +7,11 @@ library(dplyr)
 il_path <- 'BLL_IL_Raw.xlsx'
 
 # if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
-if (exists("drop_get_from_root")) {
-    drop_get_from_root(il_path)
-} else {
+if (!exists("drop_get_from_root")) {
     source("../00_drop_box_access.R")
-    drop_get_from_root(il_path)
 }
+
+drop_get_from_root(il_path)
 
 il <- read_excel(il_path) %>% 
   pivot_longer(Test2005:ebl2015) %>% 

@@ -8,12 +8,11 @@ library(dplyr)
 sc_path <- 'BLL_SC_Raw.xlsx'
 
 # if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
-if (exists("drop_get_from_root")) {
-    drop_get_from_root(sc_path)
-} else {
+if (!exists("drop_get_from_root")) {
     source("../00_drop_box_access.R")
-    drop_get_from_root(sc_path)
 }
+
+drop_get_from_root(sc_path)
 
 
 # Read in all sheets and bind into a single tibble
