@@ -9,8 +9,9 @@ import pyproj
 import dash
 from dash import Input, Output
 
+
 def get_msoa_merged_shapefile():
-    msoa = gpd.read_file("../raw_data/shapefiles/msoa/england_msoa_2011.shp") #10s load
+    msoa = gpd.read_file("../raw_data/shapefiles/msoa/england_msoa_2011_simple.shp") # get the downsampled file
     msoa.to_crs(pyproj.CRS.from_epsg(4326), inplace=True)
     msoa.rename({"code":"msoa11cd", "name":"msoa_name"}, axis=1, inplace=True)
     df = pd.read_csv("../processed_data/combined_msoa.csv")
@@ -71,9 +72,11 @@ app.layout = dash.html.Div([
     Input("search", "value")
 )
 def update_choropleth(predictor, search):
-
-    # subset data based on whether substring is in name
-    merged_sub = merged[merged["msoa_name_x"].str.contains(search)]
+    # subset data based on whether substring is in name IF search is not empty
+    if len(search) == 0:
+        merged_sub = merged
+    else:
+        merged_sub = merged[merged["msoa_name_x"].str.contains(search)]
     # plot
     fig = px.choropleth_mapbox(
         merged_sub,
