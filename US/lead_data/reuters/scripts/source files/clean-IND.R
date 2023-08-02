@@ -56,4 +56,4 @@ ind <- left_join(ind,ind_county_codes) %>%
 rm(ind_county_codes)
 
 # save to csv
-write_csv(ind, "../processed_files/in.csv")
+write_csv(ind, "../processed_files/ind.csv")
