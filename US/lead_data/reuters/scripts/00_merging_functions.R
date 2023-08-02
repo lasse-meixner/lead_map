@@ -12,7 +12,7 @@ zip_states <- c("AL", "AZ", "IL", "NY", "RI", "LA", "NJ", "VT", "CA", "FL", "IO"
                 "SC", "DC", "MI", "GA", "NM", "MO", "OK", "TX", "TN", "VA", "KS")
 
 # list of tract states
-tract_states <- c("OH", "PA", "CO", "MD", "MA", "MN", "NYC", "NC", "IN", "OR", "NH")
+tract_states <- c("OH", "PA", "CO", "MD", "MA", "MN", "NYC", "NC", "IND", "OR", "NH", "WI")
 
 # list of variables except zip OR tract
 var_list <- c("state", "year", "BLL_geq_5", "BLL_geq_10", "tested")
@@ -83,7 +83,8 @@ merge_loaded_data <- function(states_list, level = "zip") {
   combined_data <- loaded_data |>
     map(~ .x %>%
           select(all_of(c(var_list, {{level}}))) %>%
-          mutate(across(c({{level}}, state, BLL_geq_5, BLL_geq_10, tested), as.character))) |>
+          mutate(across(c({{level}}, state, BLL_geq_5, BLL_geq_10, tested), as.character)) |>
+          mutate(year = as.factor(year))) |> 
     bind_rows()
   # return the combined data frame
   combined_data
