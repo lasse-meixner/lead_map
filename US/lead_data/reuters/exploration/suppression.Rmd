@@ -83,10 +83,13 @@ suppr_summ <- merged |>
 
 ```
 
+There can be suppression both in "tested" as well as in the BLL counts. If the number of tested is suppressed, the count of EBLLs is also suppressed or 0. For 13 states, there is suppression also at the testing level:
+
 ```{r}
 # display results sorted by tested_sup
 suppr_summ |> 
-  arrange(desc(perc_tested_sup))
+  arrange(desc(perc_tested_sup)) |> 
+  relocate(perc_tested_sup, .after = state)
 ```
 
 ```{r}
@@ -107,10 +110,11 @@ suppr_summ |>
 ## Tract level
 
 ```{r}
+setwd("../scripts/source files/")
 load_states(tract_states)
 ```
 
-The combined tract level data has around 300k observations.
+The combined tract level data has around 300k observations:
 
 ```{r}
 merged_tract <- merge_loaded_data(str_to_lower(tract_states), level = "tract")
@@ -141,6 +145,7 @@ merged_tract <- merged_tract |>
 ```
 
 ```{r}
+# get summary stats
 suppr_summ_tract <- merged_tract |> 
   group_by(state) |> 
   summarize(n_tracts = n(),
@@ -155,7 +160,8 @@ suppr_summ_tract <- merged_tract |>
 ```{r}
 # display results sorted by tested_sup
 suppr_summ_tract |> 
-  arrange(desc(perc_tested_sup))
+  arrange(desc(perc_tested_sup)) |> 
+  relocate(perc_tested_sup, .after = state)
 ```
 
 ```{r}
@@ -172,6 +178,8 @@ suppr_summ_tract |>
   scale_y_continuous(limits = c(0, 1)) +
   theme_bw()
 ```
+
+Oregon, for example, has **all** of its tracts with suppressed BLL counts.
 
 ### Aggregating tracts to ZIPs
 
@@ -249,7 +257,8 @@ agg_results <- merged_tract |>
             cum_RES_RATIO = sum(RES_RATIO, na.rm = TRUE),
             # get sum of RES RATIO for suppressed tracts
             cum_RES_RATIO_sup = sum(RES_RATIO[any_sup], na.rm = TRUE)) |> 
-  arrange(desc(perc_any_sup))
+  arrange(desc(perc_any_sup)) |> 
+  relocate(perc_any_sup, .after = ZIP)
 
 agg_results
 ```
@@ -264,3 +273,5 @@ agg_results |>
        x = "% of tracts with suppression in ANY variable",
        y = "Count")
 ```
+
+"Good news" is that there is a large mass on 0: These are ZIPS for which NONE of the tracts in it have any sort of suppression.
