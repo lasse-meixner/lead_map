@@ -34,7 +34,8 @@ wi <- wi_raw |>
   # divide the numeric variables by 4
   mutate(tested = (tested / 4),
          BLL_geq_5 = ifelse(is_sup, "<1.25", as.numeric(BLL_geq_5_num / 4))) |> 
-  select(-is_sup, BLL_geq_5_num)
+  select(-is_sup, -BLL_geq_5_num) |> 
+  relocate(state)
 
   # remove the raw file
   rm(wi_raw)

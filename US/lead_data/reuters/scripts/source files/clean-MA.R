@@ -31,7 +31,8 @@ ma <- read_excel(ma_path, sheet = "2005-2015 Individual Years", skip = 0) %>%
           town = `County Name`) %>%
   mutate(tract=paste("25", COUNTY, TRACT, sep = ""))%>%
   select(-c(COUNTY, TRACT))%>%
-  mutate(state = 'MA') %>%
+  mutate(state = 'MA',
+         year = factor(year)) %>%
   relocate(state) %>% 
   select(-`BLL_geq_5_est`,-`_Conf_Est_5+`) %>% # decision to consider only confirmed instead of eastimed.
   rename(`BLL_geq_5`=`BLL_geq_5_conf`) %>%
