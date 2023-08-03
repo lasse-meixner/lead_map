@@ -1,7 +1,9 @@
+
 # Function to get US census data (Decennial Census and ACS) and feature geometry for a given geographical level
 
+source("00_agg_funcs.R")
 
-get_census_data_us <- function(geography_type) {
+get_census_data_us <- function(geography_type, state_str = NULL) {
   
   # First, we get the variables we need from the 2010 Decennial Census
   # We include in this call the feature geometry for ZCTAs and use shift_geometry() to adjust the feature geometry 
@@ -10,6 +12,7 @@ get_census_data_us <- function(geography_type) {
   
   dec_2010 <- get_decennial(
     geography = geography_type,
+    state = state_str,
     variables = c(urban_ppl_prop = "PCT002002"),
     year = 2010,
     output = "wide",
@@ -50,6 +53,8 @@ get_census_data_us <- function(geography_type) {
   # of the processing)
   
   acs <- get_acs(geography = geography_type,
+                 state = state_str,
+                 # TODO: Should we not query for an earlier year than the default = 2021?
                  variables = c(median_annual_income = "B06011_001",
                                renter_occupied_hu = "B25003_003",
                                total_occupied_hu = "B25003_001",
@@ -239,7 +244,7 @@ get_census_data_us <- function(geography_type) {
   
   for (i in c(1:nrow(acs))) {
     vector_of_frequencies <- unlist(acs[i, year_col_1st:year_col_last], use.names = FALSE)
-    acs$build_year_median[i] = GroupedMedian(vector_of_frequencies, year_intervals_us)
+    acs$build_year_median[i] = get_GroupedMedian(vector_of_frequencies, year_intervals_us)
   }
   
   # Impute mean build years
@@ -259,7 +264,6 @@ get_census_data_us <- function(geography_type) {
   # Convert it to an sf object so that you can use the feature geometry
   
   acs_dec <- left_join(acs, dec_2010) %>%
-    rename("zcta_name" = "NAME") %>%
     st_as_sf()
   
   acs_dec

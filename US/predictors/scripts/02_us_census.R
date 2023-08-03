@@ -1,5 +1,3 @@
-# The code in this script obtains data from the US Census Bureau API and processes it
-
 library(tidycensus)
 library(tigris)
 library(tidyverse)
@@ -7,21 +5,17 @@ library(stringr)
 library(sf)
 library(naniar)
 
-# See 01 script for how the function is set up 
-
+# See 00_US_census_API for how the function is set up 
 # Remember to add API key to environment using census_api_key() before running the below
 
-acs_dec_zcta <- get_census_data_us("zcta")
+# LEGACY CODE FOR ZCTA: 
+# acs_dec_zcta <- get_census_data_us("zcta")
 
-acs_dec_county <- get_census_data_us("county")
+# In order to get it at the tract level, the API requires a state be specified, too. 
+# Hence we map over all 51 states
 
-acs_dec_state <- get_census_data_us("state")
+us_states <- unique(fips_codes$state)[1:51]
 
-
-
-
-
-
-
-
-
+acs_dec_tract <- map_df(us_states, \(x) {
+  get_census_data_us("tract", state_str = x)
+})
