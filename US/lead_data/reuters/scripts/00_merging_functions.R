@@ -81,8 +81,8 @@ merge_loaded_data <- function(states_list, level = "zip") {
   })
   # select the zip vars for and combine the data frames into a single data frame
   combined_data <- loaded_data |>
-    map(~ .x %>%
-          select(all_of(c(var_list, {{level}}))) %>%
+    map(~ .x |> 
+          select(all_of(c(var_list, {{level}}))) |> 
           mutate(across(c({{level}}, state, BLL_geq_5, BLL_geq_10, tested), as.character)) |>
           mutate(year = as.factor(year))) |> 
     bind_rows()
