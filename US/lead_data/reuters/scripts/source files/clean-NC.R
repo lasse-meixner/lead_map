@@ -1,18 +1,16 @@
 library(tidyverse)
 library(readxl)
 
-tryCatch(setwd(dir = "../../raw_files/"),
-         error = function(e) 1)
+
          
 nc_path <- 'BLL_NC_Raw.xlsx'
 
 # if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
-if (exists("drop_get_from_root")) {
-    drop_get_from_root(nc_path)
-} else {
-    source("../scripts/00_drop_box_access.R")
-    drop_get_from_root(nc_path)
+if (!exists("drop_get_from_root")) {
+    source("../00_drop_box_access.R")
 }
+
+drop_get_from_root(nc_path)
 
 
 # Read in all sheets and bind into a single tibble
@@ -53,10 +51,11 @@ nc <- nc %>%
   mutate(tract=paste0(substring(tract,first=1,last=3),substring(tract,first=5,last=10))) %>% 
   mutate(tract=paste0("37",tract)) %>% 
   mutate(newn=nchar(tract)) %>% 
-  filter(newn==11)
+  filter(newn==11) %>%
+  select(-n,-newn)
 
 # remove unnecessary variables
-rm(ncraw, `2005`,`2006`,`2007`,`2008`,`2009`,`2010`,`2011`,`2012`,`2013`,`2014`,`2015`)
+rm(ncraw, df, `2005`,`2006`,`2007`,`2008`,`2009`,`2010`,`2011`,`2012`,`2013`,`2014`,`2015`)
 
 # save to csv
 write_csv(nc, file = "../processed_files/nc.csv")

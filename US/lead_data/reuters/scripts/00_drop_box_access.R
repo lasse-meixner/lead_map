@@ -7,6 +7,9 @@ library(purrr)
 reuters_drop_box_base_url <- "/reuters/Raw Files/"
 drop_auth(new_user = TRUE) # this should prompt authentication in the browser
 
+# try to set wd to raw_files, if not possible, continue
+tryCatch(setwd("../../raw_files"), error = function(e) e)
+
 # function to download file:
 
 drop_get_from_root <- function(path) {

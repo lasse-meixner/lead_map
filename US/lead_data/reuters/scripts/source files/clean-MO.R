@@ -1,18 +1,16 @@
 library(readxl)
 library(tidyverse)
 
-tryCatch(setwd(dir = "../../raw_files/"),
-         error = function(e) 1)
+
          
 mo_path <- 'BLL_MO_Raw.xlsx'
 
 # if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
-if (exists("drop_get_from_root")) {
-    drop_get_from_root(mo_path)
-} else {
-    source("../scripts/00_drop_box_access.R")
-    drop_get_from_root(mo_path)
+if (!exists("drop_get_from_root")) {
+    source("../00_drop_box_access.R")
 }
+
+drop_get_from_root(mo_path)
 
 
 ## Missouri stored data in different sheets. This aggregates those sheets and brings them together
@@ -47,7 +45,7 @@ mo <- rbind(mo1,mo2,mo3) %>%
   relocate(measure) %>% 
   pivot_longer(cols=3:8,
                names_to = 'year') %>% 
-  mutate(value=as.numeric(value)) %>%
+  mutate(value = replace(value, value=="x", "<5")) %>% # TODO: Check with answer from Missouri State Hleath Dept to confirm confidentiality trigger
   distinct() %>% 
   pivot_wider(names_from = 'measure',
               values_from = 'value') %>% 

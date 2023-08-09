@@ -1,18 +1,16 @@
 library(tidyverse)
 library(readxl)
 
-tryCatch(setwd(dir = "../../raw_files/"),
-         error = function(e) 1)
+
          
 ga_path <- 'BLL_GA_Raw.xlsx'
 
 # if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
-if (exists("drop_get_from_root")) {
-    drop_get_from_root(ga_path)
-} else {
-    source("../scripts/00_drop_box_access.R")
-    drop_get_from_root(ga_path)
+if (!exists("drop_get_from_root")) {
+    source("../00_drop_box_access.R")
 }
+
+drop_get_from_root(ga_path)
 
 garaw <- ga_path %>%
   excel_sheets() %>% # Read in the names of all sheets in the .xlsx file
@@ -33,7 +31,6 @@ ga <-  bind_rows(`2005`,`2006`,`2007`,`2008`,`2009`,`2010`,`2011`,`2012`,`2013`,
 
 ga <- ga %>% 
   rename(zip=...1) %>% 
-  mutate(BLL_geq_5=ifelse(is.na(BLL_geq_5),0,BLL_geq_5)) %>% 
   mutate(tested=BLL_geq_5+BLL_leq_5) %>% 
   filter(zip!="NA",
          zip!="All",
@@ -44,7 +41,7 @@ ga <- ga %>%
   relocate(state)
 
 # remove unnecessary variables
-rm(garaw, `2005`,`2006`,`2007`,`2008`,`2009`,`2010`,`2011`,`2012`,`2013`,`2014`,`2015`)
+rm(garaw, df, `2005`,`2006`,`2007`,`2008`,`2009`,`2010`,`2011`,`2012`,`2013`,`2014`,`2015`)
 
 # save to csv
 write_csv(ga, file = "../processed_files/ga.csv")

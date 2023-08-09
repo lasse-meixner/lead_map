@@ -2,19 +2,16 @@ library(readxl)
 library(tidyverse)
 library(dplyr)
 
-# try to setwd to the raw_files folder, if cannot change directory, assume already in raw_files folder
-tryCatch(setwd(dir = "../../raw_files/"),
-         error = function(e) 1)
+
 
 al_path <- 'BLL_AL_Raw.xlsx'
 
 # if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
-if (exists("drop_get_from_root")) {
-    drop_get_from_root(al_path)
-} else {
-    source("../scripts/00_drop_box_access.R")
-    drop_get_from_root(al_path)
+if (!exists("drop_get_from_root")) {
+    source("../00_drop_box_access.R")
 }
+
+drop_get_from_root(al_path)
 
 # Read in all sheets and bind into a single tibble
 # (based on <https://readxl.tidyverse.org/articles/readxl-workflows.html>)
@@ -30,12 +27,9 @@ al <- al_path %>%
   rename(year = sheet,
          tested = Total,
          BLL_geq_10 = `10 and greater`) %>%
-  mutate(state = 'AL') %>%
-  relocate(state) %>%
-  mutate(across(tested:BLL_geq_10, ~as.integer(.))) %>%
-  mutate(year = factor(year)) %>% 
-  mutate(tested=as.character(tested)) %>% 
-  mutate(BLL_geq_5=as.character(BLL_geq_5))
+  mutate(state = 'AL',
+         year = factor(year)) %>%
+  relocate(state)
 
 
 # save to csv

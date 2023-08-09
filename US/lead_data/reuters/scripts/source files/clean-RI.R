@@ -5,18 +5,16 @@ library(tidyverse)
 # format, so we convert it to *long format* using tidyr. Here's a nice tutorial:
 # <https://dcl-wrangle.stanford.edu/pivot-advanced.html>
 # See also *R for Data Science* Chapter 12
-tryCatch(setwd(dir = "../../raw_files/"),
-         error = function(e) 1)
+
          
 ri_path <- 'BLL_RI_Raw.xlsx'
 
 # if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
-if (exists("drop_get_from_root")) {
-    drop_get_from_root(ri_path)
-} else {
-    source("../scripts/00_drop_box_access.R")
-    drop_get_from_root(ri_path)
+if (!exists("drop_get_from_root")) {
+    source("../00_drop_box_access.R")
 }
+
+drop_get_from_root(ri_path)
 
 
 ri <- read_excel(ri_path, skip = 5) %>%

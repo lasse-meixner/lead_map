@@ -2,8 +2,7 @@ library(readxl)
 library(tidyverse)
 library(dplyr)
 
-tryCatch(setwd(dir = "../../raw_files/"),
-         error = function(e) 1)
+
          
 #Some Problems
 # There is an awkward inconsistency of the name of the column: all other years are labeled "xxxx_Est_Conf_5+", only 2006 was labeled "2006_Conf_Est_5+", so I just changed the name manually to match all other years
@@ -13,12 +12,11 @@ tryCatch(setwd(dir = "../../raw_files/"),
 ma_path <- 'BLL_MA_Raw.xlsx'
 
 # if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
-if (exists("drop_get_from_root")) {
-    drop_get_from_root(ma_path)
-} else {
-    source("../scripts/00_drop_box_access.R")
-    drop_get_from_root(ma_path)
+if (!exists("drop_get_from_root")) {
+    source("../00_drop_box_access.R")
 }
+
+drop_get_from_root(ma_path)
 
 ma <- read_excel(ma_path, sheet = "2005-2015 Individual Years", skip = 0) %>%
   mutate_at(vars(contains("Num_Scr")), as.character) %>%
@@ -33,10 +31,15 @@ ma <- read_excel(ma_path, sheet = "2005-2015 Individual Years", skip = 0) %>%
           town = `County Name`) %>%
   mutate(tract=paste("25", COUNTY, TRACT, sep = ""))%>%
   select(-c(COUNTY, TRACT))%>%
-  mutate(state = 'MA') %>%
+  mutate(state = 'MA',
+         year = factor(year)) %>%
   relocate(state) %>% 
-  select(-`BLL_geq_5_est`,-`_Conf_Est_5+`) %>% ## decision to consider only confirmed instead of eastimed.
-  rename(`BLL_geq_5`=`BLL_geq_5_conf`)
+  select(-`BLL_geq_5_est`,-`_Conf_Est_5+`) %>% # decision to consider only confirmed instead of eastimed.
+  rename(`BLL_geq_5`=`BLL_geq_5_conf`) %>%
+  mutate(BLL_geq_5 = replace(BLL_geq_5, BLL_geq_5 == "1-5", "<5")) %>% # set "1-5" to "<5"
+  mutate(n=nchar(tract)) %>% 
+  filter(n==11) %>%  # get the right granularity of tracts (11 digits)
+  select(-n)
 
 
 # save to csv

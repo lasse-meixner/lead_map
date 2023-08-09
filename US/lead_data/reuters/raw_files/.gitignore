@@ -1,2 +1,4 @@
 *.xlsx
 .httr-oauth
+*.sas7bdat
+*.csv

@@ -2,18 +2,16 @@ library(readxl)
 library(tidyverse)
 library(dplyr)
 
-tryCatch(setwd(dir = "../../raw_files/"),
-         error = function(e) 1)
+
 
 il_path <- 'BLL_IL_Raw.xlsx'
 
 # if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
-if (exists("drop_get_from_root")) {
-    drop_get_from_root(il_path)
-} else {
-    source("../scripts/00_drop_box_access.R")
-    drop_get_from_root(il_path)
+if (!exists("drop_get_from_root")) {
+    source("../00_drop_box_access.R")
 }
+
+drop_get_from_root(il_path)
 
 il <- read_excel(il_path) %>% 
   pivot_longer(Test2005:ebl2015) %>% 

@@ -2,18 +2,16 @@ library(tidyverse)
 library(readxl)
 # library(xlsx)
 
-tryCatch(setwd(dir = "../../raw_files/"),
-         error = function(e) 1)
+
          
 vt_path <- 'BLL_VT_Raw.xlsx'
 
 # if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
-if (exists("drop_get_from_root")) {
-    drop_get_from_root(vt_path)
-} else {
-    source("../scripts/00_drop_box_access.R")
-    drop_get_from_root(vt_path)
+if (!exists("drop_get_from_root")) {
+    source("../00_drop_box_access.R")
 }
+
+drop_get_from_root(vt_path)
 # Read in all sheets and bind into a single tibble
 # (based on <https://readxl.tidyverse.org/articles/readxl-workflows.html>)
 vtraw <- vt_path %>%
@@ -42,10 +40,11 @@ vt <- vt %>%
   mutate(BLL_geq_10=replace(BLL_geq_10, BLL_geq_10 == "(b)(6)", "<5"))%>%
   mutate(state = 'VT') %>%
   relocate(state) %>%
-  mutate(year = factor(year))
+  mutate(year = factor(year)) %>%
+  filter(zip != "Missing")
 
 # remove unnecessary variables
-rm(vtraw, `2005`,`2006`,`2007`,`2008`,`2009`,`2010`,`2011`,`2012`,`2013`,`2014`,`2015`)
+rm(vtraw, df, `2005`,`2006`,`2007`,`2008`,`2009`,`2010`,`2011`,`2012`,`2013`,`2014`,`2015`)
 
 
 # save to csv

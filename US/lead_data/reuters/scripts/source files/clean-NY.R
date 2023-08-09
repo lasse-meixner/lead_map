@@ -2,18 +2,16 @@ library(readxl)
 library(tidyverse)
 library(dplyr)
 
-tryCatch(setwd(dir = "../../raw_files/"),
-         error = function(e) 1)
+
          
 ny_path <- 'BLL_NY_Raw.xlsx'
 
 # if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
-if (exists("drop_get_from_root")) {
-    drop_get_from_root(ny_path)
-} else {
-    source("../scripts/00_drop_box_access.R")
-    drop_get_from_root(ny_path)
+if (!exists("drop_get_from_root")) {
+    source("../00_drop_box_access.R")
 }
+
+drop_get_from_root(ny_path)
 
 
 ny <- read_excel(ny_path) %>%
@@ -25,8 +23,9 @@ ny <- read_excel(ny_path) %>%
   select(-`County Code`, -`County`) %>% 
   mutate(year=factor(year)) %>% 
   relocate(state) %>% 
-  mutate(tested=ifelse(tested=='*',"<5",tested)) %>% 
-  mutate(BLL_geq_5=ifelse(BLL_geq_5=='*',"<5",BLL_geq_5)) %>% 
+  mutate(tested=ifelse(tested=='*',"<7",tested)) %>% # replace * with <7, as this appears to be the empirical cutoff
+  mutate(BLL_geq_5=ifelse(BLL_geq_5 == '*', "<7", BLL_geq_5)) %>% 
+  mutate(BLL_geq_5=ifelse(BLL_geq_5 == '.', NA, BLL_geq_5)) %>% # replace . with NA
   mutate(zip=as.character(zip))
 
 # save to csv

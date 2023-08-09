@@ -1,8 +1,7 @@
 library(readxl)
 library(tidyverse)
 
-tryCatch(setwd(dir = "../../raw_files/"),
-         error = function(e) 1)
+
          
 in_path <- 'BLL_IN_Raw.xlsx'
 in_path2 <- 'INDIANA_COUNTY.xlsx'
@@ -12,7 +11,7 @@ if (exists("drop_get_from_root")) {
     drop_get_from_root(in_path)
     drop_get_from_root(in_path2)
 } else {
-    source("../scripts/00_drop_box_access.R")
+    source("../00_drop_box_access.R")
     drop_get_from_root(in_path)
     drop_get_from_root(in_path2)
 }
@@ -48,9 +47,13 @@ ind <- left_join(ind,ind_county_codes) %>%
   select(-test) %>% 
   mutate(year=substring(year,1,4)) %>% 
   mutate(year=factor(year)) %>% 
+  mutate(state = "IN") %>%
   mutate(measure=ifelse(type=="Elev","BLL_geq_5","tested")) %>% 
   select(-type) %>% 
   pivot_wider(names_from=measure,values_from=value)
 
+# remove unnecessary variables
+rm(ind_county_codes)
+
 # save to csv
-write_csv(ind, "../processed_files/in.csv")
+write_csv(ind, "../processed_files/ind.csv")

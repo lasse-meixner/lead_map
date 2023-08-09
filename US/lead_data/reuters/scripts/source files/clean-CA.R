@@ -1,52 +1,25 @@
 library(dplyr)
-library(tabulizer)
+library(readxl)
 
 ## Load in CA files
 
-tryCatch(setwd(dir = "../../raw_files/"),
-         error = function(e) 1)
+
          
-ca_path <- "BLL_CA_Raw.pdf"
+ca_path <- "BLL_CA_Raw.xlsx"
 
 # if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
-if (exists("drop_get_from_root")) {
-    drop_get_from_root(ca_path)
-} else {
-    source("../scripts/00_drop_box_access.R")
-    drop_get_from_root(ca_path)
+if (!exists("drop_get_from_root")) {
+    source("../00_drop_box_access.R")
 }
 
-ca_raw <- extract_tables(ca_path) # uses tabulizer
+drop_get_from_root(ca_path)
 
-
-for(i in 1:13){
-  df <- ca_raw %>% 
-  pluck(i) %>% 
-  as_tibble() %>% 
-  separate(V4,into=c("BLL_geq_5","%"),sep=" ") %>% 
-  rename(zip=V1,
-         country=V2,
-         tested=V3) %>% 
-  mutate(state='CA') %>% 
-  filter(!row_number() %in% c(1, 2, 3)) %>% 
-  select(-'%')
-  assign(paste0("CA_Rawpg",i),df)
-      }
-
-ca_pages <- list(CA_Rawpg1,CA_Rawpg2,CA_Rawpg3,CA_Rawpg4,CA_Rawpg5,
-                 CA_Rawpg6,CA_Rawpg7,CA_Rawpg8,CA_Rawpg9,CA_Rawpg10,
-                 CA_Rawpg11,CA_Rawpg12,CA_Rawpg13)
-
-ca <- ca_pages %>% 
-  reduce(full_join) %>% 
-  mutate(BLL_geq_5=ifelse(BLL_geq_5=="0.00%",0,BLL_geq_5)) %>% ## some empty values will pick up the % from the original pdf
-  mutate(year=2012) %>% 
-  mutate(year=factor(year))
-
-# remove pages
-rm(CA_Rawpg1,CA_Rawpg2,CA_Rawpg3,CA_Rawpg4,CA_Rawpg5,
-   CA_Rawpg6,CA_Rawpg7,CA_Rawpg8,CA_Rawpg9,CA_Rawpg10,
-   CA_Rawpg11,CA_Rawpg12,CA_Rawpg13)
+ca <- read_excel(ca_path) |> 
+    rename(zip = ZIP) |>
+    mutate(year = 2012,
+           state = "CA",
+           BLL_geq_5 = as.numeric(BLL_geq_45) * 1.14)|>   # "In 2012", 14% of the results at and above 4.5mcg/dL were in the range 4.5-4.99mcg/dL. Here, I am smoothing this figure over all zips.
+    select(-BLL_geq_45)
 
 # save to csv
 write_csv(ca, "../processed_files/ca.csv")

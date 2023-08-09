@@ -2,19 +2,17 @@ library(readxl)
 library(tidyverse)
 library(dplyr)
 
-tryCatch(setwd(dir = "../../raw_files/"),
-         error = function(e) 1)
+
 
 
 sc_path <- 'BLL_SC_Raw.xlsx'
 
 # if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
-if (exists("drop_get_from_root")) {
-    drop_get_from_root(sc_path)
-} else {
-    source("../scripts/00_drop_box_access.R")
-    drop_get_from_root(sc_path)
+if (!exists("drop_get_from_root")) {
+    source("../00_drop_box_access.R")
 }
+
+drop_get_from_root(sc_path)
 
 
 # Read in all sheets and bind into a single tibble
@@ -32,8 +30,11 @@ sc <- sc_path %>%
          BLL_geq_10=5) %>% 
   filter(zip!="UNKNOWN",
          zip!="SOUTH CAROLINA") %>% 
-  mutate(year=factor(year)) %>% 
-  mutate(state="SC")
+  mutate(year=factor(year),
+         state="SC",
+         tested=replace(tested, tested == "~", "<5"),
+         BLL_geq_5=replace(BLL_geq_5, BLL_geq_5 == "~", "<5"),
+         BLL_geq_10=replace(BLL_geq_10, BLL_geq_10 == "~", "<5"))
   
 # save to csv
 write_csv(sc, file = "../processed_files/sc.csv")

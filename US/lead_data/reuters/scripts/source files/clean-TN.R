@@ -1,18 +1,16 @@
 library(tidyverse)
 library(readxl)
 # library(xlsx)
-tryCatch(setwd(dir = "../../raw_files/"),
-         error = function(e) 1)
+
 
 tn_path <- 'BLL_TN_Raw.xlsx'
 
 # if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
-if (exists("drop_get_from_root")) {
-    drop_get_from_root(tn_path)
-} else {
-    source("../scripts/00_drop_box_access.R")
-    drop_get_from_root(tn_path)
+if (!exists("drop_get_from_root")) {
+    source("../00_drop_box_access.R")
 }
+
+drop_get_from_root(tn_path)
 
 
 tn <- read_excel(tn_path,skip=2) %>% 

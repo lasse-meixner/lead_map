@@ -1,18 +1,16 @@
 library(readxl)
 library(tidyverse)
 
-tryCatch(setwd(dir = "../../raw_files/"),
-         error = function(e) 1)
+
          
 or_path <- 'BLL_OR_Raw.xlsx'
 
 # if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
-if (exists("drop_get_from_root")) {
-    drop_get_from_root(or_path)
-} else {
-    source("../scripts/00_drop_box_access.R")
-    drop_get_from_root(or_path)
+if (!exists("drop_get_from_root")) {
+    source("../00_drop_box_access.R")
 }
+
+drop_get_from_root(or_path)
 
 # Tested but not confirmed (???)
 or1 <- or_path %>%
@@ -28,7 +26,9 @@ or1 <- or_path %>%
          county = `County`,
          tractlabel = `Tract Label`
   )  %>%
-  select(-1) # Same comment as above
+  select(-1) %>% # Same comment as above
+  mutate(year = factor(year),
+         tract = as.character(tract))
 
 # Confirmed
 or2 <- or_path %>%
@@ -44,20 +44,20 @@ or2 <- or_path %>%
          county = `County`,
          tractlabel = `Tract Label`
   ) %>%
-  select(-1)
+  select(-1) %>%
+  mutate(year = factor(year),
+         tract = as.character(tract),
+         state = "OR")
 
 
 # Better to use a "join" function from dplyr so you get a tibble. Also it's
 # a bit clearer what's happening
 
-or <- merge(or1, or2, by=c("tract","year")) %>%
-  select(-c("tractlabel.y","county.y")) %>%  # You don't need c() and quote here
-  # you can just use the tidy selection `-` operator
-  rename(tractlabel = `tractlabel.x`,
-         county = `county.x`)
+or <- inner_join(or1, or2, by=c("tract","year")) %>%
+  select(-tractlabel.y, -county.y, - tractlabel.x, -county.x) # none of these are needed if we have the tract
 
 # remove unnecessary objects
-rm(or1,or2)
+rm(or1, or2)
 
 # save to csv
 write_csv(or, "../processed_files/or.csv")
