@@ -18,7 +18,7 @@ get_tract <- function(tri_state, state_name){
     st_as_sf(coords = c("LONGITUDE", "LATITUDE"), crs = 4326) |>
     st_transform(st_crs(state_tracts)) |>
     st_join(state_tracts) |>
-    mutate(TRACT = paste0(STATEFP, COUNTYFP, TRACTCE)) |>
+    rename(TRACT = GEOID) |>
     as_tibble() # transform back into tibble (drop Geometry)
   
   tri_state_w_tract
@@ -52,5 +52,6 @@ tri_cleaned <- tri_w_tract |>
   group_by(TRACT) |>
   mutate(across(starts_with("TOTAL"), ~ cumsum(.), .names = "{.col}_cumulative"))
 
-# #TODO: write to file in google drive
-# tri_cleaned |> drive_put/drive_upload?
+# write to .csv in processed_data
+write_csv(tri_cleaned, "../processed_data/tri_cleaned.csv")
+# TODO: Write to googledrive!
