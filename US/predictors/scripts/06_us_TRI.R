@@ -52,6 +52,8 @@ tri_cleaned <- tri_w_tract |>
   group_by(TRACT) |>
   mutate(across(starts_with("TOTAL"), ~ cumsum(.), .names = "{.col}_cumulative"))
 
-# write to .csv in processed_data
-write_csv(tri_cleaned, "../processed_data/tri_cleaned.csv")
+# write to .csv in processed_data. I will trim data to 2005-2015 (though cumulatives will go all the way back)
+tri_cleaned |> 
+  filter(REPORTING_YEAR >= 2005 & REPORTING_YEAR <= 2015) |>
+  write_csv("../processed_data/tri_cleaned.csv")
 # TODO: Write to googledrive!
