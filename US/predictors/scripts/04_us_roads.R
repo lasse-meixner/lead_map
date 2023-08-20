@@ -1,5 +1,5 @@
 ## read in shapefile
-required_packages  <- c("googledrive", "tidyverse", "tigris", "sf")
+required_packages  <- c("googledrive", "tidyverse", "tigris", "sf","rmapshaper")
 lapply(required_packages, require, character.only = TRUE)
 
 # check if tl_2021_us_primaryroads.shp exists in "../raw_data/roads", otherwise download all required files from google drive folder
@@ -18,16 +18,16 @@ if (!file.exists("../raw_data/roads/tl_2021_us_primaryroads.shp")) {
 }
 
 # get all us tract geographies for matching
-us_tracts  <- tigris::tracts(cb = TRUE) # get tracts for all states in US
+us_tracts  <- tigris::tracts(cb = TRUE) |> # get tracts for all states in US
+  ms_simplify(keep = 0.03) # simplify geometry
 
-# read in shapefile
+# get roads 
 roads <- st_read("../raw_data/roads/tl_2021_us_primaryroads.shp") |>
   st_simplify(dTolerance = 100) |> # simplify geometry
   st_join(us_tracts, join = st_intersects) # match road LINESTRING sections to tracts
 
-# get length by type in each tract
+# get length by type in each tract (runs for a while)
 roads_clean  <- roads |> 
-  sample_n(1000) |> # sample 1000 rows (otherwise too slow
   rename(TRACT = GEOID,
          TYPE = RTTYP) |> # rename GEOID to TRACT
   group_by(TRACT, TYPE) |>
