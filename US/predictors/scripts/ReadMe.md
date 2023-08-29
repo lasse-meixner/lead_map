@@ -1,8 +1,8 @@
 # Scripts
 
 # Data Sources
-## DropBox
-Raw files not available through APIs are stored on DropBox and will automatically be pulled and loaded into memory when running the scripts.
+## Google DRive
+Raw files not available through APIs are stored on GoogleDrive and will automatically be pulled and loaded into memory when running the scripts.
 
 These are the original download sources:
 
