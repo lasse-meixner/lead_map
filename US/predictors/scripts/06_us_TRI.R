@@ -5,7 +5,7 @@ library(tigris)
 # NOTE: Use drive_ls(path) to get list of available files. 
 
 # read tri data straight from source
-tri <- drive_get("lasse-frank-test-dir/TRI_Lead_1987-2022.csv") |> 
+tri <- drive_get("Lead_Map_Project/US/raw_data/TRI_Lead_1987-2022.csv") |> 
   drive_read_string() |> 
   read_csv()
 
