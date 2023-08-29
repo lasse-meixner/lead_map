@@ -22,4 +22,6 @@ svi <- svi |>
   mutate(across(.cols = svi_socioeconomic_pctile:svi_pctile, .fns = ~ifelse(. == -999, NA, .)),
          tract = as.character(tract))
 
- 
+ # save to processed_data
+svi |> 
+  write_csv("../processed_data/svi.csv")

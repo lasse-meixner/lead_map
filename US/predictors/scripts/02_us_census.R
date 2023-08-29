@@ -1,9 +1,11 @@
 library(tidycensus)
 library(tigris)
 library(tidyverse)
+library(naniar)
 library(stringr)
 library(sf)
-library(naniar)
+
+source("00_US_census_API.R")
 
 # See 00_US_census_API for how the function is set up 
 # Remember to add API key to environment using census_api_key() before running the below
