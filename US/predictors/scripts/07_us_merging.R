@@ -12,14 +12,21 @@ for (obj in c("acs_dec_tract", "svi", "roads_clean", "tri_cleaned")) {
 }
 
 data_tract <- acs_dec_tract |>
-  left_join(., svi) |>
-  left_join(., roads_clean) |>
-  left_join(., tri_cleaned) |>
+  left_join(svi) |>
+  left_join(roads_clean) |>
+  left_join(tri_cleaned) |>
   relocate(tract, .after = state)
 
+# save to disk
 data_tract |>
   write_csv("../processed_data/combined_tract.csv")
 
-
-
-# NOTE: think about aggregation to ZIPs for those states in which only ZIP level data is available (use USPS API!)
+# write to Gdrive
+current_time  <- format(Sys.time(), "%Y-%m-%d_%H:%M:%S")
+drive_upload(
+  media = "../processed_data/combined_tract.csv",
+  path = paste0(
+    "Lead_Map_Project/US/processed_data/combined_tract_",
+    current_time,
+    ".csv"),
+  overwrite = TRUE)
