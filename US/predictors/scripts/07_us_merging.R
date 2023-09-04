@@ -15,7 +15,7 @@ data_tract <- acs_dec_tract |>
   left_join(svi) |>
   left_join(roads_clean) |>
   left_join(tri_cleaned) |>
-  relocate(tract)
+  relocate(TRACT)
 
 # save to disk
 data_tract |>
