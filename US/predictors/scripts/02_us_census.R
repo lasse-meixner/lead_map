@@ -20,8 +20,10 @@ us_states <- unique(fips_codes$state)[1:51]
 
 acs_dec_tract <- map_df(us_states, \(x) {
   get_census_data_us("tract", state_str = x)
-})
+}) |>
+  rename(TRACT = GEOID)
 
 # save to disk
-write_csv(acs_dec_tract,"../processed_data/acs_dec_tract.csv")
+acs_dec_tract |>
+  write_csv("../processed_data/acs_dec_tract.csv")
 
