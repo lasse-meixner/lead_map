@@ -43,4 +43,8 @@ roads_clean  <- roads |>
 
 # write to .csv in processed_data
 write_csv(roads_clean, "../processed_data/roads_clean.csv")
-# TODO: Write to googledrive!
+
+# Write to googledrive
+source("00_gdrive_utils.R")
+drive_upload_w_tstamp("roads_clean")
+

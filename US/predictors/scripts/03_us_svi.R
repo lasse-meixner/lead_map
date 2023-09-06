@@ -26,3 +26,7 @@ svi <- svi |>
  # save to processed_data
 svi |> 
   write_csv("../processed_data/svi.csv")
+
+# save to Gdrive
+source("00_gdrive_utils.R")
+drive_upload_w_tstamp("svi")

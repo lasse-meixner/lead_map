@@ -27,3 +27,6 @@ acs_dec_tract <- map_df(us_states, \(x) {
 acs_dec_tract |>
   write_csv("../processed_data/acs_dec_tract.csv")
 
+# save to Gdrive
+source("00_gdrive_utils.R")
+drive_upload_w_tstamp("acs_dec_tract")

@@ -56,4 +56,8 @@ tri_cleaned <- tri_w_tract |>
 tri_cleaned |> 
   filter(REPORTING_YEAR >= 2005 & REPORTING_YEAR <= 2015) |>
   write_csv("../processed_data/tri_cleaned.csv")
-# TODO: Write to googledrive!
+
+# Write to googledrive!
+source("00_gdrive_utils.R")
+drive_upload_w_tstamp("tri_cleaned")
+
