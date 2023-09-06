@@ -34,3 +34,16 @@ Open or create your .Renviron file in your home directory (on mac: ~/.Renviron) 
 USPS_API_KEY="{*your USPS API key*}"
 CENSUS_API_KEY="{*your CENSUS API key*}"
 ```
+
+# Crosswalking
+We crosswalk the tracts of all states for which BLL data is only available at the ZIP level.
+
+The relevant crosswalking files are obtained from the [USPS API](https://www.huduser.gov/portal/dataset/uspszip-api.html).
+We need different information based on whether we want to crosswalk counts, or proportions:
+
+For counts, we need to know what proportion of each tract intersects with a particular zip (typically, this will be a lot of 1s from all tracts contained in that ZIP, plus some areas of cross-boundary tracts.) We can then get the zip count by simply taking a (weighted) sum of the tract counts. This information is contained in TRACT-TO-ZIP.
+
+For proportions or ratios, we need different information: Here we need to know what proportion of each ZIP is contained in a particular tract. We can then get the overall proportion by taking a (weighted) mean of the tract proportions. This information is contained in ZIP-TO-TRACT.
+
+# Confused?
+Some of this code was patched together from work of different people. If anything confuses you, [ask ahead](mailto:lasse.vonderheydt@economics.ox.ac.uk)
