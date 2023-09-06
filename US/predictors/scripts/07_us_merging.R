@@ -22,11 +22,7 @@ data_tract |>
   write_csv("../processed_data/combined_tract.csv")
 
 # write to Gdrive
-current_time  <- format(Sys.time(), "%Y-%m-%d_%H:%M:%S")
 drive_upload(
   media = "../processed_data/combined_tract.csv",
-  path = paste0(
-    "Lead_Map_Project/US/processed_data/combined_tract_",
-    current_time,
-    ".csv"),
+  path =  "Lead_Map_Project/US/processed_data/combined_tract_.csv",
   overwrite = TRUE)
