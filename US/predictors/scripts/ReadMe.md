@@ -9,10 +9,9 @@ These are the original download sources:
 **Download Social Vulnerability Index data**
 https://svi.cdc.gov/Documents/Data/2018_SVI_Data/CSV/SVI2018_US.csv
 
-**Download Census Bureau relationship file for crosswalking between ZCTAs and census tracts**
-https://www2.census.gov/geo/docs/maps-data/data/rel/zcta_tract_rel_10.txt
+All other data sources will be pulled through APIs in-script. 
 
-
+NB: Should any of these stop working (they shouldn't...), check if there is a copy on GDrive.
 
 ## API Keys
 Register for the following to API keys:
