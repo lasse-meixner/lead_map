@@ -1,0 +1,43 @@
+This notebook tries to imitate the [poisson regression](https://github.com/fditraglia/learn-bayes/blob/main/censored-data-STAN.qmd) example with censored data by running a toy model on Minnesota and Massachusettes data.
+
+These two states offer themselves for this purpose since they both do NOT suppress tests, and have around 22% and 50% suppression rates, with a fairly even number of tracts (around 1.5k).
+
+```{r}
+library(tidyverse)
+source("find_and_set_directory.R")
+```
+
+### Loading Lead Data
+
+```{r}
+find_and_set_directory("source files")
+load_states(c("MN","MA"))
+mn <- mn |> filter(year == 2010)
+ma <- ma |> filter(year == 2010)
+```
+
+### Loading US predictors
+
+```{r}
+# load combined_tract.csv from US/predictors/processed_data (otherwise get it from GDrive!)
+find_and_set_directory("US/predictors/processed_data")
+mn_ma_predictors <- read_csv("combined_tract.csv") |>
+    # NAME contains Minnesota or Massachusetts
+    filter(grepl("Minnesota|Massachusetts", NAME))
+mn_predictors <- mn_ma_predictors |>
+    filter(grepl("Minnesota", NAME))
+ma_predictors <- mn_ma_predictors |>
+    filter(grepl("Massachusetts", NAME))
+rm(mn_ma_predictors)
+```
+
+## Massachusetts
+
+I will run a toy example with just a small subset of the predictors we have.
+
+```{r}
+features <- c("median_annual_incomeE","house_price_medianE","poor_fam_propE","black_ppl_propE", "bp_pre_1959E_prop")
+x_ma <- ma_predictors |> select(features)
+```
+
+Concerning the outcome, I am completely ignoring the fact that the count is upper bounded by the nr of tested. In Massachusetts, this isn't too bad since testing is so numerous that counts lie way below that bound.
