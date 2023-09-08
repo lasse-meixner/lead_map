@@ -13,7 +13,7 @@ find_and_set_directory <- function(dir_name){
     }
     # Call the function to find the 'lead_map' directory
     lead_map_directory <- findLeadMapDirectory()
-    # search recursively downstream for "source files" directory using list.dirs
+    # search recursively downstream for "dir_name" directory using list.dirs
     source_files_directory <- list.dirs(lead_map_directory, recursive = TRUE, full.names = TRUE) %>% 
         .[grepl(dir_name, .)] %>% 
         .[1]
