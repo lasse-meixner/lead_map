@@ -1,6 +1,5 @@
 library(tidyverse)
 library(readxl)
-# library(xlsx)
 
 
 
@@ -18,43 +17,41 @@ mn <- read_excel(mn_path) %>%
   mutate(ebll5_2011_2015=ifelse(ebll5_2011_2015=='.',NA,ebll5_2011_2015)) %>% 
   mutate(ebll10_2005_2010=ifelse(ebll10_2005_2010=='.',NA,ebll10_2005_2010)) %>% 
   mutate(ebll10_2011_2015=ifelse(ebll10_2011_2015=='.',NA,ebll10_2011_2015)) 
-  
+
+# range variables represent sums over 4 years
+# extract years and create a year column for tested, ebll5, and ebll10
 mn2005to2010 <- mn %>% 
-  select(tract_id,tested_2005_2010,ebll10_2005_2010) %>% 
-  rename(tested=tested_2005_2010,
-         BLL_geq_10=ebll10_2005_2010,
-         tract=tract_id)
+  select(tract_id, tested_2005_2010, ebll10_2005_2010) %>% 
+  mutate(year = "2005-2010") %>% 
+  rename(tested = tested_2005_2010,
+         BLL_geq_10 = ebll10_2005_2010) |>
+  mutate(BLL_geq_5 = NA)
 
-mn2011to2015 <- mn %>% 
-  select(tract_id,tested_2011_2015,ebll5_2011_2015,ebll10_2011_2015) %>% 
-  rename(tested=tested_2011_2015,
-         BLL_geq_10=ebll10_2011_2015,
-         BLL_geq_5=ebll5_2011_2015,
-         tract=tract_id)
+mn2011to2015 <- mn %>%
+  select(tract_id, tested_2011_2015, ebll5_2011_2015, ebll10_2011_2015) %>% 
+  mutate(year = "2011-2015") %>% 
+  rename(tested = tested_2011_2015,
+         BLL_geq_5 = ebll5_2011_2015,
+         BLL_geq_10 = ebll10_2011_2015)
 
-## Assume 2005 to 2010 average is the same every year.
-## Assume 2011 to 2015 average is the same every year.
-# TODO: Check this!
-mn2005 <- mn2005to2010 %>% mutate(year=2005) %>% mutate(BLL_geq_5=NA)
-mn2006 <- mn2005to2010 %>% mutate(year=2006) %>% mutate(BLL_geq_5=NA)
-mn2007 <- mn2005to2010 %>% mutate(year=2007) %>% mutate(BLL_geq_5=NA)
-mn2008 <- mn2005to2010 %>% mutate(year=2008) %>% mutate(BLL_geq_5=NA)
-mn2009 <- mn2005to2010 %>% mutate(year=2009) %>% mutate(BLL_geq_5=NA)
-mn2010 <- mn2005to2010 %>% mutate(year=2010) %>% mutate(BLL_geq_5=NA)
-
-mn2011 <- mn2011to2015 %>% mutate(year=2011)
-mn2012 <- mn2011to2015 %>% mutate(year=2012)
-mn2013 <- mn2011to2015 %>% mutate(year=2013)
-mn2014 <- mn2011to2015 %>% mutate(year=2014)
-mn2015 <- mn2011to2015 %>% mutate(year=2015)
-
-mn <- rbind(mn2005,mn2006,mn2007,mn2008,mn2009,mn2010,mn2011,mn2012,mn2013,mn2014,mn2015) %>% 
-  mutate(year=factor(year)) %>% 
-  mutate(state='MN') %>% 
+# append the two dataframe, then unravel years and divide numeric variables by 4
+mn <- rbind(mn2005to2010,mn2011to2015) |>
+  mutate(tested = as.numeric(tested)) |>
+  separate(year, into = c("start_year", "end_year"), sep = "-") |>
+  rowwise() |>
+  mutate(year = list(seq(start_year, end_year))) |>
+  unnest(year) |>
+  mutate(is_sup = (BLL_geq_5 == "<5"),
+         BLL_geq_5_num = as.numeric(BLL_geq_5)) |>
+  mutate(tested = (tested / 4),
+          BLL_geq_5 = ifelse(is_sup, "<1.25", as.numeric(BLL_geq_5_num / 4))) |>
+  select(-is_sup, -BLL_geq_5_num, start_year, end_year) |>
+  mutate(state = "MN") |>
+  rename(tract = tract_id) |> 
   relocate(state)
 
 # remove unnecessary objects
-rm(mn2005to2010,mn2011to2015,mn2005,mn2006,mn2007,mn2008,mn2009,mn2010,mn2011,mn2012,mn2013,mn2014,mn2015)
+rm(mn2005to2010,mn2011to2015)
 
 
 # save to csv
