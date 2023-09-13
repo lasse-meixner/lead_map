@@ -1,31 +1,33 @@
+
 # Function to get US census data (Decennial Census and ACS) and feature geometry for a given geographical level
 
+source("00_agg_funcs.R")
 
-get_census_data_us <- function(geography_type) {
+get_census_data_us <- function(geography_type, state_str = NULL) {
   
   # First, we get the variables we need from the 2010 Decennial Census
-  # We include in this call the feature geometry for ZCTAs and use shift_geometry() to adjust the feature geometry 
-  # for Alaska and Hawaii so that they appear under the rest of US on a map
+  # We do NOT include the feature geometry in this call. If this is ever changed, consider using shift_geometry() to adjust the feature geometry for Alaska and Hawaii so that they appear under the rest of US on a map
   # Filter out Puerto Rico data (we do this in all of the calls)
   
   dec_2010 <- get_decennial(
     geography = geography_type,
+    state = state_str,
     variables = c(urban_ppl_prop = "PCT002002"),
     year = 2010,
     output = "wide",
-    geometry = TRUE,
+    geometry = FALSE,
     resolution = "20m") %>%
     filter(substr(GEOID, 1, 2) != 72) %>%
     mutate(urban_ppl_prop = urban_ppl_prop / 100, 
-           urban_majority = ifelse(urban_ppl_prop > 0.5, 1, 0)) %>%
-    shift_geometry()
+           urban_majority = ifelse(urban_ppl_prop > 0.5, 1, 0))
+    # shift_geometry()
   
-  # Next we get the variables we need from the 2000 decennial census (age of householder data which isn't available
-  # in the 2010 decennial census)
-  # This seems to return some very strange numbers, so it has been commented out for now
+  # Next we get the variables we need from the 2000 decennial census (age of householder data which isn't available in the 2010 decennial census)
+  # These are commented out because they are all missing...
   
-  # dec_2000_zcta <- get_decennial(
-  #   geography = "zcta",
+  # dec_2000 <- get_decennial(
+  #   geography = geography_type,
+  #   state = state_str,
   #   variables = c(frp_u24_lone_female_householder_of_fam_prop = "PCT003022",
   #                 frp_25to34_lone_female_householder_of_fam_prop = "PCT003023",
   #                 frp_35to44_lone_female_householder_of_fam_prop = "PCT003024",
@@ -50,6 +52,8 @@ get_census_data_us <- function(geography_type) {
   # of the processing)
   
   acs <- get_acs(geography = geography_type,
+                 state = state_str,
+                 # TODO: Should we not query for an earlier year than the default = 2021?
                  variables = c(median_annual_income = "B06011_001",
                                renter_occupied_hu = "B25003_003",
                                total_occupied_hu = "B25003_001",
@@ -198,7 +202,7 @@ get_census_data_us <- function(geography_type) {
     relocate(c(bp_pre_1949E_prop:bp_post_1990E_prop), .after = all_propertiesE_prop) %>%
     relocate(build_year_median_dodgyE, .after = bp_post_1990E_prop) %>%
     # Note, "Inf" arises from a non-zero value divided by zero. NaN arises from zero divided by zero
-    # There are a bunch of ZCTAs with nothing in them, so lots of zeroes on numerators and denominators
+    # There are a bunch of entries with nothing in them, so lots of zeroes on numerators and denominators
     replace_with_na_all(condition = ~.x %in% c("Inf")) %>%
     mutate(across(.cols = everything(), .fns = ~ifelse(is.nan(.), NA, .)))
   
@@ -239,7 +243,7 @@ get_census_data_us <- function(geography_type) {
   
   for (i in c(1:nrow(acs))) {
     vector_of_frequencies <- unlist(acs[i, year_col_1st:year_col_last], use.names = FALSE)
-    acs$build_year_median[i] = GroupedMedian(vector_of_frequencies, year_intervals_us)
+    acs$build_year_median[i] = get_GroupedMedian(vector_of_frequencies, year_intervals_us)
   }
   
   # Impute mean build years
@@ -256,11 +260,13 @@ get_census_data_us <- function(geography_type) {
   # Now, we merge the 2010 Decennial Census data with the ACS data
   # (If the 2000 Decennial Census issue gets sorted out, we merge that as well)
   # This creates a data frame with the feature geometry and any predictors you requested from the Decennial Census and the ACS
-  # Convert it to an sf object so that you can use the feature geometry
   
-  acs_dec <- left_join(acs, dec_2010) %>%
-    rename("zcta_name" = "NAME") %>%
-    st_as_sf()
+  # If geometries were pulled: Convert it to an sf object so that you can use the feature geometry
+  
+  acs_dec <- acs |>
+    left_join(dec_2010)
+    #left_join(dec_2000)
+    #st_as_sf()
   
   acs_dec
   
