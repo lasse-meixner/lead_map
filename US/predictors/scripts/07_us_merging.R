@@ -22,7 +22,5 @@ data_tract |>
   write_csv("../processed_data/combined_tract.csv")
 
 # write to Gdrive
-drive_upload(
-  media = "../processed_data/combined_tract.csv",
-  path =  "Lead_Map_Project/US/processed_data/combined_tract_.csv",
-  overwrite = TRUE)
+source("00_gdrive_utils.R")
+drive_upload_w_tstamp("combined_tract")

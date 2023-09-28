@@ -10,7 +10,7 @@ drive_upload_w_tstamp <- function(tbl_name) {
     drive_upload(
         media = file_path,
         path = paste0(
-        "Lead_Map_Project/US/processed_data/",
+        "Lead_Map_Project/US/predictors/processed_data/",
         tbl_name,
         "_@",
         file_mod_time,
