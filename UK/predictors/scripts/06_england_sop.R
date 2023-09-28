@@ -7,7 +7,9 @@ library(stringr)
 
 # Read in Stock of Properties age data for English LSOAs, MSOAs, and LAs
 
-sop_age <- read_csv(paste0(drop_box_base_url,"data_raw/uk/stock_of_properties_2021_age.csv")) %>%
+sop_age <- drive_get("Lead_Map_Project/UK/predictors/raw_data/stock_of_properties_2021_age.csv") |>
+  drive_read_string() |>
+  read_csv() |>
   filter(geography %in% c("LSOA", "MSOA", "LAUA"), 
          band == "All", 
          substr(ecode, 1, 1) == "E") %>%
@@ -79,7 +81,9 @@ rm(year_intervals_uk, mid_years, i, vector_of_frequencies)
 
 # Read in Stock of Properties type data for English LSOAs, MSOAs, and LAs
 
-sop_type <- read_csv(paste0(drop_box_base_url,"data_raw/uk/stock_of_properties_2021_type.csv")) %>%
+sop_type <- drive_get("Lead_Map_Project/UK/predictors/raw_data/stock_of_properties_2021_type.csv") |>
+  drive_read_string() |>
+  read_csv() |>
   filter(geography %in% c("LSOA", "MSOA", "LAUA"), 
          band == "All", 
          substr(ecode, 1, 1) == "E") %>%
@@ -119,7 +123,7 @@ sop_msoa <- sop %>%
 
 
 sop_msoa %>%
-  write_csv("data_processed/sop_msoa.csv")
+  write_csv("../processed_data/sop_msoa.csv")
 
 # AT THIS POINT YOU CAN GET RID OF THE sop_proportion OBJECT
 rm(sop_age, sop_type, sop)

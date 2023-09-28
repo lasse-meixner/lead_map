@@ -5,7 +5,9 @@ library(tidyverse)
 # Read in postcodes, super output areas, and local authority districts look-up file 
 # We will need this to compute MSOA and LA IMD scores
 
-lsoa_msoa_la_lookup_May_2020 <- drop_read_csv(paste0(drop_box_base_url, "geography_lookup_May_2020.csv")) %>%
+lsoa_msoa_la_lookup_May_2020 <- drive_get("Lead_Map_Project/UK/predictors/raw_data/geography_lookup_May_2020.csv") |>
+  drive_read_string() |>
+  read_csv() |>
   select(lsoa11cd, msoa11cd, ladcd) %>%
   distinct(lsoa11cd, .keep_all = TRUE) %>%
   rename("lad20cd" = "ladcd") %>%
@@ -53,7 +55,7 @@ imd_msoa <- imd_with_all_area_codes  %>%
 
 
 imd_msoa %>%
-  write_csv("data_processed/imd_msoa.csv")
+  write_csv("../processed_data/imd_msoa.csv")
 
 
 # AT THIS POINT YOU CAN GET RID OF THE imd_with_all_area_codes OBJECT 

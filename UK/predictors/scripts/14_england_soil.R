@@ -8,7 +8,7 @@ library(raster)
 library(sp)
 library(sf)
 
-drop_get_from_root("Pb_grid.txt") # from 00_drop_box_access.R
+gdrive_get_file("Pb_grid.txt")
 soil_sf <- raster("../raw_data/Pb_grid.txt") %>%
   as(.,'SpatialPolygonsDataFrame') %>%
   st_as_sf() %>%
@@ -16,8 +16,8 @@ soil_sf <- raster("../raw_data/Pb_grid.txt") %>%
          "soil_lead" = "Pb_grid") %>%
   mutate(geometry_soil_centroid = st_centroid(geometry_soil_cell))
 
-drop_get_from_root("shapefiles/msoa/england_msoa_2011.shp")
-sf_msoa <- read_sf("../raw_data/england_msoa_2011.shp") %>%
+gdrive_get_folder("Lead_Map_Project/UK/predictors/raw_data/shapefiles/msoa") # downloads all files in case folder doesnt exist
+sf_msoa <- read_sf("../raw_data/shapefiles/msoa/england_msoa_2011.shp") %>%
   rename("msoa11cd" = "code",
          "msoa_name" = "name",
          "geometry_msoa" = "geometry") %>%
@@ -25,8 +25,10 @@ sf_msoa <- read_sf("../raw_data/england_msoa_2011.shp") %>%
 
 st_crs(soil_sf) <- st_crs(sf_msoa)
 
-# read directly from Dropbox
-centroids_population_msoa_for_soil <- drop_read_csv(paste0(drop_box_base_url, "msoa_population_centroids.csv")) %>%
+# read directly from Gdrive
+centroids_population_msoa <- drive_get("Lead_Map_Project/UK/predictors/raw_data/msoa_population_centroids.csv") |>
+  drive_read_string() |>
+  read_csv() |>
   dplyr::select(-objectid) %>%
   filter(substr(msoa11cd, 1, 1) == "E") %>%
   st_as_sf(coords = c("X", "Y"),
@@ -41,7 +43,7 @@ centroids_population_msoa_for_soil <- drop_read_csv(paste0(drop_box_base_url, "m
 st_geometry(soil_sf) <- "geometry_soil_cell"
 soil_grid_msoa_w_centroids_overlap_join <- st_join(sf_msoa, soil_sf) %>%
   as_tibble() %>%
-  left_join(., centroids_population_msoa_for_soil) %>%
+  left_join(., centroids_population_msoa) %>%
   mutate(centroid_distance = as.numeric(st_distance(st_geometry(geometry_msoa_centroid) %>% st_set_crs(27700),
                                                     st_geometry(geometry_soil_centroid) %>% st_set_crs(27700),
                                                     by_element = TRUE)), 
@@ -54,7 +56,7 @@ soil_msoa <- soil_grid_msoa_w_centroids_overlap_join %>%
             n_soil_grid_cells = sum(!is.na(soil_lead)))
 
 soil_msoa %>%
-  write_csv("data_processed/soil_msoa.csv")
+  write_csv("../processed_data/soil_msoa.csv")
 
-rm(soil_sf, centroids_population_msoa_for_soil, soil_grid_msoa_w_centroids_overlap_join)
+rm(soil_sf, centroids_population_msoa, soil_grid_msoa_w_centroids_overlap_join)
 

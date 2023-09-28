@@ -15,6 +15,6 @@ income_msoa <- income_msoa[-c(1:4), ] %>%
   relocate(median_annual_incomeE_lower_bound, .before = median_annual_incomeE_upper_bound)
 
 income_msoa %>%
-  write_csv("data_processed/income_msoa.csv")
+  write_csv("../processed_data/income_msoa.csv")
 
 # Done

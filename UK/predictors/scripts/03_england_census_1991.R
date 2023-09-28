@@ -18,11 +18,13 @@ nomis_ed91code_lookup <- nomis_get_metadata(id = "NM_38_1", concept = "GEOGRAPHY
 
 # Read in crosswalk file to crosswalk ED counts to 2011 MSOA counts (from dropbox)
 
-ed_msoa_lookup <- drop_read_csv(paste0(drop_box_base_url,"ed_msoa_lookup.csv")) %>%
-  select(-4) %>%
+ed_msoa_lookup <- drive_get("Lead_Map_Project/UK/predictors/raw_data/ed_msoa_lookup.csv") |>
+  drive_read_string() |>
+  read_csv() |>
+  select(-4) |>
   rename("ed91code" = 1,
          "propotion_of_ed_in_msoa" = 2,
-         "msoa11cd" = 3) %>%
+         "msoa11cd" = 3) |>
   mutate(ed91code_short = substr(ed91code, 3, 8))
 
 # API CALL
@@ -32,6 +34,6 @@ census_data_1991_msoa <- get_census_data_england_1991() # only uses ED, so no ge
 
 rm(nomis_ed91code_lookup, ed_msoa_lookup)
   
-census_data_1991_msoa %>%
+census_data_1991_msoa |>
   write_csv("..processed_data/census_data_1991_msoa.csv")
 

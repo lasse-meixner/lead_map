@@ -30,7 +30,9 @@ library(readxl)
 
 # MSOA
 
-house_prices_msoa <- read_excel(paste0(drop_box_base_url, "median_house_price_ons_msoa.xls"), sheet = "1a", skip = 5) %>%
+gdrive_get_file("median_house_price_ons_msoa.xls")
+
+house_prices_msoa <- read_excel("../raw_data/median_house_price_ons_msoa.xls", sheet = "1a", skip = 5) %>%
   rename("msoa11cd" = "MSOA code") %>%
   filter(substr(msoa11cd, 1, 1) == "E") %>%
   mutate(across("Year ending Dec 1995":"Year ending Sep 2021", as.numeric))
@@ -48,7 +50,7 @@ house_prices_msoa <- house_prices_msoa %>%
          house_price_mean_median_1995to2000, house_price_mean_median_2017to2021)
 
 house_prices_msoa %>%
-  write_csv("data_processed/house_prices_msoa.csv")
+  write_csv("../processed_data/house_prices_msoa.csv")
 
 
 # Done

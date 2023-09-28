@@ -21,14 +21,16 @@ if (exists("sf_msoa")) {
 if (exists("mapping")) {
   print("mapping already in memory")
 } else {
-  mapping <- drop_read_csv(paste0(drop_box_base_url,"postcode_centroids_2020.csv"))
+  mapping <- drive_get("Lead_Map_Project/US/predictors/postcode_centroids_2020.csv") |>
+    drive_read_string() |>
+    read_csv()
 }
 
 # check if pollution is already in memory (in case prior script has been run), otherwise, read it in
 if (exists("pollution")) {
   print("pollution already in memory")
 } else {
-  drop_get_from_root("1992_2008 Pollution Inventory Dataset.xlsx")
+  gdrive_get_file("1992_2008 Pollution Inventory Dataset.xlsx")
   pollution <- read_excel("../raw_data/1992_2008 Pollution Inventory Dataset.xlsx") %>%
   as_tibble()
 }

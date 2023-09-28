@@ -15,7 +15,7 @@ if (exists("data_msoa")) {
 }
 
 # load MSOA shapefile
-drop_get_folder("shapefiles/msoa/")
+gdrive_get_folder("Lead_Map_Project/UK/predictors/raw_data/shapefiles/msoa") # downloads all files in case folder doesnt exist
 sf_msoa <- read_sf("../raw_data/shapefiles/msoa/england_msoa_2011.shp") %>%
   rename("msoa11cd" = "code",
          "msoa_name" = "name",

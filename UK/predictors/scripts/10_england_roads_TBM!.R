@@ -300,7 +300,7 @@ roads_msoa <- roads_land_area_msoa_sf %>%
 
 
 roads_msoa %>%
-  write_csv("data_processed/roads_msoa.csv")
+  write_csv("../processed_data/roads_msoa.csv")
 
 
 rm(major_roads, strategic_roads_raw, strategic_roads, major_and_strategic_roads, open_roads_ST, major_and_strategic_roads_filtered,

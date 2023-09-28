@@ -17,7 +17,9 @@ sf_msoa <- sf_msoa %>%
   dplyr::select(-label)
 
 # Read in MSOA land areas to compute densities
-land_area_msoa <- drop_read_csv(paste0(drop_box_base_url,"shapefiles/msoa_land_area/SAM_MSOA_DEC_2011_EW.csv")) %>%
+land_area_msoa <- drive_get("Lead_Map_Project/UK/predictors/raw_data/shapefiles/msoa_land_area/SAM_MSOA_DEC_2011_EW.csv") |>
+  drive_read_string() |>
+  read_csv() |>
   rename("msoa11cd" = "MSOA11CD",
          "msoa_name" = "MSOA11NM",
          "area" = "AREALHECT") %>%
@@ -53,4 +55,4 @@ pollution_msoa <- pollution_land_area_msoa_study_area_sf %>%
   dplyr::select(-contains("area"))
 
 pollution_msoa %>%
-  write_csv("data_processed/pollution_msoa.csv")
+  write_csv("../processed_data/pollution_msoa.csv")

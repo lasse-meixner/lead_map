@@ -11,7 +11,9 @@ library(ggpubr)
 # Read in data
 # We only need the MSOA boundaries at the end, for mapping. Same for the MSOA to LA lookup and ALSPAC study area
 
-moss_survey_sf <- read_excel("data_raw/uk/moss_survey.xlsx") %>%
+gdrive_get_file("moss_survey.xlsx")
+
+moss_survey_sf <- read_excel("../raw_data/moss_survey.xlsx") %>%
   st_as_sf(coords = c("Longitude", "Latitude"), crs = 4326) %>%
   st_transform(crs = 27700) %>%
   rename("geometry_moss_sample" = "geometry",
@@ -26,12 +28,19 @@ moss_survey_sf <- read_excel("data_raw/uk/moss_survey.xlsx") %>%
   filter(!moss_lead %in% boxplot.stats(moss_lead)$out) %>%
   ungroup()
 
-centroids_population_msoa <- drop_read_csv(paste0(drop_box_base_url, "msoa_population_centroids.csv")) %>%
-  dplyr::select(-objectid) %>%
-  filter(substr(msoa11cd, 1, 1) == "E") %>%
-  st_as_sf(coords = c("X", "Y"),
-           crs = 27700) %>%
-  rename("geometry_msoa_centroid" = "geometry")
+# if centroids_population_msoa is not already in memory, read it in
+if (exists("centroids_population_msoa")) {
+  print("centroids_population_msoa already in memory")
+} else {
+  centroids_population_msoa <- drive_get("Lead_Map_Project/UK/predictors/raw_data/msoa_population_centroids.csv") |>
+    drive_read_string() |>
+    read_csv() |>
+    dplyr::select(-objectid) %>%
+    filter(substr(msoa11cd, 1, 1) == "E") %>%
+    st_as_sf(coords = c("X", "Y"),
+             crs = 27700) %>%
+    rename("geometry_msoa_centroid" = "geometry")
+}
 
 # Create four different data frames of moss samples (one for each wave of the survey) 
 # with which we'll perform the same exercise to compute moss variables for each wave of the survey 
@@ -237,7 +246,7 @@ moss_msoa <- left_join(moss_msoa_1990, moss_msoa_1995) %>%
   left_join(., moss_msoa_2005_pl_hy)
 
 moss_msoa %>%
-  write_csv("data_processed/moss_msoa.csv")
+  write_csv("../processed_data/moss_msoa.csv")
 
 rm(moss_1990, moss_1995, moss_2000, moss_2005)
 rm(moss_msoa_1990, moss_msoa_1995, moss_msoa_2000, moss_msoa_2005)
