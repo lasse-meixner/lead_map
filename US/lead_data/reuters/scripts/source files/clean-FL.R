@@ -3,16 +3,25 @@ library(tidyverse)
 
 
          
-fl_path <- 'BLL_FL_Raw.xlsx'
+file_path <- 'BLL_FL_Raw.xlsx'
 
-# if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
-if (!exists("drop_get_from_root")) {
-    source("../00_drop_box_access.R")
+
+#TODO: set working directory in script?
+
+# check if file exists in raw_data, if not, download it from Gdrive
+if (!file.exists(paste0("../../raw_data/",file_path))){
+       print("Downloading file from Google Drive...")
+       drive_download(
+              file = paste0("Lead_Map_Project/US/lead_data/raw_data/", file_path),
+              path = paste0("../../raw_data/", file_path),
+              overwrite = TRUE
+       )
+} else {
+   print(paste0("File ", file_path ," already in local folder."))
 }
 
-drop_get_from_root(fl_path)
 
-fl <- read_excel(fl_path, skip = 1) %>% 
+fl <- read_excel(paste0("../../raw_data/", file_path), skip = 1) %>% 
   pivot_longer(cols=!`Zip code`,
                names_sep = ' ',
                names_to = c('year','measure')) %>% 
@@ -27,4 +36,4 @@ fl <- read_excel(fl_path, skip = 1) %>%
 
 
 # save to csv
-write_csv(fl, "../processed_files/fl.csv")
+write_csv(fl, "../../processed_data/fl.csv")

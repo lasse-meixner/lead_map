@@ -3,15 +3,24 @@ library(readxl)
 
 
 
-mn_path <- 'BLL_MN_Raw.xlsx'
+file_path <- 'BLL_MN_Raw.xlsx'
 
-if (!exists("drop_get_from_root")) {
-    source("../00_drop_box_access.R")
+#TODO: set working directory in script?
+
+# check if file exists in raw_data, if not, download it from Gdrive
+if (!file.exists(paste0("../../raw_data/",file_path))){
+       print("Downloading file from Google Drive...")
+       drive_download(
+              file = paste0("Lead_Map_Project/US/lead_data/raw_data/", file_path),
+              path = paste0("../../raw_data/", file_path),
+              overwrite = TRUE
+       )
+} else {
+   print(paste0("File ", file_path ," already in local folder."))
 }
 
-drop_get_from_root(mn_path)
 
-mn <- read_excel(mn_path) %>% 
+mn <- read_excel(paste0("../../raw_data/", file_path)) %>% 
   mutate(tested_2005_2010=ifelse(tested_2005_2010=='.',NA,tested_2005_2010)) %>% 
   mutate(tested_2011_2015=ifelse(tested_2011_2015=='.',NA,tested_2011_2015)) %>% 
   mutate(ebll5_2011_2015=ifelse(ebll5_2011_2015=='.',NA,ebll5_2011_2015)) %>% 
@@ -55,4 +64,4 @@ rm(mn2005to2010,mn2011to2015)
 
 
 # save to csv
-write_csv(mn, file = "../processed_files/mn.csv")
+write_csv(mn, file = "../../processed_data/mn.csv")

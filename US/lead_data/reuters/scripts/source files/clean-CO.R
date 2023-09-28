@@ -4,16 +4,25 @@ library(readxl)
 
 
          
-co_path <- 'BLL_CO_Raw.xlsx'
+file_path <- 'BLL_CO_Raw.xlsx'
 
-# if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
-if (!exists("drop_get_from_root")) {
-    source("../00_drop_box_access.R")
+
+#TODO: set working directory in script?
+
+# check if file exists in raw_data, if not, download it from Gdrive
+if (!file.exists(paste0("../../raw_data/",file_path))){
+       print("Downloading file from Google Drive...")
+       drive_download(
+              file = paste0("Lead_Map_Project/US/lead_data/raw_data/", file_path),
+              path = paste0("../../raw_data/", file_path),
+              overwrite = TRUE
+       )
+} else {
+   print(paste0("File ", file_path ," already in local folder."))
 }
 
-drop_get_from_root(co_path)
 
-co <- read_excel(co_path) %>% 
+co <- read_excel(paste0("../../raw_data/", file_path)) %>% 
   rename(tract=FIPS,
          tested=N_children_tested,
          BLL_geq_5=N_EBLL5,
@@ -37,4 +46,4 @@ co <- rbind(co2010,co2011,co2012,co2013,co2014) %>%
 rm(co2010,co2011,co2012,co2013,co2014)
 
 # save to csv
-write_csv(co, "../processed_files/co.csv")
+write_csv(co, "../../processed_data/co.csv")

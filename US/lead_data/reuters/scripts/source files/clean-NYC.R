@@ -4,22 +4,22 @@ library(readxl)
 
 
          
-nyc_path <- 'BLL_NYC_Raw.xlsx'
+nfile_path <- 'BLL_NYC_Raw.xlsx'
 
-# if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
+
 if (exists("drop_get_from_root")) {
-    drop_get_from_root(nyc_path)
+    drop_get_from_root(nfile_path)
 } else {
     source("../00_drop_box_access.R")
-    drop_get_from_root(nyc_path)
+    drop_get_from_root(nfile_path)
 }
 
 
 # Read in all sheets and bind into a single tibble
 # (based on <https://readxl.tidyverse.org/articles/readxl-workflows.html>)
-nycraw <- nyc_path %>%
+nycraw <- npaste0("../../raw_data/", file_path) %>%
   excel_sheets() %>% # Read in the names of all sheets in the .xlsx file
-  map_df(~ read_excel(path = nyc_path, sheet ='NYC',skip = 2))
+  map_df(~ read_excel(path = nfile_path, sheet ='NYC',skip = 2))
 
 
 # create dataframes for each year
@@ -56,4 +56,4 @@ nyc <- nyc %>%
 rm(nycraw, df, `2005`,`2006`,`2007`,`2008`,`2009`,`2010`,`2011`,`2012`,`2013`,`2014`,`2015`)
 
 # save to csv
-write_csv(nyc, file = "../processed_files/nyc.csv")
+write_csv(nyc, file = "../../processed_data/nyc.csv")

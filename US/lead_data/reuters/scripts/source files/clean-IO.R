@@ -3,20 +3,29 @@ library(readxl)
 
 
          
-io_path <- 'BLL_IO_Raw.xlsx'
+file_path <- 'BLL_IO_Raw.xlsx'
 
-# if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
-if (!exists("drop_get_from_root")) {
-    source("../00_drop_box_access.R")
+
+#TODO: set working directory in script?
+
+# check if file exists in raw_data, if not, download it from Gdrive
+if (!file.exists(paste0("../../raw_data/",file_path))){
+       print("Downloading file from Google Drive...")
+       drive_download(
+              file = paste0("Lead_Map_Project/US/lead_data/raw_data/", file_path),
+              path = paste0("../../raw_data/", file_path),
+              overwrite = TRUE
+       )
+} else {
+   print(paste0("File ", file_path ," already in local folder."))
 }
 
-drop_get_from_root(io_path)
 
 # Read in all sheets and bind into a single tibble
 # (based on <https://readxl.tidyverse.org/articles/readxl-workflows.html>)
-io <- io_path %>%
+io <- paste0("../../raw_data/", file_path) %>%
   excel_sheets() %>% # Read in the names of all sheets in the .xlsx file
-  map_df(~ read_excel(path = io_path, sheet ='Iowa Data')) %>%
+  map_df(~ read_excel(path = paste0("../../raw_data/", file_path), sheet ='Iowa Data')) %>%
   select(- `<5`) %>% 
   rename(year = `Year Tested`,
          zip = `Zip Code`,
@@ -31,4 +40,4 @@ io <- io_path %>%
   mutate(year = factor(year))
 
 # save to csv
-write_csv(io, file = "../processed_files/io.csv")
+write_csv(io, file = "../../processed_data/io.csv")

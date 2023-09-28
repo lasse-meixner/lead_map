@@ -4,16 +4,25 @@ library(readxl)
 
 
 
-ks_path <- 'BLL_KS_Raw.xlsx'
+file_path <- 'BLL_KS_Raw.xlsx'
 
-# if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
-if (!exists("drop_get_from_root")) {
-    source("../00_drop_box_access.R")
+
+#TODO: set working directory in script?
+
+# check if file exists in raw_data, if not, download it from Gdrive
+if (!file.exists(paste0("../../raw_data/",file_path))){
+       print("Downloading file from Google Drive...")
+       drive_download(
+              file = paste0("Lead_Map_Project/US/lead_data/raw_data/", file_path),
+              path = paste0("../../raw_data/", file_path),
+              overwrite = TRUE
+       )
+} else {
+   print(paste0("File ", file_path ," already in local folder."))
 }
 
-drop_get_from_root(ks_path)
 
-ks <- read_excel(ks_path,skip=2) %>% 
+ks <- read_excel(paste0("../../raw_data/", file_path),skip=2) %>% 
   select(1:4) %>% 
   rename(zip=`Zip Code`,
          BLL_geq_5=2, ## use column index here due to specific characters in titles
@@ -47,4 +56,4 @@ ks <- rbind(ks2005,ks2006,ks2007,ks2008,ks2009,ks2010,ks2011,ks2012) %>%
 rm(ks2005,ks2006,ks2007,ks2008,ks2009,ks2010,ks2011,ks2012)
 
 # save to csv
-write_csv(ks, file = "../processed_files/ks.csv")
+write_csv(ks, file = "../../processed_data/ks.csv")

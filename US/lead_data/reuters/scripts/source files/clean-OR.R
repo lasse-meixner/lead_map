@@ -3,20 +3,29 @@ library(tidyverse)
 
 
          
-or_path <- 'BLL_OR_Raw.xlsx'
+file_path <- 'BLL_OR_Raw.xlsx'
 
-# if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
-if (!exists("drop_get_from_root")) {
-    source("../00_drop_box_access.R")
+
+#TODO: set working directory in script?
+
+# check if file exists in raw_data, if not, download it from Gdrive
+if (!file.exists(paste0("../../raw_data/",file_path))){
+       print("Downloading file from Google Drive...")
+       drive_download(
+              file = paste0("Lead_Map_Project/US/lead_data/raw_data/", file_path),
+              path = paste0("../../raw_data/", file_path),
+              overwrite = TRUE
+       )
+} else {
+   print(paste0("File ", file_path ," already in local folder."))
 }
 
-drop_get_from_root(or_path)
 
 # Tested but not confirmed (???)
-or1 <- or_path %>%
+or1 <- paste0("../../raw_data/", file_path) %>%
   excel_sheets() %>% # Read in the names of all sheets in the .xlsx file
   set_names() %>%
-  map_df(~ read_excel(path = or_path, sheet = "Tested_LT3yo_2004-2015"), .id = 'sheet') %>%
+  map_df(~ read_excel(path = paste0("../../raw_data/", file_path), sheet = "Tested_LT3yo_2004-2015"), .id = 'sheet') %>%
   slice(-1) %>% # It's best not to subset by position: do it by name
   select(-17) %>% # otherwise someone reading the file can't tell what's happening
   pivot_longer(cols = 5:16 ,
@@ -31,10 +40,10 @@ or1 <- or_path %>%
          tract = as.character(tract))
 
 # Confirmed
-or2 <- or_path %>%
+or2 <- paste0("../../raw_data/", file_path) %>%
   excel_sheets() %>% # Read in the names of all sheets in the .xlsx file
   set_names() %>%
-  map_df(~ read_excel(path = or_path, sheet = "Confirmed EBLLs 2004-2015"), .id = 'sheet') %>%
+  map_df(~ read_excel(path = paste0("../../raw_data/", file_path), sheet = "Confirmed EBLLs 2004-2015"), .id = 'sheet') %>%
   subset(!is.na(County)) %>%
   select(-17) %>%
   pivot_longer(cols = 5:16 ,
@@ -60,4 +69,4 @@ or <- inner_join(or1, or2, by=c("tract","year")) %>%
 rm(or1, or2)
 
 # save to csv
-write_csv(or, "../processed_files/or.csv")
+write_csv(or, "../../processed_data/or.csv")

@@ -5,22 +5,31 @@ library(dplyr)
 
 
 
-sc_path <- 'BLL_SC_Raw.xlsx'
+file_path <- 'BLL_SC_Raw.xlsx'
 
-# if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
-if (!exists("drop_get_from_root")) {
-    source("../00_drop_box_access.R")
+
+#TODO: set working directory in script?
+
+# check if file exists in raw_data, if not, download it from Gdrive
+if (!file.exists(paste0("../../raw_data/",file_path))){
+       print("Downloading file from Google Drive...")
+       drive_download(
+              file = paste0("Lead_Map_Project/US/lead_data/raw_data/", file_path),
+              path = paste0("../../raw_data/", file_path),
+              overwrite = TRUE
+       )
+} else {
+   print(paste0("File ", file_path ," already in local folder."))
 }
 
-drop_get_from_root(sc_path)
 
 
 # Read in all sheets and bind into a single tibble
 # (based on <https://readxl.tidyverse.org/articles/readxl-workflows.html>)
-sc <- sc_path %>%
+sc <- paste0("../../raw_data/", file_path) %>%
   excel_sheets() %>% # Read in the names of all sheets in the .xlsx file
   set_names() %>% # First three lines in each sheet are garbage!
-  map_df(~ read_excel(path = sc_path, sheet=.x, skip = 0), .id = 'sheet') %>% 
+  map_df(~ read_excel(path = paste0("../../raw_data/", file_path), sheet=.x, skip = 0), .id = 'sheet') %>% 
   filter(sheet!="Data Information") %>% 
   rename(year=sheet) %>% 
   select(-`SOUTH CAROLINA CHILDREN'S (<6 YEARS OF AGE) BLOOD LEAD DATA BY ZIP CODE, 2010 - 2015`) %>% 
@@ -37,4 +46,4 @@ sc <- sc_path %>%
          BLL_geq_10=replace(BLL_geq_10, BLL_geq_10 == "~", "<5"))
   
 # save to csv
-write_csv(sc, file = "../processed_files/sc.csv")
+write_csv(sc, file = "../../processed_data/sc.csv")

@@ -3,18 +3,27 @@ library(readxl)
 
 
          
-ga_path <- 'BLL_GA_Raw.xlsx'
+file_path <- 'BLL_GA_Raw.xlsx'
 
-# if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
-if (!exists("drop_get_from_root")) {
-    source("../00_drop_box_access.R")
+
+#TODO: set working directory in script?
+
+# check if file exists in raw_data, if not, download it from Gdrive
+if (!file.exists(paste0("../../raw_data/",file_path))){
+       print("Downloading file from Google Drive...")
+       drive_download(
+              file = paste0("Lead_Map_Project/US/lead_data/raw_data/", file_path),
+              path = paste0("../../raw_data/", file_path),
+              overwrite = TRUE
+       )
+} else {
+   print(paste0("File ", file_path ," already in local folder."))
 }
 
-drop_get_from_root(ga_path)
 
-garaw <- ga_path %>%
+garaw <- paste0("../../raw_data/", file_path) %>%
   excel_sheets() %>% # Read in the names of all sheets in the .xlsx file
-  map_df(~ read_excel(path = ga_path, sheet ='NEW',skip = 3))
+  map_df(~ read_excel(path = paste0("../../raw_data/", file_path), sheet ='NEW',skip = 3))
 
 # create dataframes for each year
 
@@ -44,4 +53,4 @@ ga <- ga %>%
 rm(garaw, df, `2005`,`2006`,`2007`,`2008`,`2009`,`2010`,`2011`,`2012`,`2013`,`2014`,`2015`)
 
 # save to csv
-write_csv(ga, file = "../processed_files/ga.csv")
+write_csv(ga, file = "../../processed_data/ga.csv")

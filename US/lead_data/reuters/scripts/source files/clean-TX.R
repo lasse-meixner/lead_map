@@ -5,16 +5,25 @@ library(haven)
 
 
          
-tx_path <- "BLL_TX_Raw.sas7bdat"
+file_path <- "BLL_TX_Raw.sas7bdat"
 
-# if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
-if (!exists("drop_get_from_root")) {
-    source("../00_drop_box_access.R")
+
+#TODO: set working directory in script?
+
+# check if file exists in raw_data, if not, download it from Gdrive
+if (!file.exists(paste0("../../raw_data/",file_path))){
+       print("Downloading file from Google Drive...")
+       drive_download(
+              file = paste0("Lead_Map_Project/US/lead_data/raw_data/", file_path),
+              path = paste0("../../raw_data/", file_path),
+              overwrite = TRUE
+       )
+} else {
+   print(paste0("File ", file_path ," already in local folder."))
 }
 
-drop_get_from_root(tx_path)
 
-tx <- read_sas(tx_path) %>% 
+tx <- read_sas(paste0("../../raw_data/", file_path)) %>% 
   rename(year = year_test,
          zip = ZIP,
          tested = NUM_TESTED,
@@ -41,4 +50,4 @@ tx <- read_sas(tx_path) %>%
 
 
 # save to csv
-write_csv(tx, "../processed_files/tx.csv")
+write_csv(tx, "../../processed_data/tx.csv")
