@@ -1,6 +1,28 @@
 library(googledrive)
+library(purrr)
+require(tidyverse)
 
-drive_upload_w_tstamp <- function(tbl_name) {
+# function to download all files in folder:
+
+gdrive_get_folder <- function(path, filetypes = ".csv$|.shp$|.shx$|.dbf$|.prj$") {
+    # create directory if it does not exist, using the last part of the path as the folder name
+    folder_name  <- strsplit(path, "/")[[1]][length(strsplit(path, "/")[[1]])]
+    if (!dir.exists(paste0("../raw_data/", folder_name))) {
+        dir.create(paste0("../raw_data/", folder_name))
+    }
+    # if not, abort
+    else {
+        stop("Folder already exists")
+    }
+    drive_ls(path) |>
+        filter(str_detect(name, filetypes)) |>
+        pull(name) |>
+        map(~ drive_download(paste0(path, "/", .x), 
+                             path = paste0("../raw_data/", folder_name, "/", .x), 
+                             overwrite = TRUE))
+}
+
+gdrive_upload_w_tstamp <- function(tbl_name) {
     
     file_path <- paste0("../processed_data/", tbl_name, ".csv")
     
