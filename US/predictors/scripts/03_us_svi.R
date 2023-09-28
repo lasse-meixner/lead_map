@@ -5,7 +5,7 @@ library(googledrive)
 library(tidyverse)
 
 
-svi <- drive_get("Lead_Map_Project/US/raw_data/SVI_2010_US.csv") |> 
+svi <- drive_get("Lead_Map_Project/US/predictors/raw_data/SVI_2010_US.csv") |> 
   drive_read_string() |> 
   read_csv()
 
