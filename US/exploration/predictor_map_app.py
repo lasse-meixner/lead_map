@@ -72,7 +72,8 @@ app = dash.Dash(__name__)
 
 app.layout = dash.html.Div([
     dash.html.H1("US Predictors Exploration"),
-    dash.html.Div([
+    dash.html.Div([ #content dic
+        dash.html.Div([ #selector div
         dash.html.Div([
         dash.html.H2("Select Predictor"),
         dash.dcc.Dropdown(
@@ -82,7 +83,18 @@ app.layout = dash.html.Div([
             clearable=True,
             searchable=True
             ),
-        ]),
+        ], style = {"display": "inline-block", "width": "50%"}),
+        dash.html.Div([
+            dash.html.H2("Select Correlation Variable"),
+            dash.dcc.Dropdown(
+                id="correlation_var",
+                options=[{"label": x, "value": x} for x in area_predictors],
+                value=area_predictors[0],
+                clearable=True,
+                searchable=True
+            )
+        ], style = {"display": "inline-block", "width": "50%"})
+        ], className="row"),
         # add test input for searching a certain state
         dash.html.Div([
             dash.html.H2("Search for State"),
@@ -100,13 +112,21 @@ app.layout = dash.html.Div([
             dash.dcc.Graph(id="choropleth")
             )
         ]),
-        # add histogram next to chloropleth map
+        # add two columns for histogram and correlation graph
         dash.html.Div([
-            dash.html.H2("Histogram"),
-            dash.dcc.Loading(
-            dash.dcc.Graph(id="histogram")
-            )
-        ])
+            dash.html.Div([
+                dash.html.H2("Histogram"),
+                dash.dcc.Loading(
+                dash.dcc.Graph(id="histogram")
+                )
+            ], style={"width": "50%", "display": "inline-block"}),
+            dash.html.Div([
+                dash.html.H2("Correlation Graph"),
+                dash.dcc.Loading(
+                dash.dcc.Graph(id="correlation")
+                )
+            ], style={"width": "50%", "display": "inline-block"})
+        ], className="row")
     ])
 ])
 
@@ -158,6 +178,23 @@ def update_histogram(predictor, search):
         marginal = "rug")
     return fig
 
+@app.callback(
+    Output("correlation", "figure"),
+    Input("predictor", "value"),
+    Input("correlation_var", "value"),
+    Input("search", "value")
+)
+def update_correlation(predictor, correlation_var, search):
+    # subset data based on whether substring is in name IF search is not empty
+    merged_sub = get_data_subset(search)
+    # make a scatter plot using the selected predictor and correlation variable
+    fig = px.scatter(
+        merged_sub,
+        x=predictor,
+        y=correlation_var,
+        labels={predictor: predictor, correlation_var: correlation_var},
+        opacity=0.6)
+    return fig
 
 
     
