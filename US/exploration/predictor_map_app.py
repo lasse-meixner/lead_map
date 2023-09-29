@@ -10,6 +10,9 @@ import sys
 import dash
 from dash import Input, Output
 
+# Function
+
+## function to load plotting data
 def get_tract_merged_shapefile():
     # try loading shapefile, if not, stop programm and prompt to first run get_tract_geometries.R
     try:
@@ -43,6 +46,15 @@ def get_tract_merged_shapefile():
     del tracts, df
 
     return merged, area_predictors
+
+## Auxiliary function to select data subset based on current selection
+def get_data_subset(search):
+    # subset data based on whether substring is in name IF search is not empty
+    if len(search) == 0:
+        merged_sub = merged.copy()
+    else:
+        merged_sub = merged[merged["STATE_x"].str.contains(search)]
+    return merged_sub
 
 # load merged file from tract.shp and combined_tract.csv
 merged, area_predictors = get_tract_merged_shapefile()
@@ -81,11 +93,19 @@ app.layout = dash.html.Div([
                 value="Texas"
             )
         ]),
+        # add chloropleth map next to histogram
         dash.html.Div([
-            # loading spinner
+            dash.html.H2("Chloropleth Map"),
             dash.dcc.Loading(
             dash.dcc.Graph(id="choropleth")
-        )
+            )
+        ]),
+        # add histogram next to chloropleth map
+        dash.html.Div([
+            dash.html.H2("Histogram"),
+            dash.dcc.Loading(
+            dash.dcc.Graph(id="histogram")
+            )
         ])
     ])
 ])
@@ -99,10 +119,7 @@ app.layout = dash.html.Div([
 )
 def update_chloropleth(predictor, search):
     # subset data based on whether substring is in name IF search is not empty
-    if len(search) == 0:
-        merged_sub = merged.copy()
-    else:
-        merged_sub = merged[merged["STATE_x"].str.contains(search)]
+    merged_sub = get_data_subset(search)
     # make a chloropleth map using the geometry column and the selected predictor 
     fig = px.choropleth_mapbox(
         merged_sub,
@@ -113,14 +130,36 @@ def update_chloropleth(predictor, search):
         color_continuous_scale="Viridis",
         range_color=(merged_sub[predictor].min(), merged_sub[predictor].max()),
         mapbox_style="carto-positron",
-        zoom=5,
+        zoom=3.5,
         opacity=0.5,
         labels={predictor: predictor},
         # center on US
-        center={"lat": 37.0902, "lon": -95.7129}
+        center={"lat": 37.0902, "lon": -95.7129},
+        #TODO: increase height?
+
     )
     fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
     return fig
+
+@app.callback(
+    Output("histogram", "figure"),
+    Input("predictor", "value"),
+    Input("search", "value")
+)
+def update_histogram(predictor, search):
+    # subset data based on whether substring is in name IF search is not empty
+    merged_sub = get_data_subset(search)
+    # make a histogram using the selected predictor
+    fig = px.histogram(
+        merged_sub,
+        x=predictor,
+        labels={predictor: predictor},
+        opacity=0.6,
+        marginal = "rug")
+    return fig
+
+
+
     
 # Run app
 if __name__ == "__main__":
