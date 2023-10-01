@@ -169,3 +169,101 @@ fit <- regression_model_one_X$sample(
                   beta = runif(1, beta_init - 1, beta_init + 1))
 )
 ```
+
+## Minnesota
+
+```{r}
+x_mn <- mn_predictors |> select(all_of(c(features, offset_var, info_vars))) |>
+  # remove duplicate rows
+    distinct()
+```
+
+```{r}
+# Merging our data
+data <- mn |> 
+  filter(!is.na(BLL_geq_10)) |> 
+  rename(TRACT = tract) |> 
+  mutate(TRACT = as.character(TRACT)) |> 
+  left_join(x_mn, by = "TRACT")
+  
+```
+
+```{r}
+# plot testing rates
+data |> 
+  mutate(testing_ratio = (tested / under_yo5_pplE)) |> 
+  ggplot(aes(x = testing_ratio)) +
+  geom_histogram(bins = 50) +
+  labs(x = "Testing ratio (%)", y = "Count", title = "(Approximate...) Testing ratio in Minnesota") +
+  # look only at x between 0 and 1
+  coord_cartesian(xlim = c(0,1))
+```
+
+```{r}
+# plot histogram of kids in tracts
+data |> 
+  ggplot(aes(x = under_yo5_pplE)) +
+  geom_histogram() +
+  labs(title = "Nr. of kids under 5 across tracts in MN")
+```
+
+### Preparing the data
+
+```{r}
+# get censoring indication
+data <- data |>
+  mutate(censored = ifelse(str_detect(BLL_geq_10, "<"), TRUE, FALSE)) |>
+  filter(!is.na(bp_pre_1959E_prop))
+```
+
+### Modelling
+
+#### Ignoring Censoring (dropping)
+
+```{r}
+library(broom)
+# running a frequentist poisson regression for uncensored data
+reg_data <- data |> 
+  filter(!censored & (under_yo5_pplE > 0)) |> 
+  mutate(BLL_geq_10 = as.numeric(BLL_geq_10))
+
+glm(BLL_geq_10 ~ bp_pre_1959E_prop, data = reg_data, family = "poisson") |>
+  tidy() |>
+  knitr::kable(digits=2)
+
+```
+
+```{r}
+# adding now the nr of kids as an exposure parameter
+glm(BLL_geq_10 ~ bp_pre_1959E_prop + offset(log(under_yo5_pplE)), data = reg_data, family = "poisson") |>
+  tidy() |>
+  knitr::kable(digits=2)
+```
+
+#### STAN
+
+```{r}
+# get vectors for to pass to stan
+stan_data <- list(y_obs = data |> filter(!censored) |> pull(BLL_geq_10) |> as.numeric(),
+                  # starting simple with a single X
+                  x_obs = data |> filter(!censored) |> pull(bp_pre_1959E_prop),
+                  x_cens = data |> filter(censored) |> pull(bp_pre_1959E_prop),
+                  N_obs = data |> filter(!censored) |> count() |> pull(n),
+                  N_cens = data |> filter(censored) |> count() |> pull(n),
+                  kids_obs = data |> filter(!censored) |> pull(under_yo5_pplE),
+                  kids_cens = data |> filter(censored) |> pull(under_yo5_pplE),
+                  ell = 5)
+
+```
+
+```{r}
+fit <- regression_model_one_X$sample(
+  data = stan_data,
+  seed = 1234,
+  chains = 4, 
+  parallel_chains = 4,
+  refresh = 500,
+  init = \() list(alpha = runif(1, alpha_init - 3, alpha_init + 3),
+                  beta = runif(1, beta_init - 1, beta_init + 1))
+)
+```
