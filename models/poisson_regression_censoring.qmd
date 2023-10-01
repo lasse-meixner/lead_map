@@ -5,7 +5,7 @@ format:
       code-fold: true
 ---
 
-## Introduction
+# Introduction
 
 This notebook tries to imitate the [poisson regression](https://github.com/fditraglia/learn-bayes/blob/main/censored-data-STAN.qmd) example with censored data by running a toy model on Minnesota and Massachusettes data.
 
@@ -13,14 +13,14 @@ These two states offer themselves for this purpose since they both do NOT suppre
 
 Since the different tracts have different populations of kids, this will be featured in the conditional mean function for the log rate, imitating the monastery example in this other [notebook from learn-bayes](https://github.com/fditraglia/learn-bayes/blob/main/poisson-regression-STAN.qmd).
 
-## Loading the data
+# Loading the data
 
 ```{r}
 library(tidyverse)
 source("find_and_set_directory.R")
 ```
 
-### Loading Lead Data
+## Loading Lead Data
 
 ```{r}
 find_and_set_directory("source files")
@@ -30,7 +30,7 @@ mn <- mn |> filter(year == 2010)
 ma <- ma |> filter(year == 2010)
 ```
 
-### Loading US predictors
+## Loading US predictors
 
 ```{r}
 # load combined_tract.csv from US/predictors/processed_data (otherwise get it from GDrive!)
@@ -85,7 +85,17 @@ data |>
 
 Looks acceptable.
 
-### Fitting a STAN Model
+We also plot an overview of the number of kids living in each tract:
+
+```{r}
+# plot histogram of kids in tracts
+data |> 
+  ggplot(aes(x = under_yo5_pplE)) +
+  geom_histogram() +
+  labs(title = "Nr. of kids under 5 across tracts in MA")
+```
+
+### Preparing the data
 
 ```{r}
 # get a censoring indication (if chr starts with "<"), and drop tracts with NA in X
@@ -93,6 +103,32 @@ data <- data |>
   mutate(censored = ifelse(str_detect(BLL_geq_5, "<"), TRUE, FALSE)) |>
   filter(!is.na(bp_pre_1959E_prop))
 ```
+
+### Modelling
+
+#### Ignoring Censoring (dropping)
+
+```{r}
+library(broom)
+# running a frequentist poisson regression for uncensored data
+reg_data <- data |> 
+  filter(!censored & (under_yo5_pplE > 0)) |> 
+  mutate(BLL_geq_5 = as.numeric(BLL_geq_5))
+
+glm(BLL_geq_5 ~ bp_pre_1959E_prop, data = reg_data, family = "poisson") |>
+  tidy() |>
+  knitr::kable(digits=2)
+
+```
+
+```{r}
+# adding now the nr of kids as an exposure parameter
+glm(BLL_geq_5 ~ bp_pre_1959E_prop + offset(log(under_yo5_pplE)), data = reg_data, family = "poisson") |>
+  tidy() |>
+  knitr::kable(digits=2)
+```
+
+#### STAN
 
 ```{r}
 # get vectors for to pass to stan
@@ -109,14 +145,6 @@ stan_data <- list(y_obs = data |> filter(!censored) |> pull(BLL_geq_5) |> as.num
 ```
 
 ```{r}
-# plot histogram of kids in tracts
-data |> 
-  ggplot(aes(x = under_yo5_pplE)) +
-  geom_histogram() +
-  labs(title = "Nr. of kids under 5 across tracts in MA")
-```
-
-```{r}
 library(cmdstanr)
 
 regression_model_one_X <- cmdstan_model("poisson_regression_single_X.stan")
@@ -129,7 +157,7 @@ mean_count <- mean(stan_data$y_obs) # 4.75 -> log(): 1.56
 mean_x <- mean(data$bp_pre_1959E_prop) # 0.5
 mean_log_kids <- mean(data$under_yo5_pplE) # 235 -> log(): 5.5
 alpha_init = -4.499
-beta_init = 0.99
+beta_init = 2.99
 
 fit <- regression_model_one_X$sample(
   data = stan_data,

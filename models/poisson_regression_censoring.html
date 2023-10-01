@@ -123,14 +123,14 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 
 </header>
 
-<section id="introduction" class="level2">
-<h2 class="anchored" data-anchor-id="introduction">Introduction</h2>
+<section id="introduction" class="level1">
+<h1>Introduction</h1>
 <p>This notebook tries to imitate the <a href="https://github.com/fditraglia/learn-bayes/blob/main/censored-data-STAN.qmd">poisson regression</a> example with censored data by running a toy model on Minnesota and Massachusettes data.</p>
 <p>These two states offer themselves for this purpose since they both do NOT suppress tests, and have around 22% and 50% suppression rates, with a fairly even number of racts (around 1.5k).</p>
 <p>Since the different tracts have different populations of kids, this will be featured in the conditional mean function for the log rate, imitating the monastery example in this other <a href="https://github.com/fditraglia/learn-bayes/blob/main/poisson-regression-STAN.qmd">notebook from learn-bayes</a>.</p>
 </section>
-<section id="loading-the-data" class="level2">
-<h2 class="anchored" data-anchor-id="loading-the-data">Loading the data</h2>
+<section id="loading-the-data" class="level1">
+<h1>Loading the data</h1>
 <div class="cell">
 <details>
 <summary>Code</summary>
@@ -153,8 +153,8 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">source</span>(<span class="st">"find_and_set_directory.R"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
-<section id="loading-lead-data" class="level3">
-<h3 class="anchored" data-anchor-id="loading-lead-data">Loading Lead Data</h3>
+<section id="loading-lead-data" class="level2">
+<h2 class="anchored" data-anchor-id="loading-lead-data">Loading Lead Data</h2>
 <div class="cell">
 <details>
 <summary>Code</summary>
@@ -195,8 +195,8 @@ dbl (3): year, tested, tract
 </details>
 </div>
 </section>
-<section id="loading-us-predictors" class="level3">
-<h3 class="anchored" data-anchor-id="loading-us-predictors">Loading US predictors</h3>
+<section id="loading-us-predictors" class="level2">
+<h2 class="anchored" data-anchor-id="loading-us-predictors">Loading US predictors</h2>
 <div class="cell">
 <details>
 <summary>Code</summary>
@@ -225,7 +225,6 @@ dbl (124): total_ppl_acs20E, median_annual_incomeE, house_price_medianE, ren...
 <span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="fu">rm</span>(mn_ma_predictors)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
-</section>
 </section>
 <section id="massachusetts" class="level2">
 <h2 class="anchored" data-anchor-id="massachusetts">Massachusetts</h2>
@@ -274,52 +273,145 @@ dbl (124): total_ppl_acs20E, median_annual_incomeE, house_price_medianE, ren...
 </div>
 </div>
 <p>Looks acceptable.</p>
-<section id="fitting-a-stan-model" class="level3">
-<h3 class="anchored" data-anchor-id="fitting-a-stan-model">Fitting a STAN Model</h3>
+<p>We also plot an overview of the number of kids living in each tract:</p>
 <div class="cell">
 <details>
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co"># get a censoring indication (if chr starts with "&lt;"), and drop tracts with NA in X</span></span>
-<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>data <span class="ot">&lt;-</span> data <span class="sc">|&gt;</span></span>
-<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">censored =</span> <span class="fu">ifelse</span>(<span class="fu">str_detect</span>(BLL_geq_5, <span class="st">"&lt;"</span>), <span class="cn">TRUE</span>, <span class="cn">FALSE</span>)) <span class="sc">|&gt;</span></span>
-<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(bp_pre_1959E_prop))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</details>
-</div>
-<div class="cell">
-<details>
-<summary>Code</summary>
-<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co"># get vectors for to pass to stan</span></span>
-<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>stan_data <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="at">y_obs =</span> data <span class="sc">|&gt;</span> <span class="fu">filter</span>(<span class="sc">!</span>censored) <span class="sc">|&gt;</span> <span class="fu">pull</span>(BLL_geq_5) <span class="sc">|&gt;</span> <span class="fu">as.numeric</span>(),</span>
-<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>                  <span class="co"># starting simple with a single X</span></span>
-<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>                  <span class="at">x_obs =</span> data <span class="sc">|&gt;</span> <span class="fu">filter</span>(<span class="sc">!</span>censored) <span class="sc">|&gt;</span> <span class="fu">pull</span>(bp_pre_1959E_prop),</span>
-<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>                  <span class="at">x_cens =</span> data <span class="sc">|&gt;</span> <span class="fu">filter</span>(censored) <span class="sc">|&gt;</span> <span class="fu">pull</span>(bp_pre_1959E_prop),</span>
-<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>                  <span class="at">N_obs =</span> data <span class="sc">|&gt;</span> <span class="fu">filter</span>(<span class="sc">!</span>censored) <span class="sc">|&gt;</span> <span class="fu">count</span>() <span class="sc">|&gt;</span> <span class="fu">pull</span>(n),</span>
-<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>                  <span class="at">N_cens =</span> data <span class="sc">|&gt;</span> <span class="fu">filter</span>(censored) <span class="sc">|&gt;</span> <span class="fu">count</span>() <span class="sc">|&gt;</span> <span class="fu">pull</span>(n),</span>
-<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>                  <span class="at">kids_obs =</span> data <span class="sc">|&gt;</span> <span class="fu">filter</span>(<span class="sc">!</span>censored) <span class="sc">|&gt;</span> <span class="fu">pull</span>(under_yo5_pplE),</span>
-<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>                  <span class="at">kids_cens =</span> data <span class="sc">|&gt;</span> <span class="fu">filter</span>(censored) <span class="sc">|&gt;</span> <span class="fu">pull</span>(under_yo5_pplE),</span>
-<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>                  <span class="at">ell =</span> <span class="dv">5</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</details>
-</div>
-<div class="cell">
-<details>
-<summary>Code</summary>
-<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co"># plot histogram of kids in tracts</span></span>
-<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>data <span class="sc">|&gt;</span> </span>
-<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> under_yo5_pplE)) <span class="sc">+</span></span>
-<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>() <span class="sc">+</span></span>
-<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Nr. of kids under 5 across tracts in MA"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co"># plot histogram of kids in tracts</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>data <span class="sc">|&gt;</span> </span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> under_yo5_pplE)) <span class="sc">+</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>() <span class="sc">+</span></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Nr. of kids under 5 across tracts in MA"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stderr">
 <pre><code>`stat_bin()` using `bins = 30`. Pick better value with `binwidth`.</code></pre>
 </div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Removed 152 rows containing non-finite values (`stat_bin()`).</code></pre>
+</div>
 <div class="cell-output-display">
-<p><img src="poisson_regression_censoring_files/figure-html/unnamed-chunk-9-1.png" class="img-fluid" width="672"></p>
+<p><img src="poisson_regression_censoring_files/figure-html/unnamed-chunk-7-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<section id="preparing-the-data" class="level3">
+<h3 class="anchored" data-anchor-id="preparing-the-data">Preparing the data</h3>
+<div class="cell">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># get a censoring indication (if chr starts with "&lt;"), and drop tracts with NA in X</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>data <span class="ot">&lt;-</span> data <span class="sc">|&gt;</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">censored =</span> <span class="fu">ifelse</span>(<span class="fu">str_detect</span>(BLL_geq_5, <span class="st">"&lt;"</span>), <span class="cn">TRUE</span>, <span class="cn">FALSE</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(bp_pre_1959E_prop))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+</section>
+<section id="modelling" class="level3">
+<h3 class="anchored" data-anchor-id="modelling">Modelling</h3>
+<section id="ignoring-censoring-dropping" class="level4">
+<h4 class="anchored" data-anchor-id="ignoring-censoring-dropping">Ignoring Censoring (dropping)</h4>
+<div class="cell">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(broom)</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a><span class="co"># running a frequentist poisson regression for uncensored data</span></span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>reg_data <span class="ot">&lt;-</span> data <span class="sc">|&gt;</span> </span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span>censored <span class="sc">&amp;</span> (under_yo5_pplE <span class="sc">&gt;</span> <span class="dv">0</span>)) <span class="sc">|&gt;</span> </span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">BLL_geq_5 =</span> <span class="fu">as.numeric</span>(BLL_geq_5))</span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a><span class="fu">glm</span>(BLL_geq_5 <span class="sc">~</span> bp_pre_1959E_prop, <span class="at">data =</span> reg_data, <span class="at">family =</span> <span class="st">"poisson"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tidy</span>() <span class="sc">|&gt;</span></span>
+<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a>  knitr<span class="sc">::</span><span class="fu">kable</span>(<span class="at">digits=</span><span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<table class="table table-sm table-striped">
+<thead>
+<tr class="header">
+<th style="text-align: left;">term</th>
+<th style="text-align: right;">estimate</th>
+<th style="text-align: right;">std.error</th>
+<th style="text-align: right;">statistic</th>
+<th style="text-align: right;">p.value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">(Intercept)</td>
+<td style="text-align: right;">-1.08</td>
+<td style="text-align: right;">0.08</td>
+<td style="text-align: right;">-13.06</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">bp_pre_1959E_prop</td>
+<td style="text-align: right;">4.29</td>
+<td style="text-align: right;">0.11</td>
+<td style="text-align: right;">37.38</td>
+<td style="text-align: right;">0</td>
+</tr>
+</tbody>
+</table>
 </div>
 </div>
 <div class="cell">
 <details>
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(cmdstanr)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co"># adding now the nr of kids as an exposure parameter</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="fu">glm</span>(BLL_geq_5 <span class="sc">~</span> bp_pre_1959E_prop <span class="sc">+</span> <span class="fu">offset</span>(<span class="fu">log</span>(under_yo5_pplE)), <span class="at">data =</span> reg_data, <span class="at">family =</span> <span class="st">"poisson"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tidy</span>() <span class="sc">|&gt;</span></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>  knitr<span class="sc">::</span><span class="fu">kable</span>(<span class="at">digits=</span><span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<table class="table table-sm table-striped">
+<thead>
+<tr class="header">
+<th style="text-align: left;">term</th>
+<th style="text-align: right;">estimate</th>
+<th style="text-align: right;">std.error</th>
+<th style="text-align: right;">statistic</th>
+<th style="text-align: right;">p.value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">(Intercept)</td>
+<td style="text-align: right;">-6.31</td>
+<td style="text-align: right;">0.08</td>
+<td style="text-align: right;">-76.35</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">bp_pre_1959E_prop</td>
+<td style="text-align: right;">3.78</td>
+<td style="text-align: right;">0.11</td>
+<td style="text-align: right;">33.15</td>
+<td style="text-align: right;">0</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</section>
+<section id="stan" class="level4">
+<h4 class="anchored" data-anchor-id="stan">STAN</h4>
+<div class="cell">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="co"># get vectors for to pass to stan</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>stan_data <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="at">y_obs =</span> data <span class="sc">|&gt;</span> <span class="fu">filter</span>(<span class="sc">!</span>censored) <span class="sc">|&gt;</span> <span class="fu">pull</span>(BLL_geq_5) <span class="sc">|&gt;</span> <span class="fu">as.numeric</span>(),</span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>                  <span class="co"># starting simple with a single X</span></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>                  <span class="at">x_obs =</span> data <span class="sc">|&gt;</span> <span class="fu">filter</span>(<span class="sc">!</span>censored) <span class="sc">|&gt;</span> <span class="fu">pull</span>(bp_pre_1959E_prop),</span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>                  <span class="at">x_cens =</span> data <span class="sc">|&gt;</span> <span class="fu">filter</span>(censored) <span class="sc">|&gt;</span> <span class="fu">pull</span>(bp_pre_1959E_prop),</span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>                  <span class="at">N_obs =</span> data <span class="sc">|&gt;</span> <span class="fu">filter</span>(<span class="sc">!</span>censored) <span class="sc">|&gt;</span> <span class="fu">count</span>() <span class="sc">|&gt;</span> <span class="fu">pull</span>(n),</span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>                  <span class="at">N_cens =</span> data <span class="sc">|&gt;</span> <span class="fu">filter</span>(censored) <span class="sc">|&gt;</span> <span class="fu">count</span>() <span class="sc">|&gt;</span> <span class="fu">pull</span>(n),</span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a>                  <span class="at">kids_obs =</span> data <span class="sc">|&gt;</span> <span class="fu">filter</span>(<span class="sc">!</span>censored) <span class="sc">|&gt;</span> <span class="fu">pull</span>(under_yo5_pplE),</span>
+<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a>                  <span class="at">kids_cens =</span> data <span class="sc">|&gt;</span> <span class="fu">filter</span>(censored) <span class="sc">|&gt;</span> <span class="fu">pull</span>(under_yo5_pplE),</span>
+<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a>                  <span class="at">ell =</span> <span class="dv">5</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<div class="cell">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(cmdstanr)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stderr">
 <pre><code>This is cmdstanr version 0.6.1</code></pre>
@@ -340,7 +432,7 @@ To disable this check set option or environment variable CMDSTANR_NO_VER_CHECK=T
 </div>
 <details>
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>regression_model_one_X <span class="ot">&lt;-</span> <span class="fu">cmdstan_model</span>(<span class="st">"poisson_regression_single_X.stan"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>regression_model_one_X <span class="ot">&lt;-</span> <span class="fu">cmdstan_model</span>(<span class="st">"poisson_regression_single_X.stan"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stderr">
 <pre><code>Warning in readLines(stan_file): incomplete final line found on
@@ -348,7 +440,7 @@ To disable this check set option or environment variable CMDSTANR_NO_VER_CHECK=T
 </div>
 <details>
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>regression_model_one_X<span class="sc">$</span><span class="fu">print</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb32"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>regression_model_one_X<span class="sc">$</span><span class="fu">print</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code>data {
@@ -385,22 +477,22 @@ model {
 <div class="cell">
 <details>
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="co"># getting sensible initialization values for alpha and beta</span></span>
-<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>mean_count <span class="ot">&lt;-</span> <span class="fu">mean</span>(stan_data<span class="sc">$</span>y_obs) <span class="co"># 4.75 -&gt; log(): 1.56</span></span>
-<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>mean_x <span class="ot">&lt;-</span> <span class="fu">mean</span>(data<span class="sc">$</span>bp_pre_1959E_prop) <span class="co"># 0.5</span></span>
-<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>mean_log_kids <span class="ot">&lt;-</span> <span class="fu">mean</span>(data<span class="sc">$</span>under_yo5_pplE) <span class="co"># 235 -&gt; log(): 5.5</span></span>
-<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a>alpha_init <span class="ot">=</span> <span class="sc">-</span><span class="fl">4.499</span></span>
-<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a>beta_init <span class="ot">=</span> <span class="fl">0.99</span></span>
-<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb31-8"><a href="#cb31-8" aria-hidden="true" tabindex="-1"></a>fit <span class="ot">&lt;-</span> regression_model_one_X<span class="sc">$</span><span class="fu">sample</span>(</span>
-<span id="cb31-9"><a href="#cb31-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> stan_data,</span>
-<span id="cb31-10"><a href="#cb31-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">seed =</span> <span class="dv">1234</span>,</span>
-<span id="cb31-11"><a href="#cb31-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">chains =</span> <span class="dv">4</span>, </span>
-<span id="cb31-12"><a href="#cb31-12" aria-hidden="true" tabindex="-1"></a>  <span class="at">parallel_chains =</span> <span class="dv">4</span>,</span>
-<span id="cb31-13"><a href="#cb31-13" aria-hidden="true" tabindex="-1"></a>  <span class="at">refresh =</span> <span class="dv">500</span>,</span>
-<span id="cb31-14"><a href="#cb31-14" aria-hidden="true" tabindex="-1"></a>  <span class="at">init =</span> \() <span class="fu">list</span>(<span class="at">alpha =</span> <span class="fu">runif</span>(<span class="dv">1</span>, alpha_init <span class="sc">-</span> <span class="dv">3</span>, alpha_init <span class="sc">+</span> <span class="dv">3</span>),</span>
-<span id="cb31-15"><a href="#cb31-15" aria-hidden="true" tabindex="-1"></a>                  <span class="at">beta =</span> <span class="fu">runif</span>(<span class="dv">1</span>, beta_init <span class="sc">-</span> <span class="dv">1</span>, beta_init <span class="sc">+</span> <span class="dv">1</span>))</span>
-<span id="cb31-16"><a href="#cb31-16" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="co"># getting sensible initialization values for alpha and beta</span></span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>mean_count <span class="ot">&lt;-</span> <span class="fu">mean</span>(stan_data<span class="sc">$</span>y_obs) <span class="co"># 4.75 -&gt; log(): 1.56</span></span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>mean_x <span class="ot">&lt;-</span> <span class="fu">mean</span>(data<span class="sc">$</span>bp_pre_1959E_prop) <span class="co"># 0.5</span></span>
+<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a>mean_log_kids <span class="ot">&lt;-</span> <span class="fu">mean</span>(data<span class="sc">$</span>under_yo5_pplE) <span class="co"># 235 -&gt; log(): 5.5</span></span>
+<span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a>alpha_init <span class="ot">=</span> <span class="sc">-</span><span class="fl">4.499</span></span>
+<span id="cb34-6"><a href="#cb34-6" aria-hidden="true" tabindex="-1"></a>beta_init <span class="ot">=</span> <span class="fl">2.99</span></span>
+<span id="cb34-7"><a href="#cb34-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-8"><a href="#cb34-8" aria-hidden="true" tabindex="-1"></a>fit <span class="ot">&lt;-</span> regression_model_one_X<span class="sc">$</span><span class="fu">sample</span>(</span>
+<span id="cb34-9"><a href="#cb34-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> stan_data,</span>
+<span id="cb34-10"><a href="#cb34-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">seed =</span> <span class="dv">1234</span>,</span>
+<span id="cb34-11"><a href="#cb34-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">chains =</span> <span class="dv">4</span>, </span>
+<span id="cb34-12"><a href="#cb34-12" aria-hidden="true" tabindex="-1"></a>  <span class="at">parallel_chains =</span> <span class="dv">4</span>,</span>
+<span id="cb34-13"><a href="#cb34-13" aria-hidden="true" tabindex="-1"></a>  <span class="at">refresh =</span> <span class="dv">500</span>,</span>
+<span id="cb34-14"><a href="#cb34-14" aria-hidden="true" tabindex="-1"></a>  <span class="at">init =</span> \() <span class="fu">list</span>(<span class="at">alpha =</span> <span class="fu">runif</span>(<span class="dv">1</span>, alpha_init <span class="sc">-</span> <span class="dv">3</span>, alpha_init <span class="sc">+</span> <span class="dv">3</span>),</span>
+<span id="cb34-15"><a href="#cb34-15" aria-hidden="true" tabindex="-1"></a>                  <span class="at">beta =</span> <span class="fu">runif</span>(<span class="dv">1</span>, beta_init <span class="sc">-</span> <span class="dv">1</span>, beta_init <span class="sc">+</span> <span class="dv">1</span>))</span>
+<span id="cb34-16"><a href="#cb34-16" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code>Running MCMC with 4 parallel chains...</code></pre>
@@ -499,6 +591,8 @@ model {
 <pre><code>Warning: No chains finished successfully. Unable to retrieve the fit.</code></pre>
 </div>
 </div>
+</section>
+</section>
 </section>
 </section>
 
