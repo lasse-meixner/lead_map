@@ -1,0 +1,143 @@
+---
+title: "BLL poisson regression demonstration"
+format:
+    html:
+      code-fold: true
+---
+
+## Introduction
+
+This notebook tries to imitate the [poisson regression](https://github.com/fditraglia/learn-bayes/blob/main/censored-data-STAN.qmd) example with censored data by running a toy model on Minnesota and Massachusettes data.
+
+These two states offer themselves for this purpose since they both do NOT suppress tests, and have around 22% and 50% suppression rates, with a fairly even number of racts (around 1.5k).
+
+Since the different tracts have different populations of kids, this will be featured in the conditional mean function for the log rate, imitating the monastery example in this other [notebook from learn-bayes](https://github.com/fditraglia/learn-bayes/blob/main/poisson-regression-STAN.qmd).
+
+## Loading the data
+
+```{r}
+library(tidyverse)
+source("find_and_set_directory.R")
+```
+
+### Loading Lead Data
+
+```{r}
+find_and_set_directory("source files")
+source("../00_merging_functions.R")
+load_states(c("MN","MA"))
+mn <- mn |> filter(year == 2010)
+ma <- ma |> filter(year == 2010)
+```
+
+### Loading US predictors
+
+```{r}
+# load combined_tract.csv from US/predictors/processed_data (otherwise get it from GDrive!)
+find_and_set_directory("US/predictors/processed_data")
+mn_ma_predictors <- read_csv("combined_tract.csv") |>
+    # NAME contains Minnesota or Massachusetts
+    filter(grepl("Minnesota|Massachusetts", NAME))
+mn_predictors <- mn_ma_predictors |>
+    filter(grepl("Minnesota", NAME))
+ma_predictors <- mn_ma_predictors |>
+    filter(grepl("Massachusetts", NAME))
+rm(mn_ma_predictors)
+```
+
+## Massachusetts
+
+I will run a toy example with just a small subset of the predictors we have.
+
+```{r}
+info_vars <- c("TRACT","STATE_NAME","COUNTY") 
+offset_var <- c("under_yo5_pplE")
+features <- c("median_annual_incomeE","house_price_medianE","poor_fam_propE","black_ppl_propE", "bp_pre_1959E_prop", "svi_socioeconomic_pctile")
+
+x_ma <- ma_predictors |> select(all_of(c(features, offset_var, info_vars))) |>
+  # remove duplicate rows
+    distinct()
+```
+
+```{r}
+# Merging our data
+data <- ma |> 
+  rename(TRACT = tract) |> 
+  mutate(TRACT = as.character(TRACT)) |> 
+  left_join(x_ma, by = "TRACT")
+  
+```
+
+Concerning the outcome, I am ignoring the fact that the count is upper bounded by the nr of tested. In Massachusetts, this isn't too bad since testing is so numerous that counts lie way below that bound.
+
+We plot the testing ratio (keeping in mind that kid counts are from 2020, and tests from 2010...)
+
+```{r}
+# Plot testing rates in MA
+data |> 
+  mutate(testing_ratio = (tested / under_yo5_pplE)) |> 
+  ggplot(aes(x = testing_ratio)) +
+  geom_histogram(bins = 50) +
+  labs(x = "Testing ratio (%)", y = "Count", title = "(Approximate...) Testing ratio in Massachusettes") +
+  # look only at x between 0 and 1
+  coord_cartesian(xlim = c(0,1))
+```
+
+Looks acceptable.
+
+### Fitting a STAN Model
+
+```{r}
+# get a censoring indication (if chr starts with "<"), and drop tracts with NA in X
+data <- data |>
+  mutate(censored = ifelse(str_detect(BLL_geq_5, "<"), TRUE, FALSE)) |>
+  filter(!is.na(bp_pre_1959E_prop))
+```
+
+```{r}
+# get vectors for to pass to stan
+stan_data <- list(y_obs = data |> filter(!censored) |> pull(BLL_geq_5) |> as.numeric(),
+                  # starting simple with a single X
+                  x_obs = data |> filter(!censored) |> pull(bp_pre_1959E_prop),
+                  x_cens = data |> filter(censored) |> pull(bp_pre_1959E_prop),
+                  N_obs = data |> filter(!censored) |> count() |> pull(n),
+                  N_cens = data |> filter(censored) |> count() |> pull(n),
+                  kids_obs = data |> filter(!censored) |> pull(under_yo5_pplE),
+                  kids_cens = data |> filter(censored) |> pull(under_yo5_pplE),
+                  ell = 5)
+
+```
+
+```{r}
+# plot histogram of kids in tracts
+data |> 
+  ggplot(aes(x = under_yo5_pplE)) +
+  geom_histogram() +
+  labs(title = "Nr. of kids under 5 across tracts in MA")
+```
+
+```{r}
+library(cmdstanr)
+
+regression_model_one_X <- cmdstan_model("poisson_regression_single_X.stan")
+regression_model_one_X$print()
+```
+
+```{r}
+# getting sensible initialization values for alpha and beta
+mean_count <- mean(stan_data$y_obs) # 4.75 -> log(): 1.56
+mean_x <- mean(data$bp_pre_1959E_prop) # 0.5
+mean_log_kids <- mean(data$under_yo5_pplE) # 235 -> log(): 5.5
+alpha_init = -4.499
+beta_init = 0.99
+
+fit <- regression_model_one_X$sample(
+  data = stan_data,
+  seed = 1234,
+  chains = 4, 
+  parallel_chains = 4,
+  refresh = 500,
+  init = \() list(alpha = runif(1, alpha_init - 3, alpha_init + 3),
+                  beta = runif(1, beta_init - 1, beta_init + 1))
+)
+```
