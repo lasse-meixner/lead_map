@@ -257,6 +257,8 @@ stan_data <- list(y_obs = data |> filter(!censored) |> pull(BLL_geq_10) |> as.nu
 ```
 
 ```{r}
+alpha_init <- -5.99
+beta_init <- 4.66
 fit <- regression_model_one_X$sample(
   data = stan_data,
   seed = 1234,
