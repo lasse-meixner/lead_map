@@ -1,5 +1,6 @@
 library(dplyr)
 library(tidyverse)
+library(jsonlite)
 
 # try to set to source files, then stopifnot
 tryCatch(setwd("../scripts/source files/"), error = function(e) e$message)
@@ -7,12 +8,11 @@ stopifnot(endsWith(getwd(), "source files"))
 
 ## This script contains functions to merge the data from the individual states into one dataframe
 
-# list of zip states
-zip_states <- c("AL", "AZ", "IL", "NY", "RI", "LA", "NJ", "VT", "CA", "FL", "IO", "CT",
-                "SC", "DC", "MI", "GA", "NM", "MO", "OK", "TX", "TN", "VA", "KS")
-
-# list of tract states
-tract_states <- c("OH", "PA", "CO", "MD", "MA", "MN", "NYC", "NC", "IND", "OR", "NH", "WI")
+# get state metadata
+metadata  <- fromJSON("../../../metadata.json")
+# list of zip and tract states
+zip_states <- metadata$zip_states
+tract_states <- metadata$tract_states
 
 # list of variables except zip OR tract
 var_list <- c("state", "year", "BLL_geq_5", "BLL_geq_10", "tested")
