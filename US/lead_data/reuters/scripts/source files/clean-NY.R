@@ -4,17 +4,26 @@ library(dplyr)
 
 
          
-ny_path <- 'BLL_NY_Raw.xlsx'
+file_path <- 'BLL_NY_Raw.xlsx'
 
-# if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
-if (!exists("drop_get_from_root")) {
-    source("../00_drop_box_access.R")
+
+#TODO: set working directory in script?
+
+# check if file exists in raw_data, if not, download it from Gdrive
+if (!file.exists(paste0("../../raw_data/",file_path))){
+       print("Downloading file from Google Drive...")
+       drive_download(
+              file = paste0("Lead_Map_Project/US/lead_data/raw_data/", file_path),
+              path = paste0("../../raw_data/", file_path),
+              overwrite = TRUE
+       )
+} else {
+   print(paste0("File ", file_path ," already in local folder."))
 }
 
-drop_get_from_root(ny_path)
 
 
-ny <- read_excel(ny_path) %>%
+ny <- read_excel(paste0("../../raw_data/", file_path)) %>%
   rename(BLL_geq_5 = `Children tested => 5 mg/dL`,
          tested = `All Unique Children Tested (up to 72 months of age)`,
          year=Year,
@@ -29,4 +38,4 @@ ny <- read_excel(ny_path) %>%
   mutate(zip=as.character(zip))
 
 # save to csv
-write_csv(ny, "../processed_files/ny.csv")
+write_csv(ny, "../../processed_data/ny.csv")

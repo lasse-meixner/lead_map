@@ -3,21 +3,30 @@ library(readxl)
 
 
          
-md_path <- 'BLL_MD_Raw.xlsx'
+file_path <- 'BLL_MD_Raw.xlsx'
 
-# if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
-if (!exists("drop_get_from_root")) {
-    source("../00_drop_box_access.R")
+
+#TODO: set working directory in script?
+
+# check if file exists in raw_data, if not, download it from Gdrive
+if (!file.exists(paste0("../../raw_data/",file_path))){
+       print("Downloading file from Google Drive...")
+       drive_download(
+              file = paste0("Lead_Map_Project/US/lead_data/raw_data/", file_path),
+              path = paste0("../../raw_data/", file_path),
+              overwrite = TRUE
+       )
+} else {
+   print(paste0("File ", file_path ," already in local folder."))
 }
 
-drop_get_from_root(md_path)
 
 # Read in all sheets and bind into a single tibble
 # (based on <https://readxl.tidyverse.org/articles/readxl-workflows.html>)
-md <- md_path %>%
+md <- paste0("../../raw_data/", file_path) %>%
   excel_sheets() %>% # Read in the names of all sheets in the .xlsx file
   set_names() %>% # First three lines in each sheet are garbage!
-  map_df(~ read_excel(path = md_path, sheet = .x, skip = 3), .id = 'sheet') %>%
+  map_df(~ read_excel(path = paste0("../../raw_data/", file_path), sheet = .x, skip = 3), .id = 'sheet') %>%
   rename(year = sheet,
          county = County,
          tract = `Census Tract`,
@@ -38,4 +47,4 @@ md <- md_path %>%
 
 
 # save to csv
-write_csv(md, "../processed_files/md.csv")
+write_csv(md, "../../processed_data/md.csv")

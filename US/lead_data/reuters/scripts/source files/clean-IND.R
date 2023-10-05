@@ -3,22 +3,22 @@ library(tidyverse)
 
 
          
-in_path <- 'BLL_IN_Raw.xlsx'
-in_path2 <- 'INDIANA_COUNTY.xlsx'
+file_path <- 'BLL_IN_Raw.xlsx'
+file_path2 <- 'INDIANA_COUNTY.xlsx'
 
-# if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
+
 if (exists("drop_get_from_root")) {
-    drop_get_from_root(in_path)
-    drop_get_from_root(in_path2)
+    drop_get_from_root(paste0("../../raw_data/", file_path))
+    drop_get_from_root(paste0("../../raw_data/", file_path2))
 } else {
     source("../00_drop_box_access.R")
-    drop_get_from_root(in_path)
-    drop_get_from_root(in_path2)
+    drop_get_from_root(paste0("../../raw_data/", file_path))
+    drop_get_from_root(paste0("../../raw_data/", file_path2))
 }
 
-ind <- read_excel(in_path) 
+ind <- read_excel(paste0("../../raw_data/", file_path)) 
 
-ind_county_codes <- read_excel(in_path2) %>% 
+ind_county_codes <- read_excel(paste0("../../raw_data/", file_path2)) %>% 
   rename(County=NAME) %>% 
   select(County,GEOID)
 
@@ -56,4 +56,4 @@ ind <- left_join(ind,ind_county_codes) %>%
 rm(ind_county_codes)
 
 # save to csv
-write_csv(ind, "../processed_files/ind.csv")
+write_csv(ind, "../../processed_data/ind.csv")

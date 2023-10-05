@@ -11,7 +11,7 @@ gdrive_get_file <- function(file_name) {
     if (!file.exists(paste0("../raw_data/", file_name))) {
         print(paste0("Downloading file: ", file_name))
         drive_download(
-            file = paste0("Lead_Map_Project/US/predictors/raw_data/", file_name), 
+            file = paste0("Lead_Map_Project/UK/predictors/raw_data/", file_name), 
             path = paste0("../raw_data/", file_name), 
             overwrite = TRUE)
     }
@@ -52,7 +52,7 @@ gdrive_upload_w_tstamp <- function(tbl_name) {
     drive_upload(
         media = file_path,
         path = paste0(
-        "Lead_Map_Project/US/predictors/processed_data/",
+        "Lead_Map_Project/UK/predictors/processed_data/",
         tbl_name,
         "_@",
         file_mod_time,

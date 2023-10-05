@@ -3,34 +3,43 @@ library(tidyverse)
 
 
          
-mo_path <- 'BLL_MO_Raw.xlsx'
+file_path <- 'BLL_MO_Raw.xlsx'
 
-# if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
-if (!exists("drop_get_from_root")) {
-    source("../00_drop_box_access.R")
+
+#TODO: set working directory in script?
+
+# check if file exists in raw_data, if not, download it from Gdrive
+if (!file.exists(paste0("../../raw_data/",file_path))){
+       print("Downloading file from Google Drive...")
+       drive_download(
+              file = paste0("Lead_Map_Project/US/lead_data/raw_data/", file_path),
+              path = paste0("../../raw_data/", file_path),
+              overwrite = TRUE
+       )
+} else {
+   print(paste0("File ", file_path ," already in local folder."))
 }
 
-drop_get_from_root(mo_path)
 
 
 ## Missouri stored data in different sheets. This aggregates those sheets and brings them together
 
-mo1 <- mo_path %>%
+mo1 <- paste0("../../raw_data/", file_path) %>%
   excel_sheets() %>% # Read in the names of all sheets in the .xlsx file
   set_names() %>%
-  map_df(~ read_excel(path = mo_path,skip=3,sheet="Zip by Year Total")) %>% 
+  map_df(~ read_excel(path = paste0("../../raw_data/", file_path),skip=3,sheet="Zip by Year Total")) %>% 
   mutate(measure='tested')
 
-mo2 <- mo_path %>%
+mo2 <- paste0("../../raw_data/", file_path) %>%
   excel_sheets() %>% # Read in the names of all sheets in the .xlsx file
   set_names() %>%
-  map_df(~ read_excel(path = mo_path,skip=3,sheet="Zip by Year 5+")) %>% 
+  map_df(~ read_excel(path = paste0("../../raw_data/", file_path),skip=3,sheet="Zip by Year 5+")) %>% 
   mutate(measure='BLL_geq_5')
 
-mo3 <- mo_path %>%
+mo3 <- paste0("../../raw_data/", file_path) %>%
   excel_sheets() %>% # Read in the names of all sheets in the .xlsx file
   set_names() %>%
-  map_df(~ read_excel(path = mo_path,skip=3,sheet="Zip by Year 10+")) %>% 
+  map_df(~ read_excel(path = paste0("../../raw_data/", file_path),skip=3,sheet="Zip by Year 10+")) %>% 
   mutate(measure='BLL_geq_10')
 
 mo <- rbind(mo1,mo2,mo3) %>% 
@@ -58,4 +67,4 @@ mo <- rbind(mo1,mo2,mo3) %>%
 rm(mo1,mo2,mo3)
 
 # save to csv
-write_csv(mo, "../processed_files/mo.csv")
+write_csv(mo, "../../processed_data/mo.csv")

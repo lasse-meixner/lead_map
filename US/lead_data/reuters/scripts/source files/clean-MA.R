@@ -9,16 +9,25 @@ library(dplyr)
 # given the existence of suppressed data "1-5", I can't change the format to numeric, so all data are stored as characters as of now
 # There are 2 variables "confirmed_tested>=5" and "estimated_tested>=5". I beliece the confirmed data involves multiple testing while the estimated data may contain results drawn from one single test. We need to figure out what to do with the 2 variables. 
 
-ma_path <- 'BLL_MA_Raw.xlsx'
+file_path <- 'BLL_MA_Raw.xlsx'
 
-# if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
-if (!exists("drop_get_from_root")) {
-    source("../00_drop_box_access.R")
+
+#TODO: set working directory in script?
+
+# check if file exists in raw_data, if not, download it from Gdrive
+if (!file.exists(paste0("../../raw_data/",file_path))){
+       print("Downloading file from Google Drive...")
+       drive_download(
+              file = paste0("Lead_Map_Project/US/lead_data/raw_data/", file_path),
+              path = paste0("../../raw_data/", file_path),
+              overwrite = TRUE
+       )
+} else {
+   print(paste0("File ", file_path ," already in local folder."))
 }
 
-drop_get_from_root(ma_path)
 
-ma <- read_excel(ma_path, sheet = "2005-2015 Individual Years", skip = 0) %>%
+ma <- read_excel(paste0("../../raw_data/", file_path), sheet = "2005-2015 Individual Years", skip = 0) %>%
   mutate_at(vars(contains("Num_Scr")), as.character) %>%
   pivot_longer(cols = contains(c('Conf','Num_Scr')),
                names_sep = 4,
@@ -43,4 +52,4 @@ ma <- read_excel(ma_path, sheet = "2005-2015 Individual Years", skip = 0) %>%
 
 
 # save to csv
-write_csv(ma, "../processed_files/ma.csv")
+write_csv(ma, "../../processed_data/ma.csv")

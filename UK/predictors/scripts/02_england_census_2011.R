@@ -34,10 +34,12 @@ urban_ppl_oa <- nomis_get_data(id = "NM_143_1", time = "latest", RURAL_URBAN = "
 # As described in downloads script, because May 2020 look-up is missing some OAs,
 # we use a different look-up here to the one used in "04_uk_cleaning_merging" (here we use the December 2011 look-up)
 
-oa_lsoa_msoa_lookup_Dec_2011 <- drop_read_csv(paste0(drop_box_base_url,"geography_lookup_Dec_2011.csv")) %>%
-  select(OA11CD, LSOA11CD, MSOA11CD) %>%
-  distinct(OA11CD, .keep_all = TRUE) %>%
-  filter(substr(OA11CD, 1, 1) == "E") %>%
+oa_lsoa_msoa_lookup_Dec_2011 <- drive_get("Lead_Map_Project/UK/predictors/raw_data/geography_lookup_Dec_2011.csv") |>
+  drive_read_string() |>
+  read_csv() |>
+  select(OA11CD, LSOA11CD, MSOA11CD) |>
+  distinct(OA11CD, .keep_all = TRUE) |>
+  filter(substr(OA11CD, 1, 1) == "E") |>
   rename("oa11cd" = "OA11CD",
          "lsoa11cd" = "LSOA11CD",
          "msoa11cd" = "MSOA11CD")

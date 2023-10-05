@@ -15,7 +15,7 @@ poverty_ons_msoa <- read_excel("https://www.ons.gov.uk/file?uri=%2fpeoplepopulat
   filter(substr(msoa11cd, 1, 1) == "E")
 
 poverty_ons_msoa %>%
-  write_csv("data_processed/poverty_ons_msoa.csv")
+  write_csv("../processed_data/poverty_ons_msoa.csv")
 
 rm(poverty_ons_msoa)
 

@@ -17,11 +17,13 @@ if (exists("sf_msoa")) {
   sf_msoa <- read_sf("../raw_data/shapefiles/msoa/england_msoa_2011.shp")
 }
 
-# TODO: This csv is only the pointer to the Git LFS file. Need to move this to dropbox!
-mapping <- drop_read_csv(paste0(drop_box_base_url,"postcode_centroids_2020.csv"))
+# TODO: This csv is only the pointer to the Git LFS file. Need to move this to GDrive!
+mapping <- drive_get("Lead_Map_Project/US/predictors/postcode_centroids_2020.csv") |>
+  drive_read_string() |>
+  read_csv()
 
 # read pollution inventory
-drop_get_from_root("1992_2008 Pollution Inventory Dataset.xlsx")
+gdrive_get_file("1992_2008 Pollution Inventory Dataset.xlsx")
 pollution <- read_excel("../raw_data/1992_2008 Pollution Inventory Dataset.xlsx") %>%
   as_tibble()
 

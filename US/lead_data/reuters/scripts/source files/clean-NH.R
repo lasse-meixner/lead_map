@@ -7,24 +7,24 @@ library(naniar)
 
 
          
-nh_path <- 'BLL_NH_Raw.xlsx'
+file_path <- 'BLL_NH_Raw.xlsx'
 nh2_path <- 'BLL_NH2_Raw.xlsx'
 nh3_path <- 'NH_COUNTY.xlsx'
 
-# if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
+
 if (exists("drop_get_from_root")) {
-    drop_get_from_root(nh_path)
+    drop_get_from_root(paste0("../../raw_data/", file_path))
     drop_get_from_root(nh2_path)
     drop_get_from_root(nh3_path)
 } else {
     source("../00_drop_box_access.R")
-    drop_get_from_root(nh_path)
+    drop_get_from_root(paste0("../../raw_data/", file_path))
     drop_get_from_root(nh2_path)
     drop_get_from_root(nh3_path)
 }
 
 # read in data
-nh <- read_excel(nh_path, col_names = FALSE, skip = 1)
+nh <- read_excel(paste0("../../raw_data/", file_path), col_names = FALSE, skip = 1)
 
 nhtested <- read_excel(nh2_path,skip=1,na=".") %>% 
   select(-`Missing Census Tract`,-`Total Number of Tests`) %>% 
@@ -102,7 +102,7 @@ nh <- nh %>%
   select(state, year, tested, tract, BLL_geq_5, BLL_geq_10)
 
 # remove unnecessary variables
-rm(nh2_path, nh_path, nhtested, countyindex, new_names)
+rm(nh2_path, file_path, nhtested, countyindex, new_names)
 
 # save to csv
-write_csv(nh, "../processed_files/nh.csv")
+write_csv(nh, "../../processed_data/nh.csv")

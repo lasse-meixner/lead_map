@@ -2,14 +2,24 @@ library(tidyverse)
 library(readxl)
 
 
-wi_path <- 'BLL_WI2_Raw.csv'
+file_path <- 'BLL_WI2_Raw.csv'
 
 # if drop_get_from_root function is in env, do nothing, otherwise source "00_drop_box_access.R"
-if (!exists("drop_get_from_root")) {
-    source("../00_drop_box_access.R")
+#TODO: set working directory in script?
+
+# check if file exists in raw_data, if not, download it from Gdrive
+if (!file.exists(paste0("../../raw_data/",file_path))){
+       print("Downloading file from Google Drive...")
+       drive_download(
+              file = paste0("Lead_Map_Project/US/lead_data/raw_data/", file_path),
+              path = paste0("../../raw_data/", file_path),
+              overwrite = TRUE
+       )
+} else {
+   print(paste0("File ", file_path ," already in local folder."))
 }
 
-wi_raw <- drop_read_csv(paste0(reuters_drop_box_base_url, wi_path), dest = "../raw_files/")
+wi_raw <- drop_read_csv(paste0(reuters_drop_box_base_url, file_path), dest = "../raw_files/")
   
 wi <- wi_raw |> 
   rename(tract = GEOID,
@@ -41,5 +51,5 @@ wi <- wi_raw |>
   rm(wi_raw)
 
 # save to csv
-write_csv(wi, file = "../processed_files/vt.csv")
+write_csv(wi, file = "../../processed_data/vt.csv")
                     

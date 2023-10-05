@@ -3,16 +3,25 @@ library(readxl)
 # library(xlsx)
 
 
-az_path <- 'BLL_AZ_Raw.xlsx'
+file_path <- 'BLL_AZ_Raw.xlsx'
 
-# if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
-if (!exists("drop_get_from_root")) {
-    source("../00_drop_box_access.R")
+
+#TODO: set working directory in script?
+
+# check if file exists in raw_data, if not, download it from Gdrive
+if (!file.exists(paste0("../../raw_data/",file_path))){
+       print("Downloading file from Google Drive...")
+       drive_download(
+              file = paste0("Lead_Map_Project/US/lead_data/raw_data/", file_path),
+              path = paste0("../../raw_data/", file_path),
+              overwrite = TRUE
+       )
+} else {
+   print(paste0("File ", file_path ," already in local folder."))
 }
 
-drop_get_from_root(az_path)
 
-az <- read_excel(az_path, sheet ='ALL',skip=2) %>% 
+az <- read_excel(paste0("../../raw_data/", file_path), sheet ='ALL',skip=2) %>% 
   rename(value=`COUNT**`,
          year=`YEAR SAMPLE WAS TAKEN`,
          measure=`BLOOD LEAD LEVEL CATEGORY`) %>% 
@@ -54,4 +63,4 @@ az <- read_excel(az_path, sheet ='ALL',skip=2) %>%
 
 
 # save to csv
-write_csv(az, "../processed_files/az.csv")
+write_csv(az, "../../processed_data/az.csv")

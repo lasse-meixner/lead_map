@@ -7,17 +7,26 @@ library(tidyverse)
 # See also *R for Data Science* Chapter 12
 
          
-ri_path <- 'BLL_RI_Raw.xlsx'
+file_path <- 'BLL_RI_Raw.xlsx'
 
-# if drop_get_from_root function is in env, continue, otherwise source "00_drop_box_access.R"
-if (!exists("drop_get_from_root")) {
-    source("../00_drop_box_access.R")
+
+#TODO: set working directory in script?
+
+# check if file exists in raw_data, if not, download it from Gdrive
+if (!file.exists(paste0("../../raw_data/",file_path))){
+       print("Downloading file from Google Drive...")
+       drive_download(
+              file = paste0("Lead_Map_Project/US/lead_data/raw_data/", file_path),
+              path = paste0("../../raw_data/", file_path),
+              overwrite = TRUE
+       )
+} else {
+   print(paste0("File ", file_path ," already in local folder."))
 }
 
-drop_get_from_root(ri_path)
 
 
-ri <- read_excel(ri_path, skip = 5) %>%
+ri <- read_excel(paste0("../../raw_data/", file_path), skip = 5) %>%
   filter(TownName != 'Totals') %>% # The last row gives column totals
   pivot_longer(cols = starts_with('Tested'),
                names_sep = ' ',
@@ -36,4 +45,4 @@ ri <- read_excel(ri_path, skip = 5) %>%
   mutate(BLL_geq_5=as.character(BLL_geq_5))
   
 # save to csv
-write_csv(ri, file = "../processed_files/ri.csv")
+write_csv(ri, file = "../../processed_data/ri.csv")
