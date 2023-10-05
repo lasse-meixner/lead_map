@@ -12,7 +12,7 @@ us_tracts  <- tigris::tracts(cb = TRUE) |> # get tracts for all states in US
 
 # get roads 
 roads <- st_read("../raw_data/roads/tl_2021_us_primaryroads.shp") |>
-  st_simplify(dTolerance = 100) |> # simplify geometry
+  st_simplify(dTolerance = 100) |> # simplify LINESTRING geometry
   st_join(us_tracts, join = st_intersects) # match road LINESTRING sections to tracts
 
 # get length by type in each tract (runs for a while)

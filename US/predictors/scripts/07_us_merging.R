@@ -17,12 +17,19 @@ data_tract <- acs_dec_tract |>
   left_join(tri_cleaned) |>
   relocate(TRACT)
 
+# generate COUNTY and STATE from NAME, e.g. "Census Tract 45.02, Jefferson County, Alabama"
+data_tract <- data_tract |>
+  mutate(
+    COUNTY = str_extract(NAME, "(?<=, ).*?(?=,)"),
+    STATE = str_extract(NAME, "(?<=, )[^,]+$")
+  ) |>
+  relocate(c("STATE", "COUNTY"), .after = TRACT)
+
+
 # save to disk
 data_tract |>
   write_csv("../processed_data/combined_tract.csv")
 
 # write to Gdrive
-drive_upload(
-  media = "../processed_data/combined_tract.csv",
-  path =  "Lead_Map_Project/US/processed_data/combined_tract_.csv",
-  overwrite = TRUE)
+source("00_gdrive_utils.R")
+drive_upload_w_tstamp("combined_tract")

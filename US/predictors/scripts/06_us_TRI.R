@@ -19,7 +19,9 @@ get_tract <- function(tri_state, state_name){
     st_transform(st_crs(state_tracts)) |>
     st_join(state_tracts) |>
     rename(TRACT = GEOID) |>
-    as_tibble() # transform back into tibble (drop Geometry)
+    # transform back into tibble (drop Geometry)
+    drop_geometry() |>
+    as_tibble() 
   
   tri_state_w_tract
 }

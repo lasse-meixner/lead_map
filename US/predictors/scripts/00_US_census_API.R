@@ -6,7 +6,7 @@ source("00_agg_funcs.R")
 get_census_data_us <- function(geography_type, state_str = NULL) {
   
   # First, we get the variables we need from the 2010 Decennial Census
-  # We do NOT include the feature geometry in this call. If this is ever changed, consider using shift_geometry() to adjust the feature geometry for Alaska and Hawaii so that they appear under the rest of US on a map
+  # We do NOT include the feature geometry (args: geometry=FALSE) in this call. If this is ever changed, consider using shift_geometry() to adjust the feature geometry for Alaska and Hawaii so that they appear under the rest of US on a map
   # Filter out Puerto Rico data (we do this in all of the calls)
   
   dec_2010 <- get_decennial(
