@@ -7,6 +7,8 @@ format:
 
 ## Estimating Poisson for Rhode Island
 
+This notebook fits a STAN poisson regression with offset for RI. It also demonstrates how to get posterior predictive distribution for our counts (based on [this](https://mc-stan.org/docs/2_23/stan-users-guide/posterior-prediction-for-regressions.html)).
+
 ```{r}
 library(tidyverse)
 source("find_and_set_directory.R")
@@ -98,7 +100,7 @@ fit <- ri_model$sample(
 ```
 
 ```{r}
-fit$summary() |> 
+fit$summary(variables = c("lp__","alpha","beta")) |> 
   knitr::kable(digits=3)
 ```
 
@@ -110,4 +112,28 @@ fit$diagnostic_summary()
 # plot draws from posterior for alpha and beta using bayesplot
 library(bayesplot)
 mcmc_areas(fit$draws(variables = "beta"))
+```
+
+```{r}
+# extract all y_tilde variables from fit$summary()
+preds <- fit$summary() |> 
+  filter(str_detect(variable, "y_tilde")) |> 
+  select(median, q5, q95)
+
+```
+
+```{r}
+# plot posterior predictive intervals for each y_tilde
+preds |> 
+  bind_cols(reg_data) |>
+  mutate(observation = 1:n()) |> 
+  ggplot(aes(x = observation)) +
+  # plot vertical line for q5 and q95
+  geom_linerange(aes(ymin = q5, ymax = q95)) +
+  geom_point(aes(y = median)) +
+  geom_point(aes(y = BLL_geq_5), color = "red") +
+  labs(x = "observation", y = "y_tilde posterior prediction")
+```
+
+```{r}
 ```

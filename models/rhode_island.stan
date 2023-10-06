@@ -17,3 +17,8 @@ parameters {
 model {
   y ~ poisson_log(log_kids + alpha + beta * x); 
 }
+
+generated quantities {
+  array[N] int<lower=0> y_tilde
+    = poisson_log_rng(log_kids + alpha + beta * x);
+}
