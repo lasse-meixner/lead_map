@@ -1,0 +1,113 @@
+---
+title: "BLL poisson regression demonstration"
+format:
+    html:
+      code-fold: true
+---
+
+## Estimating Poisson for Rhode Island
+
+```{r}
+library(tidyverse)
+source("find_and_set_directory.R")
+```
+
+### Loading lead and predictor data
+
+```{r}
+# loading lead
+find_and_set_directory("source files")
+source("../00_merging_functions.R")
+load_state("RI")
+```
+
+```{r}
+# for each ZIP, get the year with the max "tested", then count the number of times that year appears
+ri |> group_by(zip) |> filter(tested == max(tested)) |> ungroup() |> group_by(year) |> count()
+```
+
+```{r}
+ri_y <- ri |> filter(year == 2005)
+```
+
+```{r}
+# loading crosswalked predictor data
+find_and_set_directory("US/predictors/processed_data")
+ri_x <- read_csv("crosswalked_zip.csv") |> filter(STATE_ABBR == "RI")
+```
+
+```{r}
+# merging
+ri_data <- ri_y |> 
+  left_join(ri_x, by="zip") |> 
+  drop_na()
+
+ri_data <- ri_data |> 
+  # drop all rows where US API is 0
+  filter(rowSums(select(ri_data, total_ppl_acs20E, bp_pre_1959E_prop)) > 0) |> 
+  select(-year) |> 
+  # for each ZIP, keep the one with the highest tested (issue in file generation)
+  group_by(zip) |>
+  filter(tested == max(tested)) |> 
+  ungroup()
+  
+```
+
+### Modelling Poisson with offset
+
+```{r}
+offset_var <- c("under_yo5_pplE")
+feature <- c("bp_pre_1959E_prop")
+
+reg_data <- ri_data |> select(zip, under_yo5_pplE, bp_pre_1959E_prop, BLL_geq_5)
+```
+
+```{r}
+glm(BLL_geq_5 ~ bp_pre_1959E_prop + offset(log(under_yo5_pplE)), data = reg_data, family = "poisson") |>
+  tidy() |>
+  knitr::kable(digits=2)
+```
+
+### STAN
+
+```{r}
+stan_data <- list(
+  N = reg_data |> count() |> pull(n),
+  y = reg_data |> pull(BLL_geq_5),
+  # standardize x and pull out as vector
+  x = reg_data |> pull(bp_pre_1959E_prop) |> scale() |> as.vector(),
+  kids = reg_data |> pull(under_yo5_pplE)
+)
+```
+
+```{r}
+library(cmdstanr)
+
+ri_model <- cmdstan_model("rhode_island.stan")
+ri_model$print()
+```
+
+```{r}
+fit <- ri_model$sample(
+  data = stan_data,
+  seed = 1234,
+  chains = 4, 
+  parallel_chains = 4,
+  refresh = 500
+)
+```
+
+```{r}
+fit$summary() |> 
+  knitr::kable(digits=3)
+```
+
+```{r}
+fit$diagnostic_summary()
+```
+
+```{r}
+# plot draws from posterior for alpha and beta using bayesplot
+library(bayesplot)
+mcmc_areas(fit$draws(variables = "beta"))
+```
