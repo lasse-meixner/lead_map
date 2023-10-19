@@ -259,8 +259,87 @@ fit <- regression_model_many_X$sample(
 
 ```{r}
 fit$summary() |> 
+  filter(variable %in% c("alpha", "beta[1]", "beta[2]")) |> 
   knitr::kable(digits=3)
 ```
 
-```{}
+```{r}
+# adding all of our features
+stan_data_all_X <- list(
+  N_obs = data |> filter(!censored) |> count() |> pull(n),
+  N_cens = data |> filter(censored) |> count() |> pull(n),
+  K = length(features),
+  y_obs = data |> filter(!censored) |> pull(BLL_geq_5) |> as.numeric(),
+  # starting simple with a single X
+  x_obs = data |> filter(!censored) |> select(all_of(features)) |> scale() |> as.matrix(),
+  x_cens = data |> filter(censored) |> select(all_of(features)) |> scale() |> as.matrix(),
+  kids_obs = data |> filter(!censored) |> pull(under_yo5_pplE),
+  kids_cens = data |> filter(censored) |> pull(under_yo5_pplE),
+  ell = 5
+)
+```
+
+```{r}
+# sample
+fit <- regression_model_many_X$sample(
+  data = stan_data_all_X,
+  seed = 1234,
+  chains = 4, 
+  parallel_chains = 4,
+  refresh = 500
+)
+```
+
+```{r}
+fit$summary() |> 
+  # rename all of the beta[j] by their feature names
+  mutate(variable = ifelse(str_detect(variable, "beta"), paste0(features[as.numeric(str_extract(variable, "[0-9]+"))]), variable)) |>
+  filter(variable %in% c(features, "alpha")) |> 
+  knitr::kable(digits=3)
+```
+
+```{r}
+draws <- fit$draws(format = "draws_df")
+draws <- draws |> 
+  # rename column names beta[j] by their feature names
+  rename_with(~ (features[as.numeric(str_extract(., "[0-9]+"))]), starts_with("beta"))
+
+# plot mcmc_areas for all features
+mcmc_areas(draws |> select(features),
+           prob = 0.8) +
+  ggtitle("Posterior distributions",
+          "with medians and 80% intervals")
+```
+
+```{r}
+# plot posterior predictive check
+# extract all y_tilde variables from fit$summary()
+preds <- fit$summary() |> 
+  filter(str_detect(variable, "y_tilde")) |> 
+  select(median, q5, q95)
+```
+
+```{r}
+# plot preds again y. for y that are missing, plot a linerange between 1 and 5:
+y <- as.numeric(c(stan_data_many_X$y_obs, rep(NA, stan_data_many_X$N_cens)))
+
+# join with preds
+preds <- preds |> 
+  mutate(y = y,
+         observation = 1:n(),
+         y_cens_range_min = ifelse(is.na(y), 1, y),
+         y_cens_range_max = ifelse(is.na(y), 5, y),
+         y = ifelse(is.na(y), 2.5, y)) # fill for plotting
+```
+
+```{r}
+preds |>
+  ggplot(aes(x = observation)) +
+  geom_linerange(aes(ymin = y_cens_range_min, ymax = y_cens_range_max), color = "blue", alpha = 0.2) +
+  geom_point(aes(y = y), color = "blue", alpha = 0.4) +
+  geom_linerange(aes(ymin = q5, ymax = q95), color = "red", alpha = 0.2) +
+  geom_point(aes(y = median), color = "red", alpha = 0.2) +
+  labs(title = "Posterior predictive check",
+       subtitle = "Red lines are 80% intervals, blue dots are observed BLL_geq_5",
+       x = "tract", y = "BLL_geq_5")
 ```
