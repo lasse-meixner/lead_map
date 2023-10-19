@@ -13,6 +13,9 @@ data {
 transformed data {
     vector[N_obs] log_kids_obs = log(kids_obs);
     vector[N_cens] log_kids_cens = log(kids_cens);
+    int<lower=0> N = N_obs + N_cens;
+    matrix[N, K] X = append_row(x_obs, x_cens);
+    vector[N] log_kids = append_row(log_kids_obs, log_kids_cens);
 }
 
 parameters {
@@ -27,4 +30,9 @@ model {
     mu_j = exp(log_kids_cens[j] + alpha + dot_product(beta, x_cens[j])); // Is there a better way to do this?
     target += log_diff_exp(poisson_lcdf(ell | mu_j), poisson_lpmf(0 | mu_j));
   }
+}
+
+generated quantities {
+  array[N] int<lower=0> y_tilde
+    = poisson_log_rng(log_kids + alpha + X * beta);
 }
