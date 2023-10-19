@@ -7,11 +7,11 @@ format:
 
 # Introduction
 
-This notebook tries to imitate the [poisson regression](https://github.com/fditraglia/learn-bayes/blob/main/censored-data-STAN.qmd) example with censored data by running a toy model on Minnesota and Massachusettes data.
+This notebook implements a [poisson regression](https://github.com/fditraglia/learn-bayes/blob/main/censored-data-STAN.qmd) example with censored data by running a toy model on data from Massachusetts.
 
-These two states offer themselves for this purpose since they both do NOT suppress tests, and have around 22% and 50% suppression rates, with a fairly even number of racts (around 1.5k).
+Massachusetts offers itself for this purpose since it does NOT suppress tests, and has a 50% suppression rate.
 
-Since the different tracts have different populations of kids, this will be featured in the conditional mean function for the log rate, imitating the monastery example in this other [notebook from learn-bayes](https://github.com/fditraglia/learn-bayes/blob/main/poisson-regression-STAN.qmd).
+Since the different tracts have different populations of kids, this will be featured as an offset in the conditional expectation function, as in the example in this other [notebook from learn-bayes](https://github.com/fditraglia/learn-bayes/blob/main/poisson-regression-STAN.qmd).
 
 # Loading the data
 
@@ -25,8 +25,7 @@ source("find_and_set_directory.R")
 ```{r}
 find_and_set_directory("source files")
 source("../00_merging_functions.R")
-load_states(c("MN","MA"))
-mn <- mn |> filter(year == 2010)
+load_state("MA")
 ma <- ma |> filter(year == 2010)
 ```
 
@@ -35,19 +34,13 @@ ma <- ma |> filter(year == 2010)
 ```{r}
 # load combined_tract.csv from US/predictors/processed_data (otherwise get it from GDrive!)
 find_and_set_directory("US/predictors/processed_data")
-mn_ma_predictors <- read_csv("combined_tract.csv") |>
-    # NAME contains Minnesota or Massachusetts
-    filter(grepl("Minnesota|Massachusetts", NAME))
-mn_predictors <- mn_ma_predictors |>
-    filter(grepl("Minnesota", NAME))
-ma_predictors <- mn_ma_predictors |>
-    filter(grepl("Massachusetts", NAME))
-rm(mn_ma_predictors)
+ma_predictors <- read_csv("combined_tract.csv") |>
+  filter(grepl("Massachusetts", NAME)) # NAME contains Massachusetts
 ```
 
 ## Massachusetts
 
-I will run a toy example with just a small subset of the predictors we have.
+I will first run a toy example with just a single X, and then with a selection of multiple features:
 
 ```{r}
 info_vars <- c("TRACT","STATE_NAME","COUNTY") 
@@ -55,16 +48,17 @@ offset_var <- c("under_yo5_pplE")
 features <- c("median_annual_incomeE","house_price_medianE","poor_fam_propE","black_ppl_propE", "bp_pre_1959E_prop", "svi_socioeconomic_pctile")
 
 x_ma <- ma_predictors |> select(all_of(c(features, offset_var, info_vars))) |>
-  # remove duplicate rows
+  # remove any potential duplicate rows from prev. joins
     distinct()
 ```
 
 ```{r}
-# Merging our data
+# Merging lead and predictor data at the tract level
 data <- ma |> 
   rename(TRACT = tract) |> 
   mutate(TRACT = as.character(TRACT)) |> 
-  left_join(x_ma, by = "TRACT")
+  left_join(x_ma, by = "TRACT") |> 
+  mutate(censored = ifelse(str_detect(BLL_geq_5, "<"), TRUE, FALSE))
   
 ```
 
@@ -73,17 +67,39 @@ Concerning the outcome, I am ignoring the fact that the count is upper bounded b
 We plot the testing ratio (keeping in mind that kid counts are from 2020, and tests from 2010...)
 
 ```{r}
-# Plot testing rates in MA
-data |> 
-  mutate(testing_ratio = (tested / under_yo5_pplE)) |> 
-  ggplot(aes(x = testing_ratio)) +
-  geom_histogram(bins = 50) +
-  labs(x = "Testing ratio (%)", y = "Count", title = "(Approximate...) Testing ratio in Massachusettes") +
-  # look only at x between 0 and 1
-  coord_cartesian(xlim = c(0,1))
+# Sort tracts by under_yo5_pplE and then plot the kid count, the nr of tests, and number of elevations by ordered tract
+
+data %>%
+  filter(!censored,
+         under_yo5_pplE>tested) %>% # there are some tracts for which this is violated
+  arrange(desc(under_yo5_pplE)) %>%
+  mutate(BLL_geq_5 = as.integer(BLL_geq_5),
+         tract_factor = as.character(TRACT),
+         combined_height = under_yo5_pplE + tested + BLL_geq_5) %>%
+  mutate(tract_factor = factor(tract_factor, levels = unique(tract_factor[order(combined_height, decreasing = TRUE)]))) %>%
+  ggplot(aes(x = tract_factor)) +
+  geom_col(aes(y = under_yo5_pplE, fill = "under_yo5_pplE"), position = "identity") +
+  geom_col(aes(y = tested, fill = "tested"), position = "identity") +
+  geom_col(aes(y = BLL_geq_5, fill = "BLL_geq_5"), position = "identity") +
+  labs(title = "Kid count, nr of tests, and nr of elevations by tract in MA",
+       x = "Tract", y = "Count") +
+  theme(axis.text.x = element_blank(),
+        axis.ticks.x = element_blank())
+
+
+
 ```
 
-Looks acceptable.
+We can see that testing rates appear quite high.
+
+Note that there is a subset for which CENSUS data on the offset does not agree with the test counts:
+
+```{r}
+data |> 
+  filter(under_yo5_pplE<tested) |> count()
+```
+
+We will drop these observations from our stan dataset.
 
 We also plot an overview of the number of kids living in each tract:
 
@@ -98,10 +114,10 @@ data |>
 ### Preparing the data
 
 ```{r}
-# get a censoring indication (if chr starts with "<"), and drop tracts with NA in X
+# drop tracts with NA in X, and remove impossible TRACTs
 data <- data |>
-  mutate(censored = ifelse(str_detect(BLL_geq_5, "<"), TRUE, FALSE)) |>
-  filter(!is.na(bp_pre_1959E_prop))
+  filter(!is.na(bp_pre_1959E_prop),
+         under_yo5_pplE > tested)
 ```
 
 ### Modelling
@@ -112,18 +128,11 @@ data <- data |>
 library(broom)
 # running a frequentist poisson regression for uncensored data
 reg_data <- data |> 
-  filter(!censored & (under_yo5_pplE > 0)) |> 
+  filter(!censored) |> 
   mutate(BLL_geq_5 = as.numeric(BLL_geq_5))
 
-glm(BLL_geq_5 ~ bp_pre_1959E_prop, data = reg_data, family = "poisson") |>
-  tidy() |>
-  knitr::kable(digits=2)
-
-```
-
-```{r}
-# adding now the nr of kids as an exposure parameter
-glm(BLL_geq_5 ~ bp_pre_1959E_prop + offset(log(under_yo5_pplE)), data = reg_data, family = "poisson") |>
+# adding the nr of kids as an exposure parameter
+glm(BLL_geq_5 ~ scale(bp_pre_1959E_prop) + offset(log(under_yo5_pplE)), data = reg_data, family = "poisson") |>
   tidy() |>
   knitr::kable(digits=2)
 ```
@@ -131,13 +140,13 @@ glm(BLL_geq_5 ~ bp_pre_1959E_prop + offset(log(under_yo5_pplE)), data = reg_data
 #### STAN
 
 ```{r}
-# get vectors for to pass to stan
-stan_data <- list(y_obs = data |> filter(!censored) |> pull(BLL_geq_5) |> as.numeric(),
-                  # starting simple with a single X
-                  x_obs = data |> filter(!censored) |> pull(bp_pre_1959E_prop),
-                  x_cens = data |> filter(censored) |> pull(bp_pre_1959E_prop),
-                  N_obs = data |> filter(!censored) |> count() |> pull(n),
+# get vectors to pass to stan
+stan_data <- list(N_obs = data |> filter(!censored) |> count() |> pull(n),
                   N_cens = data |> filter(censored) |> count() |> pull(n),
+                  y_obs = data |> filter(!censored) |> pull(BLL_geq_5) |> as.numeric(),
+                  # starting simple with a single X
+                  x_obs = data |> filter(!censored) |> pull(bp_pre_1959E_prop) |> scale() |> as.vector(),
+                  x_cens = data |> filter(censored) |> pull(bp_pre_1959E_prop) |> scale() |> as.vector(),
                   kids_obs = data |> filter(!censored) |> pull(under_yo5_pplE),
                   kids_cens = data |> filter(censored) |> pull(under_yo5_pplE),
                   ell = 5)
@@ -145,127 +154,113 @@ stan_data <- list(y_obs = data |> filter(!censored) |> pull(BLL_geq_5) |> as.num
 ```
 
 ```{r}
+# import STAN model
 library(cmdstanr)
 
-regression_model_one_X <- cmdstan_model("poisson_regression_single_X.stan")
+regression_model_one_X <- cmdstan_model("poisson_single_X_suppression.stan")
 regression_model_one_X$print()
 ```
 
 ```{r}
-# getting sensible initialization values for alpha and beta
-mean_count <- mean(stan_data$y_obs) # 4.75 -> log(): 1.56
-mean_x <- mean(data$bp_pre_1959E_prop) # 0.5
-mean_log_kids <- mean(data$under_yo5_pplE) # 235 -> log(): 5.5
-alpha_init = -4.499
-beta_init = 2.99
-
+# sample 
 fit <- regression_model_one_X$sample(
   data = stan_data,
   seed = 1234,
   chains = 4, 
   parallel_chains = 4,
-  refresh = 500,
-  init = \() list(alpha = runif(1, alpha_init - 3, alpha_init + 3),
-                  beta = runif(1, beta_init - 1, beta_init + 1))
+  refresh = 500
 )
 ```
 
-## Minnesota
+#### Note about initalization
+
+Before correcting some upstream data issues, in this example the STAN model would not be able to initiate sampling. Even now, it usually takes the algorithm a couple of attempts before HMC gets rolling.
+
+If this happens, the first two things to consider is to check that your data and that it conforms to any logical constraints. The second thing is to consider scaling your predictors in order to bring the parameters closer to a range that STAN will try sampling on: by default this is in \[-2,2\].
+
+If STAN still has difficulty to initialize, consider trying to grid search initialization values:
+
+This auxiliary wrapper `run_init_grid` tries initialization of the sampling method for an arbitrarily fine grid of parameter values. I include this just to show how it may be used.
 
 ```{r}
-x_mn <- mn_predictors |> select(all_of(c(features, offset_var, info_vars))) |>
-  # remove duplicate rows
-    distinct()
+source("search_initialization_grid.R") # imports run_init_grid
 ```
 
 ```{r}
-# Merging our data
-data <- mn |> 
-  filter(!is.na(BLL_geq_10)) |> 
-  rename(TRACT = tract) |> 
-  mutate(TRACT = as.character(TRACT)) |> 
-  left_join(x_mn, by = "TRACT")
-  
+# This will loop over the parameter grid until at least one chain finished successfully.
+grid_results <- run_init_grid(stan_data = stan_data, 
+              stan_model = regression_model_one_X, 
+              param_grid = list(
+                alpha = seq(-4.6, -4.4, 0.1), 
+                beta = seq(0.4, 0.8, 0.1)))
+```
+
+### Results
+
+```{r}
+grid_results$summary(variables = c("lp__","alpha","beta")) |> 
+  knitr::kable(digits=3)
 ```
 
 ```{r}
-# plot testing rates
-data |> 
-  mutate(testing_ratio = (tested / under_yo5_pplE)) |> 
-  ggplot(aes(x = testing_ratio)) +
-  geom_histogram(bins = 50) +
-  labs(x = "Testing ratio (%)", y = "Count", title = "(Approximate...) Testing ratio in Minnesota") +
-  # look only at x between 0 and 1
-  coord_cartesian(xlim = c(0,1))
+# plot draws from posterior for beta using bayesplot
+library(bayesplot)
+mcmc_areas(fit$draws(variables = "beta"))
+```
+
+## Modelling with many X's
+
+```{r}
+# drop all NA for any of the features
+data <- data |> 
+  filter(if_all(features, ~ !is.na(.)))
+```
+
+To run the regression with multiple X's we are changing the types of our inputs to matrices and have to modify the `model` block.
+
+```{r}
+regression_model_many_X <- cmdstan_model("poisson_many_X_suppression.stan")
+regression_model_many_X$print()
+```
+
+Trying to initialize this with all of the features from our original subselection fails, so we first try with two X to see if the code runs:
+
+```{r}
+# trying two features first:
+two_features <- c("bp_pre_1959E_prop", "svi_socioeconomic_pctile")
 ```
 
 ```{r}
-# plot histogram of kids in tracts
-data |> 
-  ggplot(aes(x = under_yo5_pplE)) +
-  geom_histogram() +
-  labs(title = "Nr. of kids under 5 across tracts in MN")
-```
-
-### Preparing the data
-
-```{r}
-# get censoring indication
-data <- data |>
-  mutate(censored = ifelse(str_detect(BLL_geq_10, "<"), TRUE, FALSE)) |>
-  filter(!is.na(bp_pre_1959E_prop))
-```
-
-### Modelling
-
-#### Ignoring Censoring (dropping)
-
-```{r}
-library(broom)
-# running a frequentist poisson regression for uncensored data
-reg_data <- data |> 
-  filter(!censored & (under_yo5_pplE > 0)) |> 
-  mutate(BLL_geq_10 = as.numeric(BLL_geq_10))
-
-glm(BLL_geq_10 ~ bp_pre_1959E_prop, data = reg_data, family = "poisson") |>
-  tidy() |>
-  knitr::kable(digits=2)
-
+# create stan data with all features
+stan_data_many_X <- list(
+  N_obs = data |> filter(!censored) |> count() |> pull(n),
+  N_cens = data |> filter(censored) |> count() |> pull(n),
+  K = length(two_features),
+  y_obs = data |> filter(!censored) |> pull(BLL_geq_5) |> as.numeric(),
+  # starting simple with a single X
+  x_obs = data |> filter(!censored) |> select(all_of(two_features)) |> scale() |> as.matrix(),
+  x_cens = data |> filter(censored) |> select(all_of(two_features)) |> scale() |> as.matrix(),
+  kids_obs = data |> filter(!censored) |> pull(under_yo5_pplE),
+  kids_cens = data |> filter(censored) |> pull(under_yo5_pplE),
+  ell = 5
+)
 ```
 
 ```{r}
-# adding now the nr of kids as an exposure parameter
-glm(BLL_geq_10 ~ bp_pre_1959E_prop + offset(log(under_yo5_pplE)), data = reg_data, family = "poisson") |>
-  tidy() |>
-  knitr::kable(digits=2)
-```
-
-#### STAN
-
-```{r}
-# get vectors for to pass to stan
-stan_data <- list(y_obs = data |> filter(!censored) |> pull(BLL_geq_10) |> as.numeric(),
-                  # starting simple with a single X
-                  x_obs = data |> filter(!censored) |> pull(bp_pre_1959E_prop),
-                  x_cens = data |> filter(censored) |> pull(bp_pre_1959E_prop),
-                  N_obs = data |> filter(!censored) |> count() |> pull(n),
-                  N_cens = data |> filter(censored) |> count() |> pull(n),
-                  kids_obs = data |> filter(!censored) |> pull(under_yo5_pplE),
-                  kids_cens = data |> filter(censored) |> pull(under_yo5_pplE),
-                  ell = 5)
-
-```
-
-```{r}
-alpha_init <- -5.99
-beta_init <- 4.66
-fit <- regression_model_one_X$sample(
-  data = stan_data,
+# sample
+fit <- regression_model_many_X$sample(
+  data = stan_data_many_X,
   seed = 1234,
   chains = 4, 
   parallel_chains = 4,
-  refresh = 500,
-  init = \() list(alpha = runif(1, alpha_init - 3, alpha_init + 3),
-                  beta = runif(1, beta_init - 1, beta_init + 1))
+  refresh = 500
 )
+```
+
+```{r}
+fit$summary() |> 
+  knitr::kable(digits=3)
+```
+
+```{}
 ```
