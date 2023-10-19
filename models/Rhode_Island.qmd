@@ -70,7 +70,7 @@ reg_data <- ri_data |> select(zip, under_yo5_pplE, bp_pre_1959E_prop, BLL_geq_5)
 ```
 
 ```{r}
-glm(BLL_geq_5 ~ bp_pre_1959E_prop + offset(log(under_yo5_pplE)), data = reg_data, family = "poisson") |>
+glm(BLL_geq_5 ~ scale(bp_pre_1959E_prop) + offset(log(under_yo5_pplE)), data = reg_data, family = "poisson") |>
   tidy() |>
   knitr::kable(digits=2)
 ```
