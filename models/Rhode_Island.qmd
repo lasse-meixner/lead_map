@@ -292,8 +292,4 @@ ggplot(all_draws, aes(x = beta, fill = Model)) +
   theme_minimal()
 ```
 
-I would have expected more uncertain estimates of both parameters with more suppression, both in terms of data points and censoring range... This is not really happening here.
-
-Also, alpha seems oddly shifted to the right.
-
-Perhaps this is because of the influence of "outlier" values on ignoring testing counts?
+Note that the shift in alpha here is due to scaling based on different (uncensored) data.
