@@ -1,3 +1,5 @@
+# init file to load required meta level functions and objects. see README.md for details
+
 # auxiliary script to find and set working directories flexibly from anywhere in "lead_map" directory
 
 find_and_set_directory <- function(dir_name){
