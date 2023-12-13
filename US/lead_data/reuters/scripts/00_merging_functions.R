@@ -2,14 +2,11 @@ library(dplyr)
 library(tidyverse)
 library(jsonlite)
 
-# try to set to source files, then stopifnot
-tryCatch(setwd("../scripts/source files/"), error = function(e) e$message)
-stopifnot(endsWith(getwd(), "source files"))
-
 ## This script contains functions to merge the data from the individual states into one dataframe
 
 # get state metadata
-metadata  <- fromJSON("../../../metadata.json")
+find_and_set_directory("US")
+metadata  <- fromJSON("metadata.json")
 # list of zip and tract states
 zip_states <- metadata$zip_states
 tract_states <- metadata$tract_states
@@ -36,9 +33,9 @@ load_state <- function(state_str, from_raw = FALSE) {
   if (exists(str_to_lower(state_str)) == FALSE) {
     if (from_raw) {
       print(paste0("Building ", state_str, " from raw_data"))
-      # try to set wd to ../../raw_data and then source the file script, otherwise catch error
-        tryCatch(setwd("../../raw_data"), error = function(e) e$message)
-        tryCatch(source(paste0("../scripts/source files/clean-", state_str, ".R")),
+      # try to set wd to ../source files/ and then source the file script, otherwise catch error
+        tryCatch(find_and_set_directory("US/lead_data/reuters/scripts/source files"), error = function(e) e$message)
+        tryCatch(source(paste0("clean-", toupper(state_str), ".R")),
                   error = function(e) {
                     print(paste0("Error loading ", state_str, " file: ", e$message))
                   })
@@ -51,10 +48,10 @@ load_state <- function(state_str, from_raw = FALSE) {
         data <- read_csv(file_path)
         assign(str_to_lower(state_str), data, envir = .GlobalEnv)
       } else { # if the from_disk option fails, try to source anyway:
-        print(paste0("No processed file for ", state_str, " found, loading from source files"))
-        # try to set wd to ../../raw_data and then source the file script, otherwise catch error
-        tryCatch(setwd("../../raw_data"), error = function(e) e$message)
-        tryCatch(source(paste0("../scripts/source files/clean-", state_str, ".R")),
+        print(paste0("No processed file for ", toupper(state_str), " found, loading from source files"))
+        # try to set wd to ../source files/ and then source the file script, otherwise catch error
+        tryCatch(find_and_set_directory("US/lead_data/reuters/scripts/source files"), error = function(e) e$message)
+        tryCatch(source(paste0("clean-", state_str, ".R")),
                   error = function(e) {
                     print(paste0("Error loading ", state_str, " file: ", e$message))
                   })
