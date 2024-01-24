@@ -1,5 +1,10 @@
-# auxiliary script to find and set working directories flexibly from anywhere in "lead_map" directory
+# init file to load required meta level functions and objects. see README.md for details
 
+require(dplyr)
+
+
+
+# auxiliary script to find and set working directories flexibly from anywhere in "lead_map" directory
 find_and_set_directory <- function(dir_name){
     # search path upwards for "lead_map" directory
     findLeadMapDirectory <- function() {
