@@ -1,0 +1,155 @@
+---
+title: "Thinned poisson regression with exclusion restriction"
+format:
+    html:
+      code-fold: true
+---
+
+## Single state analysis
+
+```{r}
+library(tidyverse)
+# run init file
+source("../init.R")
+
+info_vars <- c("TRACT","STATE_NAME","COUNTY") 
+offset_var <- c("under_yo5_pplE","ped_per_100k")
+features <- c("median_annual_incomeE","house_price_medianE","poor_fam_propE","black_ppl_propE", "bp_pre_1959E_prop", "svi_socioeconomic_pctile")
+
+preprocess_pred_data <- function(tract_data){
+    tract_data |> select(all_of(c(features, offset_var, info_vars))) |>
+    distinct() |>
+    # drop NAs
+    drop_na() |>
+    # drop if poor_fam_propE==0 (missing value in census API)
+    filter(poor_fam_propE!=0) |>
+    # standardize all features
+    mutate(across(all_of(features), ~(. - mean(.))/sd(.)))
+}
+
+preprocess_lead_data <- function(lead_data){
+    lead_data |> 
+        # create indicator if starts with "<" (supressed value) for both tested and BLL_geq_5
+        mutate(tested_suppressed = str_detect(tested, "<"),
+               BLL_geq_5_suppressed = str_detect(BLL_geq_5, "<")) |>
+        # remove "<" from tested and BLL_geq_5
+        mutate(tested = str_remove(tested, "<"),
+               BLL_geq_5 = str_remove(BLL_geq_5, "<")) |>
+        # convert to numeric
+        mutate(tested = as.numeric(tested),
+               BLL_geq_5 = as.numeric(BLL_geq_5))
+}
+
+final_checks  <- function(merged_data){
+    merged_data |>
+        filter(under_yo5_pplE>=tested)
+}
+```
+
+In a first step, I run the model on a single state (MA).
+
+```{r}
+# import tract data
+find_and_set_directory("US/predictors/processed_data")
+tract_data  <- read_csv("final_tract.csv")
+
+# import lead data
+find_and_set_directory("US/lead_data/reuters/scripts")
+source("00_merging_functions.R")
+
+# get for MA (not yet unified for all tract states)
+load_state("MA") 
+```
+
+```{r}
+ma <- ma |> 
+  filter(year == 2010) |>
+  preprocess_lead_data()
+
+ma_pred <- tract_data |> filter(STATE_ABBR == "MA") |> preprocess_pred_data()
+```
+
+```{r}
+# merge lead with predictors
+ma_merged <- ma_pred |> 
+  left_join(ma, by = c("TRACT" = "tract")) |> 
+  final_checks()
+```
+
+```{r}
+# build vector to pass to stan
+
+build_stan_vector  <-  function(merged_data){
+    list(
+        N_obs = merged_data |> filter(!BLL_geq_5_suppressed) |> count() |> pull(n),
+        N_cens = merged_data |> filter(BLL_geq_5_suppressed) |> count() |> pull(n),
+        K = length(features),
+        y_obs = merged_data |> filter(!BLL_geq_5_suppressed) |> pull(BLL_geq_5),
+        x_obs = merged_data |> filter(!BLL_geq_5_suppressed) |> select(all_of(features)) |> as.matrix(),
+        x_cens = merged_data |> filter(BLL_geq_5_suppressed) |> select(all_of(features)) |> as.matrix(),
+        z_obs = merged_data |> filter(!BLL_geq_5_suppressed) |> pull(ped_per_100k),
+        z_cens = merged_data |> filter(BLL_geq_5_suppressed) |> pull(ped_per_100k),
+        kids_obs = merged_data |> filter(!BLL_geq_5_suppressed) |> pull(under_yo5_pplE),
+        kids_cens = merged_data |> filter(BLL_geq_5_suppressed) |> pull(under_yo5_pplE),
+        # get suppression bound 
+        ell = merged_data |> filter(BLL_geq_5_suppressed) |> pull(BLL_geq_5) |> min()
+    )
+}
+```
+
+```{r}
+# import stan model
+library(cmdstanr)
+
+stan_model <- cmdstan_model("poisson_thinned_exclusion.stan")
+stan_model$print()
+```
+
+```{r}
+# build stan vector
+stan_vector <- build_stan_vector(ma_merged)
+```
+
+```{r}
+# run stan model
+# sample 
+fit <- stan_model$sample(
+  data = stan_vector,
+  seed = 1234,
+  chains = 4, 
+  parallel_chains = 4,
+  refresh = 500
+)
+```
+
+Running 4 chains on thist takes a couple of minutes... I am not sure how to speed this up.
+
+Let's look at the results for the coefficients:
+
+```{r}
+fit$summary() |> 
+  # rename all of the beta[j] by their feature names
+  mutate(variable = ifelse(str_detect(variable, "beta"), paste0(features[as.numeric(str_extract(variable, "[0-9]+"))]), variable)) |>
+  filter(variable %in% c(features, "alpha")) |> 
+  knitr::kable(digits=3)
+```
+
+```{r}
+library(bayesplot)
+
+
+plot_betas <- function(fit, title = "Posterior distributions") {
+    draws <- fit$draws(format = "draws_df") |>
+        # rename column names beta[j] by their feature names
+        rename_with(~ (features[as.numeric(str_extract(., "[0-9]+"))]), starts_with("beta"))
+
+    mcmc_areas(draws %>% select(features), prob = 0.8) +
+        ggtitle(title)
+}
+
+plot_betas(fit)
+```
+
+
+## All (tract) states analysis
+
