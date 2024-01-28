@@ -9,7 +9,7 @@ data {
    vector[N_cens] z_cens;
    vector[N_obs] kids_obs; // offset
    vector[N_cens] kids_cens;
-   int<lower=0> ell;
+   array[N_cens] int<lower=0> ell;
  }
 
  transformed data {
