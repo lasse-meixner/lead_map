@@ -1,4 +1,4 @@
-# In this file, we crosswalk tracts to ZIPs for US states that have BLLS at the ZIP level
+# In this file, we crosswalk predictor data from tracts to ZIPs for US states that have BLLS at the ZIP level
 
 library(tidyverse)
 library(httr)
@@ -66,7 +66,7 @@ crosswalk_ZIP <- function(state_abbr, combined_tract){
         select(all_of(c(id_variables, count_variables))) |>
         filter(STATE_ABBR == state_abbr)
     
-    # get type = 2: TRACT-ZIP (counts)
+    # get type = 6: TRACT-ZIP (counts)
     response <- httr::GET(url, query = list(type = 6, query = state_abbr), add_headers(Authorization = paste("Bearer", key)))
     # check if reponse has error:
     if (httr::http_error(response)) {
@@ -116,5 +116,4 @@ crosswalked_zip |>
     write_csv("../processed_data/crosswalked_zip.csv")
 
 # save to Gdrive
-source("00_gdrive_utils.R")
-drive_upload_w_tstamp("crosswalked_zip")
+gdrive_upload_w_tstamp("crosswalked_zip")
