@@ -17,6 +17,8 @@ offset_var <- c("under_yo5_pplE","ped_per_100k")
 features <- c("median_annual_incomeE","house_price_medianE","poor_fam_propE","black_ppl_propE", "bp_pre_1959E_prop", "svi_socioeconomic_pctile")
 
 preprocess_pred_data <- function(tract_data){
+    #' selects relevant PREDICTOR variables, drops NAs and scales data
+    #' 
     tract_data |> select(all_of(c(features, offset_var, info_vars))) |>
     distinct() |>
     # drop NAs
@@ -28,6 +30,7 @@ preprocess_pred_data <- function(tract_data){
 }
 
 preprocess_lead_data <- function(lead_data){
+    #' preprocesses lead data
     lead_data |> 
         # create indicator if starts with "<" (supressed value) for both tested and BLL_geq_5
         mutate(tested_suppressed = str_detect(tested, "<"),
@@ -46,6 +49,7 @@ preprocess_lead_data <- function(lead_data){
 }
 
 final_checks  <- function(merged_data, drop="BLL_geq_10"){
+    #' implements final data checks and drops unused outcome column
     merged_data |>
         filter(under_yo5_pplE>=tested) |>
         select(-all_of(drop)) |>
@@ -66,13 +70,13 @@ source("00_merging_functions.R")
 
 # get lead data for single state and merge
 
-single_state_data <- function(state_name){
-    load_state(state_name) 
-    # assign the loaded state data
+single_state_data <- function(state_name, drop_outcome = c()){
+    # load and assign the state data
+    load_state(state_name, from_raw = TRUE) # from 00_merging_functions.R 
     state_data <- get(str_to_lower(state_name))
     # preprocess lead data
     state_lead <- state_data |>
-        filter(year == 2010) |>
+        filter(year == 2010) |> #NOTE: 2010 is in the middle of our period and has max testing in many states
         # preprocess lead data
         preprocess_lead_data()
       
@@ -81,11 +85,11 @@ single_state_data <- function(state_name){
     # merge
     state_merged <- state_pred |> 
         left_join(state_lead, by = c("TRACT" = "tract")) |> 
-        final_checks(drop=c())
+        final_checks(drop=drop_outcome)
 }
 ```
 
-### MA
+### MA (50% suppression)
 
 ```{r}
 ma_final <- single_state_data("MA")
@@ -137,7 +141,7 @@ fit <- stan_model$sample(
 )
 ```
 
-Running 4 chains on thist takes a couple of minutes... I am not sure how to speed this up.
+Running 4 chains on thist takes a couple of minutes...
 
 Let's look at the results for the coefficients:
 
@@ -177,7 +181,17 @@ plot_betas(fit, title = "Posterior distributions for MA")
 
 There is some strange stuff going on leading to bimodal peaks in all of the posterior distributions. Where is this coming from...?
 
-### MD
+```{r}
+fit <- stan_model_prior$sample(
+  data = stan_vector,
+  seed = 1234,
+  chains = 4, 
+  parallel_chains = 4,
+  refresh = 500
+)
+```
+
+### MD (zero suppression)
 
 ```{r}
 md_final <- single_state_data("MD")
@@ -204,7 +218,7 @@ get_coefficients(fit_md) |>
 plot_betas(fit_md, title = "Posterior distributions for MD")
 ```
 
-### NH
+### NH (zero suppression)
 
 ```{r}
 nh_final <- single_state_data("NH")
@@ -231,6 +245,33 @@ get_coefficients(fit_nh) |>
 plot_betas(fit_nh, title = "Posterior distributions for NH")
 ```
 
+### NC (bit of testing suppression and mostly 0 or \<5 BLL)
+
+```{r}
+nc_final <- single_state_data("NC", drop_outcome="BLL_geq_10")
+
+# build stan vector
+stan_vector_nc <- build_stan_vector(nc_final)
+
+# sample
+fit_nc <- stan_model$sample(
+  data = stan_vector_nc,
+  seed = 1234,
+  chains = 4, 
+  parallel_chains = 4,
+  refresh = 500
+)
+```
+
+```{r}
+get_coefficients(fit_nc) |> 
+  knitr::kable(digits=3)
+```
+
+```{r}
+plot_betas(fit_nc, title = "Posterior distributions for NC")
+```
+
 ## All (tract) states analysis
 
 We will proceed in 3 steps with decreasing order of restrictiveness: - treat all states equally, as if tracts had no state information - state fixed effects - normal priors over state coefficients
@@ -243,8 +284,7 @@ Tract states are already in memory through 00_merging_functions.R
 # get all tract states using wrapper from 00_merging_functions.R
 load_states(tract_states)
 
-tract_lead <- merge_loaded_data(states_list = str_to_lower(tract_states), 
-                                level="tract")  |>
+tract_lead <- merge_loaded_data(states_list = str_to_lower(tract_states), level="tract")  |>
   # filter for 2010
   filter(year == 2010) |>
   # preprocess lead data
@@ -382,6 +422,8 @@ fit <- stan_model$sample(
 )
 ```
 
+This does not sample...
+
 ### Getting rid of most suppressed states
 
 CO and OR are basically completely suppressed. Let's see if sampling kickstarts if we get rid of these information scarse states:
@@ -410,6 +452,8 @@ fit <- stan_model$sample(
     beta = fit_summary$median[c(2:7)]) 
 )
 ```
+
+Still doesnt...
 
 ### Trying only MA, MD and NH
 
@@ -441,4 +485,29 @@ get_coefficients(fit_3) |>
 plot_betas(fit_3, title = "Distributions of coefficients for MA, MD and NH")
 ```
 
-## Add state fixed effects
+## Add priors to intercept
+
+```{r}
+# import stan model with prior
+stan_model_prior <- cmdstan_model("poisson_thinned_exclusion_w_priors.stan")
+
+# sample
+fit_prior <- stan_model_prior$sample(
+  data = stan_vector4,
+  seed = 1234,
+  chains = 4, 
+  parallel_chains = 4,
+  refresh = 500
+)
+```
+
+```{r}
+get_coefficients(fit_prior) |> 
+  knitr::kable(digits=3)
+```
+
+```{r}
+plot_betas(fit_prior, title = "Distributions of coefficients for MA, MD and NH with prior")
+```
+
+
