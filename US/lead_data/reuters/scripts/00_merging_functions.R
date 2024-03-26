@@ -65,7 +65,12 @@ load_state <- function(state_str, from_raw = FALSE) {
 # auxiliary function to merge SELECTED data that is in memory
 merge_loaded_data <- function(states_list, level = "zip") {
   # get list of loaded data frames
-  loaded_data <- mget(states_list, envir = .GlobalEnv)
+  loaded_data <- mget(states_list[states_list %in% ls(envir = .GlobalEnv)], envir = .GlobalEnv)
+  # print a warning for the missing states_list
+  missing_states  <- setdiff(states_list, ls(envir = .GlobalEnv))
+  if (length(missing_states) > 0) {
+    print(paste0("Warning: ", missing_states, " not loaded and therefore not merged."))
+  }
   # add BLL_geq_5 and BLL_geq_10 columns with NA values if they don't exist
   loaded_data <- lapply(loaded_data, function(x) {
     if (!("BLL_geq_5" %in% colnames(x))) {
