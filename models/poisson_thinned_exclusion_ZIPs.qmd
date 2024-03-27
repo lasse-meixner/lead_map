@@ -1,0 +1,260 @@
+---
+title: "Thinned poisson regression with exclusion restriction on ZIP states"
+format:
+    html:
+      code-fold: true
+---
+
+This notebook replicates model runs found in `poisson_thinned_exclusion.qmd` but for ZIP states. If the results look as good, this will be moved into a reproducible model pipeline.
+
+```{r}
+library(tidyverse)
+# run init file
+source("../init.R")
+```
+
+# Data preprocessing function
+
+```{r}
+info_vars <- c("zip","STATE_ABBR")
+offset_var <- c("under_yo5_pplE","ped_per_100k")
+features <- c("median_annual_incomeE","house_price_medianE","poor_fam_propE","black_ppl_propE", "bp_pre_1959E_prop", "svi_socioeconomic_pctile")
+
+preprocess_pred_data <- function(zip_data){
+    #' selects relevant PREDICTOR variables, drops NAs and scales data
+    #' 
+    zip_data |> select(all_of(c(features, offset_var, info_vars))) |>
+    distinct() |>
+    # drop NAs
+    drop_na() |>
+    # drop if poor_fam_propE==0 (missing value in census API)
+    filter(poor_fam_propE!=0) |>
+    # standardize all features
+    mutate(across(all_of(features), ~(. - mean(.))/sd(.)))
+}
+
+preprocess_lead_data <- function(lead_data){
+    #' preprocesses lead data
+    lead_data |> 
+        # create indicator if starts with "<" (supressed value) for both tested and BLL_geq_5
+        mutate(tested_suppressed = str_detect(tested, "<"),
+               BLL_geq_5_suppressed = str_detect(BLL_geq_5, "<")) |>
+        # remove "<" from tested and BLL_geq_5
+        mutate(tested = str_remove(tested, "<"),
+               BLL_geq_5 = str_remove(BLL_geq_5, "<")) |>
+        # convert to numeric
+        mutate(tested = as.numeric(tested),
+               BLL_geq_5 = as.numeric(BLL_geq_5)) |>
+        # add state level censoring threshold
+        group_by(state) |>
+        # get minimum of BLL_geq_5 that is greater than 0
+        mutate(ell = min(BLL_geq_5[BLL_geq_5>0]) - 1) |> #TODO: I take -1 here, i.e. a strict inequality cf with convention in data cleaning scripts
+        ungroup()
+}
+
+final_checks  <- function(merged_data, drop="BLL_geq_10"){
+    #' implements final data checks and drops unused outcome column
+    # get outcome of interest based on drop (pick the other respectively)
+    outcome_of_interest <- ifelse(drop == "BLL_geq_10", "BLL_geq_5", "BLL_geq_10")
+    merged_data |>
+        filter(under_yo5_pplE>=tested) |>
+        select(-all_of(drop)) |>
+        # drop if NA in any of offset_var, features or drop
+        drop_na(any_of(c(features, offset_var, outcome_of_interest)))
+}
+```
+
+# Loading all ZIP data
+
+```{r}
+# import predictor ZIP data
+find_and_set_directory("US/predictors/processed_data")
+zip_data <- read_csv("final_zip.csv") # includes pediatrician data
+
+# import lead data resources for ZIP states
+find_and_set_directory("US/lead_data/reuters/scripts")
+source("00_merging_functions.R")
+```
+
+Loading a single state:
+
+```{r}
+single_state_data <- function(state_name, drop_outcome = c()){
+    # load and assign the state data
+    load_state(state_name, from_raw = TRUE) # from 00_merging_functions.R 
+    state_data <- get(str_to_lower(state_name))
+    # preprocess lead data
+    state_lead <- state_data |>
+        filter(year == 2010) |> #NOTE: 2010 is in the middle of our period and has max testing in many states
+        # ensure zip is chr
+       mutate(zip = as.character(zip)) |>
+        # preprocess lead data
+        preprocess_lead_data()
+      
+    state_pred <- zip_data |> filter(STATE_ABBR == state_name) |> preprocess_pred_data()
+
+    # merge
+    state_merged <- state_pred |> 
+        left_join(state_lead, by = "zip") |> 
+        final_checks(drop=drop_outcome)
+}
+```
+
+Try Rhode Island (no suppression):
+
+### Rhode Island (no suppression)
+
+```{r}
+rhode_island <- single_state_data("RI")
+```
+
+Function to build STAN vector (copied)
+
+```{r}
+build_stan_vector  <-  function(merged_data){
+    list(
+        N_obs = merged_data |> filter(!BLL_geq_5_suppressed) |> count() |> pull(n),
+        N_cens = merged_data |> filter(BLL_geq_5_suppressed) |> count() |> pull(n),
+        K = length(features),
+        y_obs = merged_data |> filter(!BLL_geq_5_suppressed) |> pull(BLL_geq_5),
+        x_obs = merged_data |> filter(!BLL_geq_5_suppressed) |> select(all_of(features)) |> as.matrix(),
+        x_cens = merged_data |> filter(BLL_geq_5_suppressed) |> select(all_of(features)) |> as.matrix(),
+        z_obs = merged_data |> filter(!BLL_geq_5_suppressed) |> pull(ped_per_100k),
+        z_cens = merged_data |> filter(BLL_geq_5_suppressed) |> pull(ped_per_100k),
+        kids_obs = merged_data |> filter(!BLL_geq_5_suppressed) |> pull(under_yo5_pplE),
+        kids_cens = merged_data |> filter(BLL_geq_5_suppressed) |> pull(under_yo5_pplE),
+        # get suppression bound 
+        ell = merged_data |> filter(BLL_geq_5_suppressed) |> pull(ell)
+    )
+}
+```
+
+Import model
+
+```{r}
+library(cmdstanr)
+
+stan_model_wo_priors <- cmdstan_model("poisson_thinned_exclusion.stan")
+```
+
+Build the input matrix
+
+```{r}
+stan_data <- build_stan_vector(rhode_island)
+```
+
+run the model
+
+```{r}
+fit <- stan_model_wo_priors$sample(
+  data = stan_data,seed = 1234,
+  chains = 4, 
+  parallel_chains = 4,
+  refresh = 500)
+```
+
+Some auxiliary functions for model evaluation
+
+```{r}
+library(bayesplot)
+
+get_coefficients <- function(fit){
+  fit$summary() |> 
+  # rename all of the beta[j] by their feature names
+  mutate(variable = ifelse(str_detect(variable, "beta"), paste0(features[as.numeric(str_extract(variable, "[0-9]+"))]), variable)) |>
+  filter(variable %in% c(features, "alpha"))
+}
+
+plot_betas <- function(fit, title = "Posterior distributions") {
+    draws <- fit$draws(format = "draws_df") |>
+        # rename column names beta[j] by their feature names
+        rename_with(~ (features[as.numeric(str_extract(., "[0-9]+"))]), starts_with("beta"))
+
+    mcmc_areas(draws %>% select(features), prob = 0.8) +
+        ggtitle(title)
+}
+```
+
+Let's look at the coefficients
+
+```{r}
+fit |> get_coefficients() |> knitr::kable(digits = 3)
+```
+
+Plotting the posterior distributions
+
+```{r}
+fit |> plot_betas(title = "Posterior distribution for Rhode Island")
+```
+
+### Texas (two bound suppression: to be included)
+
+Lets try with texas, which has suppression:
+
+```{r}
+load_state("TX")
+```
+
+Texas has the particularity that since BLL_geq_5 is added from different categories, the suppression has two bounds, e.g. "\>23&\<28". This is not a problem conceptually, but needs adjustment in the data prepping code and STAN program - since it needs to receive both bounds to add the right integral to the likelihood.
+
+Try instead with NM:
+
+### New Mexico (little data)
+
+```{r}
+load_state("NM")
+```
+
+```{r}
+# prep data
+nm_data <- single_state_data("NM", drop_outcome = "BLL_geq_10")
+# build STAN vector
+nm_stan <- build_stan_vector(nm_data)
+# run model
+nm_fit <- stan_model_wo_priors$sample(
+  data = nm_stan,
+  seed = 1234,
+  chains = 4, 
+  parallel_chains = 4,
+  refresh = 500)
+```
+
+```{r}
+# get coefficients
+nm_fit |> get_coefficients() |> knitr::kable(digits = 3)
+```
+
+```{r}
+nm_fit |> plot_betas(title = "Posterior distribution for New Mexico")
+```
+
+New Mexico has little data...
+
+### New Jersey
+
+```{r}
+load_state("NJ")
+```
+
+```{r}
+# prep data
+nj_data <- single_state_data("NJ", drop_outcome = "BLL_geq_10")
+# build STAN vector
+nj_stan <- build_stan_vector(nj_data)
+# run model
+nj_fit <- stan_model_wo_priors$sample(
+  data = nj_stan,
+  seed = 1234,
+  chains = 4, 
+  parallel_chains = 4,
+  refresh = 500)
+```
+
+```{r}
+# get coefficients
+nj_fit |> get_coefficients() |> knitr::kable(digits = 3)
+```
+
+```{r}
+nj_fit |> plot_betas(title = "Posterior distribution for New Jersey")
+```
