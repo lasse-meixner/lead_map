@@ -57,7 +57,8 @@ final_checks  <- function(merged_data, drop="BLL_geq_10"){
     # get outcome of interest based on drop (pick the other respectively)
     outcome_of_interest <- ifelse(drop == "BLL_geq_10", "BLL_geq_5", "BLL_geq_10")
     merged_data |>
-        filter(under_yo5_pplE>=tested) |>
+        filter(under_yo5_pplE>=tested,
+               tested>0) |> 
         select(-all_of(drop)) |>
         # drop if NA in any of offset_var, features or drop
         drop_na(any_of(c(features, offset_var, outcome_of_interest)))
@@ -257,4 +258,16 @@ nj_fit |> get_coefficients() |> knitr::kable(digits = 3)
 
 ```{r}
 nj_fit |> plot_betas(title = "Posterior distribution for New Jersey")
+```
+
+### Michigan (higher ell threshold)
+
+```{r}
+load_state("MI")
+```
+
+```{r}
+# prep data
+mi_data <- single_state_data("MI", drop_outcome = "BLL_geq_10")
+# build STAN vector
 ```
