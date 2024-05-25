@@ -188,6 +188,78 @@ Plotting the posterior distributions
 fit |> plot_betas(title = "Posterior distribution for Rhode Island")
 ```
 
+Also here lets retry with a model that adds all x to the logit
+
+```{r}
+stan_model_x_logit <- cmdstan_model("poisson_thinned_exclusion_x_logit.stan")
+
+fit_x_logit <- stan_model_x_logit$sample(
+  data = stan_data,seed = 1234,
+  chains = 4, 
+  parallel_chains = 4,
+  refresh = 500)
+```
+
+```{r}
+fit_x_logit |> get_coefficients() |> knitr::kable(digits = 3)
+```
+
+```{r}
+fit_x_logit |> plot_betas(title = "Posterior distribution for Rhode Island with all x in logit")
+```
+
+This does not look good at all. I now try to only include the median annual income and the proportion of poor families.
+
+```{r}
+# I need to modify the data transformation as STAN now takes additional inputs.
+build_stan_vector_logit_2 <-  function(merged_data){
+    list(
+        N_obs = merged_data |> filter(!BLL_geq_5_suppressed) |> count() |> pull(n),
+        N_cens = merged_data |> filter(BLL_geq_5_suppressed) |> count() |> pull(n),
+        K = length(features),
+        L = 2, # number of features in logit
+        y_obs = merged_data |> filter(!BLL_geq_5_suppressed) |> pull(BLL_geq_5),
+        x_obs = merged_data |> filter(!BLL_geq_5_suppressed) |> select(all_of(features)) |> as.matrix(),
+        x_cens = merged_data |> filter(BLL_geq_5_suppressed) |> select(all_of(features)) |> as.matrix(),
+        w_obs = merged_data |> filter(!BLL_geq_5_suppressed) |> select(c("poor_fam_propE", "median_annual_incomeE")) |> as.matrix(),
+        w_cens = merged_data |> filter(BLL_geq_5_suppressed) |> select(c("poor_fam_propE", "median_annual_incomeE")) |> as.matrix(),
+        z_obs = merged_data |> filter(!BLL_geq_5_suppressed) |> pull(ped_per_100k),
+        z_cens = merged_data |> filter(BLL_geq_5_suppressed) |> pull(ped_per_100k),
+        kids_obs = merged_data |> filter(!BLL_geq_5_suppressed) |> pull(under_yo5_pplE),
+        kids_cens = merged_data |> filter(BLL_geq_5_suppressed) |> pull(under_yo5_pplE),
+        # get suppression bound 
+        ell = merged_data |> filter(BLL_geq_5_suppressed) |> pull(ell)
+    )
+}
+
+# get new data
+stan_data_ri_2 <- build_stan_vector_logit_2(rhode_island)
+```
+
+```{r}
+# load new model
+stan_model_x_logit_2 <- cmdstan_model("poisson_thinned_exclusion_x_logit_subset.stan")
+```
+
+If we fit this
+
+```{r}
+fit_x_logit_2 <- stan_model_x_logit_2$sample(
+  data = stan_data_ri_2,
+  seed = 1234,
+  chains = 4, 
+  parallel_chains = 4,
+  refresh = 500)
+```
+
+```{r}
+fit_x_logit_2 |> get_coefficients() |> knitr::kable(digits = 3)
+```
+
+```{r}
+fit_x_logit_2 |> plot_betas(title = "Posterior distribution for Rhode Island with few x in logit")
+```
+
 ### Texas (two bound suppression: to be included)
 
 Lets try with texas, which has suppression:

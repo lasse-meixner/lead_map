@@ -191,6 +191,8 @@ fit <- stan_model_prior$sample(
 )
 ```
 
+There is something wrong with MA data that I have to figure out (in other states below this does not appear).
+
 ### MD (zero suppression)
 
 ```{r}
@@ -217,6 +219,33 @@ get_coefficients(fit_md) |>
 ```{r}
 plot_betas(fit_md, title = "Posterior distributions for MD")
 ```
+
+Rerunning the same model but with the x's in the logit.
+
+```{r}
+# load stan model with x in logit
+stan_model_x_in_logit <- cmdstan_model("poisson_thinned_exclusion_x_logit.stan")
+
+# sample
+fit_md_x_logit <- stan_model_x_in_logit$sample(
+  data = stan_vector_md,
+  seed = 1234,
+  chains = 4, 
+  parallel_chains = 4,
+  refresh = 500
+)
+```
+
+```{r}
+get_coefficients(fit_md_x_logit) |> 
+  knitr::kable(digits=3)
+```
+
+```{r}
+plot_betas(fit_md_x_logit, title = "Posterior distributions for MD with x in logit")
+```
+
+Similar to the simulation from learn_bayes we see that the uncertainty is greater, and that there appears to be some identification issues.
 
 ### NH (zero suppression)
 
@@ -509,5 +538,3 @@ get_coefficients(fit_prior) |>
 ```{r}
 plot_betas(fit_prior, title = "Distributions of coefficients for MA, MD and NH with prior")
 ```
-
-
