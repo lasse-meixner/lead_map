@@ -1,8 +1,8 @@
 data {
   int<lower=0> N; 
+  array[N] int<lower=0> y; 
   vector[N] x; 
   vector[N] z;
-  array[N] int<lower=0> y; 
 }
 
 transformed data {
@@ -22,7 +22,7 @@ parameters {
 model {
   // For now, no prior
   vector[N] mu = exp(alpha + beta * x_demeaned);
-  vector[N] pie = inv_logit(gamma + delta * z_demeaned);
+  vector[N] pie = inv_logit(gamma + delta * z_demeaned); // (inverse of logit is logistic function 1/(1+exp(-x)))
   vector[N] lambda = mu .* pie; // elementwise product
   y ~ poisson(lambda); 
 }
