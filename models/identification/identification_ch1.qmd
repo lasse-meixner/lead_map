@@ -1,0 +1,154 @@
+---
+title: "Understanding identification in pogit from the ground up"
+format:
+    html:
+      code-fold: true
+---
+
+We ignore the issue of censoring for now since we know how to deal with that and focus on the identification of the parameters in the Poisson-logit model.
+
+### Baseline
+
+Let us start with with two correlated variables, $x$ and $z$, where $x$ is a poisson regressor and $z$ is an exclusion restriction used in the logit part of the model. This is the learn-bayes example:
+
+```{r}
+set.seed(1999)
+library(mvtnorm)
+
+n <- 1000
+rho <- 0.5
+S <- matrix(c(1, rho,
+              rho, 1), 2, 2, byrow = TRUE)
+x_z <- rmvnorm(n, sigma = S)
+x <- x_z[,1] 
+z <- x_z[,2] 
+
+alpha <- 0.5
+beta <- 1
+log_mu <- alpha + beta * (x - mean(x))
+ystar <- rpois(n, exp(log_mu))
+
+gamma <- (-0.5)
+delta <- 1.2
+logit_pi <- gamma + delta * (z - mean(z))
+y <- rbinom(n, size = ystar, prob = plogis(logit_pi))
+
+true_params <- c(alpha = alpha, beta = beta, gamma = gamma, delta = delta)
+```
+
+This model is identified:
+
+```{r}
+library(cmdstanr)
+
+thinned_poisson <- cmdstan_model("thinned_poisson.stan") # takes int N, and vectors y, x, z
+dat <- list(N = n, y = y, x = x, z = z)
+
+fit <- thinned_poisson$sample(data = dat, chains = 4, parallel_chains = 4, refresh = 500)
+```
+
+```{r}
+fit$summary() |>
+    knitr::kable(digits = 2)
+```
+
+This agrees with the true parameters. The sampling is also efficient - the effective sample size is large and the Rhat is close to 1.
+
+```{r}
+library(bayesplot)
+library(ggplot2)
+
+# auxiliary function to plot diagnostics (posterior draws, trace plots)
+
+plot_diagnostics <- function(fit){
+    draws <- fit$draws(format = "draws_df") |>
+        dplyr::select(-lp__)
+
+    fig1 <- mcmc_areas(draws, prob = 0.9) + ggtitle("Posterior draws") +
+        theme_minimal()
+
+    fig2 <- mcmc_trace(draws) + ggtitle("Trace plots") + theme_minimal()
+
+    fig3 <- mcmc_rank_ecdf(draws, prob = 0.99, plot_diff = TRUE) + ggtitle("Cumulative rank plots (difference)") +
+    theme_minimal()
+
+    # potentially add plot for divergent transitions
+
+    list(fig1, fig2, fig3)
+}
+
+plot_diagnostics(fit)
+```
+
+The parameters in the logit model are more or less right, but very imprecise. There are two sources of this: 1) the excluded variable $z$ is correlated with the poisson regressor $x$ 2) the intercepts are not well identified.
+
+Let us try fixing priors on both intercepts. I fix a prior on the logit intercept in accordance with the suggestion from the *Statistical Rethinking* playlist (Frank's recommendation). Since the logit takes the linear $\gamma + \delta z$ as predictions for the the log-odds, if these values range from $(-4,4)$, they essentially cover the entire probability spectrum from 0 to 1.
+
+```{r}
+# sample
+
+intercepts <- rnorm(n*10, 0, 1.5)
+p  <- plogis(intercepts)
+# plot density and histogram
+hist(p, breaks = 20, freq = FALSE, main = expression(paste("logit(p) = ", alpha)), xlab = "p")
+lines(density(p), col = "red")
+```
+
+This gives a uniform-like distribution for the prior probabilities, so I will use this as a very weak prior for $\gamma$.
+
+Not on the Poisson side, I pretend to have information about the mean $\alpha$ based on domain knowledge. In our data, we have national averages from NHANES about the prevalence of elevated blood lead counts. I simulate this by adding a weak prior to the true value of $\alpha$.
+
+The new model looks as follows:
+
+```{r}
+thinned_poisson_prior <- cmdstan_model("thinned_poisson_w_priors.stan") 
+thinned_poisson_prior$print()
+```
+
+Sampling with priors:
+
+```{r}
+# add alpha prior variance to data
+dat$alpha_prior_var <- 0.5
+fit_prior <- thinned_poisson_prior$sample(data = dat, chains = 4, parallel_chains = 4, refresh = 500)
+
+fit_prior$summary() |>
+    knitr::kable(digits = 2)
+```
+
+Does it make things more precise?
+
+```{r}
+plot_diagnostics(fit_prior)
+```
+
+The posterior distribution, although efficiently sampled, looks essentially identical. The priors seem to have little effect for the precision on the parameters on the logit side.
+
+### Adding x to the logit
+
+Now, let us add the poisson regressor $x$ to the logit part of the model and see if including it on both sides messes up identification.
+
+```{r}
+# re-simulate data
+kappa <- 0.5
+logit_pi <- gamma + delta * (z - mean(z)) + kappa * (x - mean(x)) # NEW!
+y <- rbinom(n, size = ystar, prob = plogis(logit_pi)) # NEW!
+true_params <- c(alpha = alpha, beta = beta, gamma = gamma, delta = delta, kappa = kappa) # NEW
+```
+
+In the STAN code we add the poisson regressor $x$ to the logit part of the model:
+
+```{r}
+thinned_poisson_x_priors <- cmdstan_model("thinned_poisson_w_priors_x_logit.stan")
+# sample
+fit_x_prior <- thinned_poisson_x_priors$sample(data = dat, chains = 4, parallel_chains = 4, refresh = 500)
+
+fit_x_prior$summary() |>
+    knitr::kable(digits = 2)
+```
+
+Convergence is still good!
+
+```{r}
+plot_diagnostics(fit_x_prior)
+```
