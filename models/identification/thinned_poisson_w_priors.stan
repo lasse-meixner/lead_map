@@ -22,8 +22,8 @@ parameters {
 
 model {
   // priors
-  alpha ~ normal(0, alpha_prior_var);
-  gamma ~ normal(0.5, 2);
+  alpha ~ normal(0.5, alpha_prior_var);
+  gamma ~ normal(0, 1.5);
   // model
   vector[N] mu = exp(alpha + beta * x_demeaned);
   vector[N] pie = inv_logit(gamma + delta * z_demeaned); // (inverse of logit is logistic function 1/(1+exp(-x)))
