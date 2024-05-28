@@ -152,3 +152,129 @@ Convergence is still good!
 ```{r}
 plot_diagnostics(fit_x_prior)
 ```
+
+In our data, sampling of the posteriors of the poisson parameters breaks.
+
+### Suppression
+
+Is the issue with our data then just that the data does not vary enough that the non-linearities in the model can find these distributions?
+
+```{r}
+# suppress data based on 70% threshold (0 is not suppressed though)
+threshold <- as.integer(quantile(y, 0.7)[[1]])
+y_suppressed <- ifelse(y <= threshold, ifelse(y > 0, "s", 0), y)
+is_suppressed <- y_suppressed == "s"
+
+# demean x and z
+x_demeaned <- x - mean(x)
+z_demeaned <- z - mean(z)
+
+dat_suppressed <- list(N_obs = as.integer(n-sum(is_suppressed)),
+                       N_cens = as.integer(sum(is_suppressed)),
+                       y_obs = y[!is_suppressed],
+                       threshold = threshold,
+                       x_obs = x_demeaned[!is_suppressed],
+                       x_cens = x_demeaned[is_suppressed],
+                       z_obs = z_demeaned[!is_suppressed],
+                       z_cens = z_demeaned[is_suppressed],
+                       alpha_prior_var = 0.5)
+
+thinned_poisson_suppressed <- cmdstan_model("thinned_poisson_w_p_x_sup.stan")
+fit_suppressed <- thinned_poisson_suppressed$sample(data = dat_suppressed, chains = 4, parallel_chains = 4, refresh = 500)
+
+fit_suppressed$summary() |>
+    knitr::kable(digits = 2)
+```
+
+```{r}
+true_params
+```
+
+```{r}
+plot_diagnostics(fit_suppressed)
+```
+
+Censoring clearly reduces the information contained in the data and thereby increases the posterior uncertainty. Except the intercept on gamma, the parameters are however estimates more or less correct (centered around the true values). There are no sampling problems, the chains explore the posterior efficiently as can be seen by Rhat convergence values and the traces.
+
+### Including more correlation
+
+My final hunch is that the real issue comes when variables to highly intercorrelated amongst themselves. Let's add another variable $w$ to the mix: First, we let it be super highly correlated with $z$ only, then with $x$.
+
+*Intuitively, I imagine that things should break down when variables are very correlated on intervals of the covariate space on which the poisson and logit are **less curved**. So for the logit this should be for the values of* $z$ and $w$ where the logit is close to 0.5... This might be a diagnostic?
+
+```{r}
+# re-simulate data
+n <- 1000
+rho_high <- 0.9
+
+S <- matrix(c(1, rho, 0,
+              rho, 1, rho_high,
+              0, rho_high, 1), 3, 3, byrow = TRUE)
+D <- rmvnorm(n, sigma = S)
+x <- D[,1]
+z <- D[,2]
+w <- D[,3]
+
+# all parameters as before
+omega_p <- -1 # NEW
+omega_l <- 0.5 # NEW
+
+log_mu <- alpha + beta * (x - mean(x)) + omega_p * (w - mean(w)) # NEW
+ystar <- rpois(n, exp(log_mu))
+
+logit_pi <- gamma + delta * (z - mean(z)) + kappa * (x - mean(x)) + omega_l * (w - mean(w)) # NEW
+y <- rbinom(n, size = ystar, prob = plogis(logit_pi))
+
+true_params <- c(alpha = alpha, beta = beta, gamma = gamma, delta = delta, kappa = kappa, omega_p = omega_p, omega_l = omega_l)
+```
+
+We again suppress the data as before:
+
+```{r}
+threshold <- as.integer(quantile(y, 0.7)[[1]])
+y_suppressed <- ifelse(y <= threshold, ifelse(y > 0, "s", 0), y)
+is_suppressed <- y_suppressed == "s"
+```
+
+We now need a STAN model that can handle arrays.
+
+```{r}
+thinned_poisson_multiple <- cmdstan_model("thinned_poisson_w_p_xw_sup.stan")
+
+# prepare data
+x_demeaned <- x - mean(x)
+z_demeaned <- z - mean(z)
+w_demeaned <- w - mean(w)
+
+dat_suppressed <- list(N_obs = as.integer(n-sum(is_suppressed)),
+                       N_cens = as.integer(sum(is_suppressed)),
+                       y_obs = y[!is_suppressed],
+                       threshold = threshold,
+                       x_obs = x_demeaned[!is_suppressed],
+                       x_cens = x_demeaned[is_suppressed],
+                       z_obs = z_demeaned[!is_suppressed],
+                       z_cens = z_demeaned[is_suppressed],
+                       w_obs = w_demeaned[!is_suppressed],
+                       w_cens = w_demeaned[is_suppressed],
+                       alpha_prior_var = 0.5)
+
+
+fit_suppressed_multiple <- thinned_poisson_multiple$sample(data = dat_suppressed, chains = 4, parallel_chains = 4, refresh = 500)
+
+fit_suppressed_multiple$summary() |>
+    knitr::kable(digits = 2)
+```
+
+Evidently, this ruins identification of parameters on the logit (which is not suprising). The posterior is absurdly wide on the logit parameters, and all chains converge very poorly and do not mix well. The question is how this affects the poisson parameters:
+
+```{r}
+plot_diagnostics(fit_suppressed_multiple)
+```
+
+The poisson parameters do not vary as wildly, however, the numerical issues on the logit side of course spill into sampling efficiency, as we can see when plotting only poisson parameters:
+
+```{r}
+mcmc_areas(fit_suppressed_multiple$draws(format="draws_df") |> dplyr::select(c(alpha, beta, omega_p)), prob = 0.5) + theme_minimal()
+```
+
+Here we see the bi-modal peaks that we also saw in our data.
