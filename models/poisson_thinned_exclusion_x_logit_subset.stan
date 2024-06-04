@@ -16,11 +16,9 @@ data {
  }
 
  transformed data {
+    int<lower=0> N = N_obs + N_cens;
     vector[N_obs] log_kids_obs = log(kids_obs);
     vector[N_cens] log_kids_cens = log(kids_cens);
-    int<lower=0> N = N_obs + N_cens;
-    matrix[N, K] X = append_row(x_obs, x_cens); // for posterior predictive checks
-    vector[N] log_kids = append_row(log_kids_obs, log_kids_cens); // for posterior predictive checks
 }
 
  parameters {
@@ -32,7 +30,10 @@ data {
  }
 
  model {
-   // alpha ~ normal(-1.69, 3); // log(lambda/kids) = alpha = log(0.02) based on CDC national average figures
+   // priors
+   alpha ~ normal(-1.69, 2); // log(lambda/kids) = alpha = log(0.02) based on CDC national average figures
+   gamma ~ normal(0, 1.5); // intercept for logit
+   // structural
    vector[N_obs] mu_obs = exp(log_kids_obs + alpha + x_obs * beta); // this works for NxK * Kx1 (https://mc-stan.org/docs/2_18/stan-users-guide/vectorization.html)
    vector[N_obs] pi_obs = inv_logit(gamma + delta * z_obs + w_obs * kappa); // NEW for x in logit
    vector[N_obs] lambda_obs = mu_obs .* pi_obs; // elementwise product
@@ -45,5 +46,17 @@ data {
    }
  }
 
-// add generated quantities?
+generated quantities {
+  // required variables: 
+  //' matrix[N, K] X = append_row(x_obs, x_cens); // for posterior predictive checks
+  //' vector[N] log_kids = append_row(log_kids_obs, log_kids_cens); // for posterior predictive checks
+  // outcome counts
+  //' array[N] int<lower=0> y_tilde = poisson_log_rng(log_kids + alpha + X * beta);
+  // thinning probabilities (bernoulli_logit_rng doesn't help - I do not care for a binary draw given that each units thinning rate. I want the thinning rate itself!)
+  vector[N] pi_tilde = inv_logit(gamma + delta * append_row(z_obs, z_cens) + append_row(w_obs, w_cens) * kappa);
+  
+}
+
+
+
 // generate estimates for the unknown P(tested|negative) = (Tested_i - pi-mu)/(kids-mu)?

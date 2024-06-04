@@ -77,7 +77,7 @@ find_and_set_directory("US/lead_data/reuters/scripts")
 source("00_merging_functions.R")
 ```
 
-Loading a single state:
+Loading a single state (I look exclusively at 2010 data here):
 
 ```{r}
 single_state_data <- function(state_name, drop_outcome = c()){
@@ -188,7 +188,8 @@ Plotting the posterior distributions
 fit |> plot_betas(title = "Posterior distribution for Rhode Island")
 ```
 
-Also here lets retry with a model that adds all x to the logit
+The Rhat values are not perfect, but the sample is also tiny. From the plot of posteriors we can see that they are nicely shaped.
+Lets retry with a model that adds all x to the logit
 
 ```{r}
 stan_model_x_logit <- cmdstan_model("poisson_thinned_exclusion_x_logit.stan")
@@ -208,11 +209,33 @@ fit_x_logit |> get_coefficients() |> knitr::kable(digits = 3)
 fit_x_logit |> plot_betas(title = "Posterior distribution for Rhode Island with all x in logit")
 ```
 
-This does not look good at all. I now try to only include the median annual income and the proportion of poor families.
+This does not look good at all. Inspecting the intercorrelation of these features:
+
+```{r}
+get_corplot <- function(state_data, features = c("median_annual_incomeE","house_price_medianE","poor_fam_propE","black_ppl_propE", "bp_pre_1959E_prop", "svi_socioeconomic_pctile")){
+  # use geomtile to plot correlation matrix
+  state_data |> 
+    select(all_of(features)) |> 
+    cor() |> 
+    melt() |>
+    ggplot(aes(Var1, Var2, fill = value)) +
+    geom_tile() +
+    geom_text(aes(label = sprintf("%.2f", value)), color = "black", size = 3) +
+    scale_fill_gradient2(low = "blue", high = "red", mid = "white", midpoint = 0, limit = c(-1, 1)) +
+    theme_minimal() + 
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    coord_fixed()
+}
+
+rhode_island |> get_corplot()
+```
+
+Evidently there is a lot of multicollinearity that messes up identification on the logit side which spills over.
+I now try to only include the median annual income and the proportion of poor families.
 
 ```{r}
 # I need to modify the data transformation as STAN now takes additional inputs.
-build_stan_vector_logit_2 <-  function(merged_data){
+build_stan_vector_logit_2 <-  function(merged_data, logit_features = c("median_annual_incomeE", "poor_fam_propE")){
     list(
         N_obs = merged_data |> filter(!BLL_geq_5_suppressed) |> count() |> pull(n),
         N_cens = merged_data |> filter(BLL_geq_5_suppressed) |> count() |> pull(n),
@@ -221,8 +244,8 @@ build_stan_vector_logit_2 <-  function(merged_data){
         y_obs = merged_data |> filter(!BLL_geq_5_suppressed) |> pull(BLL_geq_5),
         x_obs = merged_data |> filter(!BLL_geq_5_suppressed) |> select(all_of(features)) |> as.matrix(),
         x_cens = merged_data |> filter(BLL_geq_5_suppressed) |> select(all_of(features)) |> as.matrix(),
-        w_obs = merged_data |> filter(!BLL_geq_5_suppressed) |> select(c("poor_fam_propE", "median_annual_incomeE")) |> as.matrix(),
-        w_cens = merged_data |> filter(BLL_geq_5_suppressed) |> select(c("poor_fam_propE", "median_annual_incomeE")) |> as.matrix(),
+        w_obs = merged_data |> filter(!BLL_geq_5_suppressed) |> select(logit_features) |> as.matrix(),
+        w_cens = merged_data |> filter(BLL_geq_5_suppressed) |> select(logit_features) |> as.matrix(),
         z_obs = merged_data |> filter(!BLL_geq_5_suppressed) |> pull(ped_per_100k),
         z_cens = merged_data |> filter(BLL_geq_5_suppressed) |> pull(ped_per_100k),
         kids_obs = merged_data |> filter(!BLL_geq_5_suppressed) |> pull(under_yo5_pplE),
@@ -257,8 +280,81 @@ fit_x_logit_2 |> get_coefficients() |> knitr::kable(digits = 3)
 ```
 
 ```{r}
-fit_x_logit_2 |> plot_betas(title = "Posterior distribution for Rhode Island with few x in logit")
+fit_x_logit_2 |> plot_betas(title = "Posterior distribution for Rhode Island with median income and poor families in logit")
 ```
+
+Things are still bad but evidently much less bad than before. Interestingly, it seems to be exactly the variables included in the logit that are badly identified.
+I retry the same with including the house price and the svi_socioeconomic_pctile.
+
+```{r}
+stan_data_ri_3 <- build_stan_vector_logit_2(rhode_island, logit_features = c("house_price_medianE", "svi_socioeconomic_pctile"))
+
+fit_x_logit_3 <- stan_model_x_logit_2$sample(
+  data = stan_data_ri_3,
+  seed = 1234,
+  chains = 4, 
+  parallel_chains = 4,
+  refresh = 500)
+
+fit_x_logit_3 |> plot_betas(title = "Posterior distribution for Rhode Island with median house price and SVI in logit")
+```
+
+We get pretty much the same picture. It is the variables included in the logit which are badly identified... So in the latter case this is not a multicolinearity issue...
+
+```{r}
+cor(rhode_island |> select(all_of(c("median_annual_incomeE", "poor_fam_propE"))))
+cor(rhode_island |> select(all_of(c("house_price_medianE", "svi_socioeconomic_pctile"))))
+```
+
+```{r}
+#scatterplot
+rhode_island |> 
+    ggplot(aes(x = median_annual_incomeE, y = poor_fam_propE)) +
+    geom_point()
+
+rhode_island |> 
+    ggplot(aes(x = house_price_medianE, y = svi_socioeconomic_pctile)) +
+    geom_point()
+```
+
+Looking at the distribution of the pi's from the generated quantities
+
+```{r}
+# get posterior means for each pi
+pi_posterior_means <- fit_x_logit_3$draws(format = "draws_df") |>
+    select(starts_with("pi_tilde")) |>
+    summarise_all(mean) |>
+    pivot_longer(cols = everything(), names_to = "feature", values_to = "mean")
+
+# plot
+pi_posterior_means |> 
+    ggplot(aes(x = mean)) +
+    geom_histogram() +
+    geom_density() +
+    # x from 0 to 1
+    scale_x_continuous(limits = c(0, 1)) +
+    # flip to horizontal
+    coord_flip()
+```
+
+What if I crank up the chain length?
+
+```{r}
+fit_x_logit_3_long <- stan_model_x_logit_2$sample(
+  data = stan_data_ri_3,
+  seed = 1234,
+  chains = 4, 
+  parallel_chains = 4,
+  refresh = 500,
+  iter_warmup = 1000,
+  iter_sampling = 2000)
+
+fit_x_logit_3_long |> plot_betas(title = "Posterior distribution for Rhode Island with median house price and SVI in logit for longer chain")
+```
+
+#### Summary
+
+Issues arise with multicollinearity on the logit side. 
 
 ### Texas (two bound suppression: to be included)
 
