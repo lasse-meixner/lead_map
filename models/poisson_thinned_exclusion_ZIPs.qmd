@@ -352,9 +352,29 @@ fit_x_logit_3_long <- stan_model_x_logit_2$sample(
 fit_x_logit_3_long |> plot_betas(title = "Posterior distribution for Rhode Island with median house price and SVI in logit for longer chain")
 ```
 
+What if I artifically boost the number of observations?
+
+```{r}
+# bootstrap 3x the number of observations of rhode island
+rhode_island_bs <- rhode_island %>%
+  sample_n(500, replace = TRUE)
+
+# get new data
+stan_data_ri_4 <- build_stan_vector_logit_2(rhode_island_bs, logit_features = c("house_price_medianE", "svi_socioeconomic_pctile"))
+
+fit_x_logit_4 <- stan_model_x_logit_2$sample(
+  data = stan_data_ri_4,
+  seed = 1234,
+  chains = 4, 
+  parallel_chains = 4,
+  refresh = 500)
+
+fit_x_logit_4 |> plot_betas(title = "Posterior distribution for Rhode Island with median house price and SVI in logit for boosted data")
+```
+
 #### Summary
 
-Issues arise with multicollinearity on the logit side. 
+The issue here does not appear to be multicollinearity on the logit side... It is the variables included in the logit that are badly identified on the poisson side. I couldnt yet replicate this pattern in the simulations in the identification branch.
 
 ### Texas (two bound suppression: to be included)
 
