@@ -428,10 +428,14 @@ load_state("NJ")
 ```{r}
 # prep data
 nj_data <- single_state_data("NJ", drop_outcome = "BLL_geq_10")
+nj_data |> select(all_of(c("house_price_medianE", "svi_socioeconomic_pctile"))) |> cor()
+```
+
+```{r}
 # build STAN vector
-nj_stan <- build_stan_vector(nj_data)
+nj_stan <- build_stan_vector_logit_2(nj_data, logit_features = c("house_price_medianE", "svi_socioeconomic_pctile"))
 # run model
-nj_fit <- stan_model_wo_priors$sample(
+nj_fit <- stan_model_x_logit_2$sample(
   data = nj_stan,
   seed = 1234,
   chains = 4, 
