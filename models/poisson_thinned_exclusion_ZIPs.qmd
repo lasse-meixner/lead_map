@@ -188,8 +188,7 @@ Plotting the posterior distributions
 fit |> plot_betas(title = "Posterior distribution for Rhode Island")
 ```
 
-The Rhat values are not perfect, but the sample is also tiny. From the plot of posteriors we can see that they are nicely shaped.
-Lets retry with a model that adds all x to the logit
+The Rhat values are not perfect, but the sample is also tiny. From the plot of posteriors we can see that they are nicely shaped. Lets retry with a model that adds all x to the logit
 
 ```{r}
 stan_model_x_logit <- cmdstan_model("poisson_thinned_exclusion_x_logit.stan")
@@ -230,12 +229,11 @@ get_corplot <- function(state_data, features = c("median_annual_incomeE","house_
 rhode_island |> get_corplot()
 ```
 
-Evidently there is a lot of multicollinearity that messes up identification on the logit side which spills over.
-I now try to only include the median annual income and the proportion of poor families.
+Evidently there is a lot of multicollinearity that messes up identification on the logit side which spills over. I now try to only include the median annual income and the proportion of poor families.
 
 ```{r}
 # I need to modify the data transformation as STAN now takes additional inputs.
-build_stan_vector_logit_2 <-  function(merged_data, logit_features = c("median_annual_incomeE", "poor_fam_propE")){
+build_stan_vector_logit_2 <-  function(merged_data, pr_var = 1, logit_features = c("median_annual_incomeE", "poor_fam_propE")){
     list(
         N_obs = merged_data |> filter(!BLL_geq_5_suppressed) |> count() |> pull(n),
         N_cens = merged_data |> filter(BLL_geq_5_suppressed) |> count() |> pull(n),
@@ -251,12 +249,13 @@ build_stan_vector_logit_2 <-  function(merged_data, logit_features = c("median_a
         kids_obs = merged_data |> filter(!BLL_geq_5_suppressed) |> pull(under_yo5_pplE),
         kids_cens = merged_data |> filter(BLL_geq_5_suppressed) |> pull(under_yo5_pplE),
         # get suppression bound 
-        ell = merged_data |> filter(BLL_geq_5_suppressed) |> pull(ell)
+        ell = merged_data |> filter(BLL_geq_5_suppressed) |> pull(ell),
+        nhanes_prior_var = pr_var
     )
 }
 
 # get new data
-stan_data_ri_2 <- build_stan_vector_logit_2(rhode_island)
+stan_data_ri_2 <- build_stan_vector_logit_2(rhode_island, pr_var = 0.01)
 ```
 
 ```{r}
@@ -283,8 +282,7 @@ fit_x_logit_2 |> get_coefficients() |> knitr::kable(digits = 3)
 fit_x_logit_2 |> plot_betas(title = "Posterior distribution for Rhode Island with median income and poor families in logit")
 ```
 
-Things are still bad but evidently much less bad than before. Interestingly, it seems to be exactly the variables included in the logit that are badly identified.
-I retry the same with including the house price and the svi_socioeconomic_pctile.
+Things are still bad but evidently much less bad than before. Interestingly, it seems to be exactly the variables included in the logit that are badly identified. I retry the same with including the house price and the svi_socioeconomic_pctile.
 
 ```{r}
 stan_data_ri_3 <- build_stan_vector_logit_2(rhode_island, logit_features = c("house_price_medianE", "svi_socioeconomic_pctile"))
@@ -296,6 +294,10 @@ fit_x_logit_3 <- stan_model_x_logit_2$sample(
   parallel_chains = 4,
   refresh = 500)
 
+fit_x_logit_3 |> get_coefficients() |> knitr::kable(digits = 3)
+```
+
+```{r}
 fit_x_logit_3 |> plot_betas(title = "Posterior distribution for Rhode Island with median house price and SVI in logit")
 ```
 
@@ -306,36 +308,27 @@ cor(rhode_island |> select(all_of(c("median_annual_incomeE", "poor_fam_propE")))
 cor(rhode_island |> select(all_of(c("house_price_medianE", "svi_socioeconomic_pctile"))))
 ```
 
-```{r}
-#scatterplot
-rhode_island |> 
-    ggplot(aes(x = median_annual_incomeE, y = poor_fam_propE)) +
-    geom_point()
-
-rhode_island |> 
-    ggplot(aes(x = house_price_medianE, y = svi_socioeconomic_pctile)) +
-    geom_point()
-```
-
 Looking at the distribution of the pi's from the generated quantities
 
 ```{r}
 # get posterior means for each pi
 pi_posterior_means <- fit_x_logit_3$draws(format = "draws_df") |>
-    select(starts_with("pi_tilde")) |>
+    select(starts_with("pi_"), all_of(".chain")) |>
+    group_by(.chain) |>
     summarise_all(mean) |>
-    pivot_longer(cols = everything(), names_to = "feature", values_to = "mean")
+    pivot_longer(cols = -c(.chain), names_to = "pi", values_to = "mean") |> 
+    ungroup()
 
 # plot
 pi_posterior_means |> 
+    mutate(.chain = as.factor(.chain)) |>
     ggplot(aes(x = mean)) +
-    geom_histogram() +
-    geom_density() +
-    # x from 0 to 1
-    scale_x_continuous(limits = c(0, 1)) +
+    geom_histogram(aes(fill = .chain), bins = 30, alpha = 0.5) +
     # flip to horizontal
     coord_flip()
 ```
+
+It doesn't appear like these values are stuck around 0.5...
 
 What if I crank up the chain length?
 
@@ -352,7 +345,9 @@ fit_x_logit_3_long <- stan_model_x_logit_2$sample(
 fit_x_logit_3_long |> plot_betas(title = "Posterior distribution for Rhode Island with median house price and SVI in logit for longer chain")
 ```
 
-What if I artifically boost the number of observations?
+This kind of helps, if I make the prior very small...?
+
+The small number of observations makes this worse...What if I artifically boost the number of observations?
 
 ```{r}
 # bootstrap 3x the number of observations of rhode island
@@ -374,7 +369,7 @@ fit_x_logit_4 |> plot_betas(title = "Posterior distribution for Rhode Island wit
 
 #### Summary
 
-The issue here does not appear to be multicollinearity on the logit side... It is the variables included in the logit that are badly identified on the poisson side. I couldnt yet replicate this pattern in the simulations in the identification branch.
+The issue here does not appear to be multicollinearity on the logit side... It is the variables included in the logit that are badly identified on the poisson side. I couldnt yet replicate this pattern in the simulations in the identification branch. Narrowing the prior and increasing the data helps though.
 
 ### Texas (two bound suppression: to be included)
 
@@ -398,9 +393,9 @@ load_state("NM")
 # prep data
 nm_data <- single_state_data("NM", drop_outcome = "BLL_geq_10")
 # build STAN vector
-nm_stan <- build_stan_vector(nm_data)
+nm_stan <- build_stan_vector_logit_2(nm_data, pr_var = 0.5)
 # run model
-nm_fit <- stan_model_wo_priors$sample(
+nm_fit <- stan_model_x_logit_2$sample(
   data = nm_stan,
   seed = 1234,
   chains = 4, 
@@ -433,7 +428,8 @@ nj_data |> select(all_of(c("house_price_medianE", "svi_socioeconomic_pctile"))) 
 
 ```{r}
 # build STAN vector
-nj_stan <- build_stan_vector_logit_2(nj_data, logit_features = c("house_price_medianE", "svi_socioeconomic_pctile"))
+nj_stan <- build_stan_vector_logit_2(nj_data, pr_var=0.1, # small prior on var of intercept
+                                     logit_features = c("house_price_medianE", "svi_socioeconomic_pctile"))
 # run model
 nj_fit <- stan_model_x_logit_2$sample(
   data = nj_stan,
@@ -451,6 +447,8 @@ nj_fit |> get_coefficients() |> knitr::kable(digits = 3)
 ```{r}
 nj_fit |> plot_betas(title = "Posterior distribution for New Jersey")
 ```
+
+Horrendous, but there are also some unsolved data issues in NJ I think...
 
 ### Michigan (higher ell threshold)
 
