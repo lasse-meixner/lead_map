@@ -13,6 +13,7 @@ data {
    vector[N_obs] kids_obs; // offset
    vector[N_cens] kids_cens;
    array[N_cens] int<lower=0> ell;
+   real<lower=0> nhanes_prior_var; // prior variance for the NHANES data
  }
 
  transformed data {
@@ -31,7 +32,7 @@ data {
 
  model {
    // priors
-   alpha ~ normal(-1.69, 2); // log(lambda/kids) = alpha = log(0.02) based on CDC national average figures
+   alpha ~ normal(-1.69, nhanes_prior_var); // log(lambda/kids) = alpha = log(0.02) based on CDC national average figures
    gamma ~ normal(0, 1.5); // intercept for logit
    // structural
    vector[N_obs] mu_obs = exp(log_kids_obs + alpha + x_obs * beta); // this works for NxK * Kx1 (https://mc-stan.org/docs/2_18/stan-users-guide/vectorization.html)
