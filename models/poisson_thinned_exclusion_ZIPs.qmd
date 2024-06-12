@@ -211,6 +211,7 @@ fit_x_logit |> plot_betas(title = "Posterior distribution for Rhode Island with 
 This does not look good at all. Inspecting the intercorrelation of these features:
 
 ```{r}
+library(reshape2)
 get_corplot <- function(state_data, features = c("median_annual_incomeE","house_price_medianE","poor_fam_propE","black_ppl_propE", "bp_pre_1959E_prop", "svi_socioeconomic_pctile")){
   # use geomtile to plot correlation matrix
   state_data |> 
@@ -282,7 +283,7 @@ fit_x_logit_2 |> get_coefficients() |> knitr::kable(digits = 3)
 fit_x_logit_2 |> plot_betas(title = "Posterior distribution for Rhode Island with median income and poor families in logit")
 ```
 
-Things are still bad but evidently much less bad than before. Interestingly, it seems to be exactly the variables included in the logit that are badly identified. I retry the same with including the house price and the svi_socioeconomic_pctile.
+Things are still bad but evidently much less bad than before. Interestingly, it seems to be especially the variables included in the logit that are badly identified. **(I checked and this pattern also appeared when including two X's on the logit side for tract data...)** I retry the same with including the house price and the svi_socioeconomic_pctile.
 
 ```{r}
 stan_data_ri_3 <- build_stan_vector_logit_2(rhode_island, logit_features = c("house_price_medianE", "svi_socioeconomic_pctile"))
@@ -301,14 +302,14 @@ fit_x_logit_3 |> get_coefficients() |> knitr::kable(digits = 3)
 fit_x_logit_3 |> plot_betas(title = "Posterior distribution for Rhode Island with median house price and SVI in logit")
 ```
 
-We get pretty much the same picture. It is the variables included in the logit which are badly identified... So in the latter case this is not a multicolinearity issue...
+This looks slightly better... But convergence statistics are still pretty bad.
 
 ```{r}
 cor(rhode_island |> select(all_of(c("median_annual_incomeE", "poor_fam_propE"))))
 cor(rhode_island |> select(all_of(c("house_price_medianE", "svi_socioeconomic_pctile"))))
 ```
 
-Looking at the distribution of the pi's from the generated quantities
+This pattern did not appear in the simple simulation where our data is nicely spread and normal. So I suspect this pattern has to do with particularities of our DGP. Looking at the distribution of the pi's from the generated quantities
 
 ```{r}
 # get posterior means for each pi
@@ -328,7 +329,7 @@ pi_posterior_means |>
     coord_flip()
 ```
 
-It doesn't appear like these values are stuck around 0.5...
+It looks like most of these values are stuck to 1.
 
 What if I crank up the chain length?
 
