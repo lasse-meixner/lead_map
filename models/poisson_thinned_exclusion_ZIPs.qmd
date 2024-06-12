@@ -48,7 +48,7 @@ preprocess_lead_data <- function(lead_data){
         # add state level censoring threshold
         group_by(state) |>
         # get minimum of BLL_geq_5 that is greater than 0
-        mutate(ell = min(BLL_geq_5[BLL_geq_5>0]) - 1) |> #TODO: I take -1 here, i.e. a strict inequality cf with convention in data cleaning scripts
+        mutate(ell = min(BLL_geq_5[BLL_geq_5>0], na.rm = TRUE) - 1) |> #Note: I take -1 here, so "<6" will be a 5
         ungroup()
 }
 
@@ -163,7 +163,8 @@ get_coefficients <- function(fit){
   fit$summary() |> 
   # rename all of the beta[j] by their feature names
   mutate(variable = ifelse(str_detect(variable, "beta"), paste0(features[as.numeric(str_extract(variable, "[0-9]+"))]), variable)) |>
-  filter(variable %in% c(features, "alpha"))
+  # unselect all variables that contain pi_
+  filter(!str_detect(variable, "pi_"))
 }
 
 plot_betas <- function(fit, title = "Posterior distributions") {
@@ -188,7 +189,45 @@ Plotting the posterior distributions
 fit |> plot_betas(title = "Posterior distribution for Rhode Island")
 ```
 
-The Rhat values are not perfect, but the sample is also tiny. From the plot of posteriors we can see that they are nicely shaped. Lets retry with a model that adds all x to the logit
+The Rhat values are not perfect but not too bad for the coefficients on the Poisson side, from the plot of posteriors we can see that they are nicely shaped. As expected the intercepts alpha and gamma are not identified at all.
+
+What happens if we nail down the prior on alpha?
+
+```{r}
+stan_model_w_priors <- cmdstan_model("poisson_thinned_exclusion_w_priors.stan")
+
+# append nhanes_prior_var to the data
+stan_data <- stan_data |>
+    append(list(nhanes_prior_var = 1))
+
+fit_w_priors <- stan_model_w_priors$sample(
+  data = stan_data,seed = 1234,
+  chains = 4, 
+  parallel_chains = 4,
+  refresh = 500)
+
+fit_w_priors |> get_coefficients() |> knitr::kable(digits = 3)
+```
+
+Setting the variance of alpha to 1 helps! This looks much better. But if you narrow down the prior even further, things actually look worse:
+
+```{r}
+# set prior variance to 0.01
+stan_data[["nhanes_prior_var"]] <- 0.01
+
+# sample again
+fit_w_priors_2 <- stan_model_w_priors$sample(
+  data = stan_data,seed = 1234,
+  chains = 4, 
+  parallel_chains = 4,
+  refresh = 500)
+
+fit_w_priors_2 |> get_coefficients() |> knitr::kable(digits = 3)
+```
+
+This is worse than before...
+
+Let us now look at including some features in the logit side.
 
 ```{r}
 stan_model_x_logit <- cmdstan_model("poisson_thinned_exclusion_x_logit.stan")
@@ -208,7 +247,7 @@ fit_x_logit |> get_coefficients() |> knitr::kable(digits = 3)
 fit_x_logit |> plot_betas(title = "Posterior distribution for Rhode Island with all x in logit")
 ```
 
-This does not look good at all. Inspecting the intercorrelation of these features:
+Unsurprisingly, throwing all of the x's into the logit side, this does not look good at all. Inspecting the intercorrelation of these features:
 
 ```{r}
 library(reshape2)
@@ -283,7 +322,7 @@ fit_x_logit_2 |> get_coefficients() |> knitr::kable(digits = 3)
 fit_x_logit_2 |> plot_betas(title = "Posterior distribution for Rhode Island with median income and poor families in logit")
 ```
 
-Things are still bad but evidently much less bad than before. Interestingly, it seems to be especially the variables included in the logit that are badly identified. **(I checked and this pattern also appeared when including two X's on the logit side for tract data...)** I retry the same with including the house price and the svi_socioeconomic_pctile.
+The logit coefficients are spread flat, so not located at all. Interestingly, it seems to be especially the variables included in the logit that are badly identified. **(I checked and this pattern also appeared when including two X's on the logit side for tract data...)** I retry the same with including the house price and the svi_socioeconomic_pctile.
 
 ```{r}
 stan_data_ri_3 <- build_stan_vector_logit_2(rhode_island, logit_features = c("house_price_medianE", "svi_socioeconomic_pctile"))
@@ -370,88 +409,21 @@ fit_x_logit_4 |> plot_betas(title = "Posterior distribution for Rhode Island wit
 
 #### Summary
 
-The issue here does not appear to be multicollinearity on the logit side... It is the variables included in the logit that are badly identified on the poisson side. I couldnt yet replicate this pattern in the simulations in the identification branch. Narrowing the prior and increasing the data helps though.
+The issue here does not appear to be multicollinearity on the logit side... Some observations:
 
-### Texas (two bound suppression: to be included)
+-   Narrowing down the prior on alpha too much, even without having any x's in the logit can make things worse!
 
-Lets try with texas, which has suppression:
+-   Including even uncorrelated x's on the logit side messes up efficient sampling of posteriors. It is unclear, especially because RI is so small, if this is an issue with the model or just too little information in the small RI dataset.
 
-```{r}
-load_state("TX")
-```
+-   Interestingly, it is especially the variables included in the logit that are badly identified on the poisson side. I couldnt yet replicate this pattern in the simulations in the identification branch.
 
-Texas has the particularity that since BLL_geq_5 is added from different categories, the suppression has two bounds, e.g. "\>23&\<28". This is not a problem conceptually, but needs adjustment in the data prepping code and STAN program - since it needs to receive both bounds to add the right integral to the likelihood.
+-   Most of the draws for the pi's are stuck at 1. So log-odds are estimated to be high, and the logistic is practically **flat** und approximately **linear** on this set.
 
-Try instead with NM:
-
-### New Mexico (little data)
-
-```{r}
-load_state("NM")
-```
-
-```{r}
-# prep data
-nm_data <- single_state_data("NM", drop_outcome = "BLL_geq_10")
-# build STAN vector
-nm_stan <- build_stan_vector_logit_2(nm_data, pr_var = 0.5)
-# run model
-nm_fit <- stan_model_x_logit_2$sample(
-  data = nm_stan,
-  seed = 1234,
-  chains = 4, 
-  parallel_chains = 4,
-  refresh = 500)
-```
-
-```{r}
-# get coefficients
-nm_fit |> get_coefficients() |> knitr::kable(digits = 3)
-```
-
-```{r}
-nm_fit |> plot_betas(title = "Posterior distribution for New Mexico")
-```
-
-New Mexico has little data...
-
-### New Jersey
-
-```{r}
-load_state("NJ")
-```
-
-```{r}
-# prep data
-nj_data <- single_state_data("NJ", drop_outcome = "BLL_geq_10")
-nj_data |> select(all_of(c("house_price_medianE", "svi_socioeconomic_pctile"))) |> cor()
-```
-
-```{r}
-# build STAN vector
-nj_stan <- build_stan_vector_logit_2(nj_data, pr_var=0.1, # small prior on var of intercept
-                                     logit_features = c("house_price_medianE", "svi_socioeconomic_pctile"))
-# run model
-nj_fit <- stan_model_x_logit_2$sample(
-  data = nj_stan,
-  seed = 1234,
-  chains = 4, 
-  parallel_chains = 4,
-  refresh = 500)
-```
-
-```{r}
-# get coefficients
-nj_fit |> get_coefficients() |> knitr::kable(digits = 3)
-```
-
-```{r}
-nj_fit |> plot_betas(title = "Posterior distribution for New Jersey")
-```
-
-Horrendous, but there are also some unsolved data issues in NJ I think...
+I try to get some better understanding of all of these observations back in the simulation setting in 'models/identification/identification_ch2.qmd'.
 
 ### Michigan (higher ell threshold)
+
+Michigan has more complicated data, it has suppression in BLLs and tested. However, the body of data is much larger. Let's have a look.
 
 ```{r}
 load_state("MI")
@@ -459,6 +431,34 @@ load_state("MI")
 
 ```{r}
 # prep data
-mi_data <- single_state_data("MI", drop_outcome = "BLL_geq_10")
-# build STAN vector
+mi_data <- single_state_data("MI")
+
+# manually dropping MI duplicates
+print(length(mi_data))
+mi_data <- mi_data |> distinct()
+print(length(mi_data))
 ```
+
+```{r}
+# build STAN vector
+stan_data_mi <- build_stan_vector(mi_data)
+```
+
+```{r}
+# append nhanes_prior_var to the data
+stan_data_mi <- stan_data_mi |>
+    append(list(nhanes_prior_var = 1))
+
+fit_mi_w_priors <- stan_model_w_priors$sample(
+  data = stan_data_mi,
+  seed = 1234,
+  chains = 4, 
+  parallel_chains = 4,
+  refresh = 500)
+```
+
+```{r}
+fit_w_priors |> get_coefficients() |> knitr::kable(digits = 3)
+```
+
+Even without including x's on the logit side, poisson coefficients are not efficiently sampled...
