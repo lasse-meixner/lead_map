@@ -5,15 +5,15 @@ format:
       code-fold: true
 ---
 
-Part 1 covered some first modifications of the most simple pogit in search of what breaks our model. As long as the data was normally distributed, everything sees fine unless one introduces nearly-perfect multicollinearity in the logit. This is of course no meaningful insight since we know this to break identification in any index.
+Part 1 covered some first modifications of the most simple pogit in search of what breaks our model. As long as the data was normally distributed, everything sees fine unless one introduces nearly-perfect multicollinearity in the logit. This is not a big insight since we know this to break identification in any (index) model.
 
-In the real data, we also have identification issues even if the logit variables are few and barely correlated at all. So we must look elsewhere...
+In the real data, we also have identification issues **even if** the logit variables are few and barely correlated at all. So we must look elsewhere.
 
-My other suspicion is that identification in the real data fails because there is a high concentration of data points for which the logit probability has sufficiently little curvature. My intuition was that this **would create something like a multicollinearity problem** in the rate product $\mu_i \cdot \pi_i$ for the thinned poisson rate.
+My other suspicion was that identification in the real data fails because of particularities of the DGP. On paper, if e.g. both $X$ and $Z$ are binary, I think that identification of the poisson parameters is impossible. With continuous data, I first I thought that maybe identification fails if there is a high concentration of data points for which the logit probability has sufficiently little curvature. My first thought was that this would create something like a multicollinearity problem in the rate product $\mu_i \cdot \pi_i$ for the thinned poisson rate, but since only $\log(\mu_i)$ is linear in x, this is not the right explanation. However, I do suspect that the shape of our x's are important to understand the identification problem.
 
-<!-- add notes here -->
+In this chapter I'll try to dive a little into the dgp-related questions that might be related to breaking the sampling for Rhode Island and some of the tracts I've tried. There I observed that the implied thinning probabilities (implied by the great mass of parameter values sampled by the four chains, even though poorly converging) are concentrated at 1. The main question in the back of my mind is if there is a **general** identification issues where **we can never rule** out high thinning rates ($\pi$) and low occurence rates ($\mu$) if we put X in the logit, or if this a particular feature of a DGP that would make identification difficult for the sampler. My prior is that its the former...
 
-This chapter will dive into the dgp-related questions that could give rise to this phenomenon.
+## Something about the curvature?
 
 The second derivative of the logistic is
 
@@ -136,7 +136,7 @@ library(cmdstanr)
 stan_model <- cmdstan_model("thinned_poisson_w_priors_x_logit.stan")
 
 # original data
-dat <- list(N = n, y = y, x = x, z = z, alpha_prior_var = 0.1)
+dat <- list(N = n, y = y, x = x, z = z, alpha_prior_var = 1)
 
 # fit
 fit <- stan_model$sample(data = dat, chains = 4, parallel_chains = 4, refresh = 500)
@@ -175,7 +175,7 @@ Now we generate data with the new DGP and estimate the model again.
 ```{r}
 # new data
 y_new <- rbinom(n, size = ystar, prob = plogis(logit_pi_new))
-dat_new <- list(N = n, y = y_new, x = x, z = z, alpha_prior_var = 0.1)
+dat_new <- list(N = n, y = y_new, x = x, z = z, alpha_prior_var = 1)
 
 # fit
 fit_new <- stan_model$sample(data = dat_new, chains = 4, parallel_chains = 4, refresh = 500)
@@ -183,14 +183,12 @@ fit_new <- stan_model$sample(data = dat_new, chains = 4, parallel_chains = 4, re
 plot_diagnostics(fit_new)
 ```
 
-This picture confirms the problem! The posteriors for x are not identified on either side of the model, and one chain is stuck in a completely different region with a higher beta and lower kappa. This is reflected by poor convergence diagnostics:
-
 ```{r}
 fit_new$summary() |>
     knitr::kable(digits = 2)
 ```
 
-We can also push this further to the extreme: Let's make the thinning probabilities even more concentrated around 0 and 1.
+This does lead to identification issues! We can also push this further to the extreme: Let's make the thinning probabilities even more concentrated around 0 and 1.
 
 ```{r}
 kappa_new_2 <- 10 # x in logit
@@ -222,11 +220,6 @@ plot_diagnostics(fit_new_2)
 ```
 
 ::: callout-note
-For some very odd reason whenever this is run by commamd this gives very different results than the output from rendering the html file... Because of different initializations? I tried this about 2 times and it is consistenty different. It is possible that for even extremer values of $\kappa$ the extremism might reduce stochastic variability in a way that makes the model converge better again, this I have to figure out as well. But it doesnt make sense that the results depend from where the code is run(!). I need to fix this \[#todo:\].
+For some very odd reason whenever this is run by command this gives very different results than the output from rendering the html file... Because of different initializations? I tried this about 2 times and it is consistenty different. It is possible that for even extremer values of $\kappa$ the extremism might reduce stochastic variability in a way that makes the model converge better again, this I have to figure out as well. But it doesnt make sense that the results depend from where the code is run. I need to fix this \[#todo:\].
 :::
-
-I think that this is the phenomenon behind the identification issues in the real data. Identification there fails because the chains mostly draw *values that imply thinning probabilities of close to 1* where the logistic function is approximately linear.
-
-In other words, the model breaks down if thinning is **not substantially happening** for a sufficiently large number of data points.
-
-In the next chapter, I will think about what this implies about the problem we are trying to model and how one could fix it (and what a fix would even mean).
+It is even worse! So I find that if I change the DGP such that the thinning probabilities are concentrated more towards 0 or 1, we get bad sampling properties that hint at an identification problem. In other words, the model sampling breaks down if the sampler finds that thinning is **extreme** or **not substantially happening** for a sufficiently large number of data points. My intuition is telling me that the $\pi$'s look a lot like the case where X is binary, i.e. they do no sufficiently exploit the curvature along the logistic function.
