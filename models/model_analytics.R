@@ -2,6 +2,7 @@
 require(bayesplot)
 require(dplyr)
 require(ggplot2)
+library(reshape2)
 
 
 ### data preprocessing functions
@@ -10,17 +11,29 @@ tract_info_vars <- c("TRACT","STATE_NAME","COUNTY")
 offset_var <- c("under_yo5_pplE","ped_per_100k")
 features <- c("median_annual_incomeE","house_price_medianE","poor_fam_propE","black_ppl_propE", "bp_pre_1959E_prop", "svi_socioeconomic_pctile")
 
-preprocess_pred_data <- function(zip_or_tract_data, info_vars){
+preprocess_pred_data <- function(zip_or_tract_data, info_vars, additional_preprocess = NULL){
     #' selects relevant PREDICTOR variables, drops NAs and scales data
     #' 
-    zip_or_tract_data |> select(all_of(c(features, offset_var, info_vars))) |>
-    distinct() |>
-    # drop NAs
-    drop_na() |>
-    # drop if poor_fam_propE==0 (missing value in census API)
-    filter(poor_fam_propE!=0) |>
+    pp_data <- zip_or_tract_data |> 
+        select(all_of(c(features, offset_var, info_vars))) |>
+        distinct() |>
+        # drop NAs
+        drop_na() |>
+        # drop if poor_fam_propE==0 (missing value in census API)
+        filter(poor_fam_propE!=0)
+
+    # additional preprocessing
+    if (!is.null(additional_preprocess) && is.function(additional_preprocess)) {
+        pp_data <- additional_preprocess(pp_data)
+    }
+
+    # find all additional features added by additional_preprocess (must contain any of features in the name)
+    additional_features <- pp_data |> select(-all_of(c(features, offset_var, info_vars))) |> names() |> str_subset(paste0(features, collapse = "|"))
+    print(paste("Additional features added:", additional_features))
+
     # standardize all features
-    mutate(across(all_of(features), ~(. - mean(.))/sd(.)))
+    pp_data |>
+        mutate(across(all_of(c(features, additional_features)), ~(. - mean(.))/sd(.)))
 }
 
 preprocess_lead_data <- function(lead_data){
@@ -54,6 +67,58 @@ final_checks  <- function(merged_data, drop="BLL_geq_10"){
         drop_na(any_of(c(features, offset_var, outcome_of_interest)))
 }
 
+### function for data preparation for STAN model with x's in logit
+build_stan_vector_logit_2 <-  function(merged_data, pr_var = 1, logit_features = c("median_annual_incomeE", "poor_fam_propE")){
+    list(
+        N_obs = merged_data |> filter(!BLL_geq_5_suppressed) |> count() |> pull(n),
+        N_cens = merged_data |> filter(BLL_geq_5_suppressed) |> count() |> pull(n),
+        K = length(features),
+        L = length(logit_features), # number of features in logit
+        y_obs = merged_data |> filter(!BLL_geq_5_suppressed) |> pull(BLL_geq_5),
+        x_obs = merged_data |> filter(!BLL_geq_5_suppressed) |> select(all_of(features)) |> as.matrix(),
+        x_cens = merged_data |> filter(BLL_geq_5_suppressed) |> select(all_of(features)) |> as.matrix(),
+        w_obs = merged_data |> filter(!BLL_geq_5_suppressed) |> select(logit_features) |> as.matrix(),
+        w_cens = merged_data |> filter(BLL_geq_5_suppressed) |> select(logit_features) |> as.matrix(),
+        z_obs = merged_data |> filter(!BLL_geq_5_suppressed) |> pull(ped_per_100k),
+        z_cens = merged_data |> filter(BLL_geq_5_suppressed) |> pull(ped_per_100k),
+        kids_obs = merged_data |> filter(!BLL_geq_5_suppressed) |> pull(under_yo5_pplE),
+        kids_cens = merged_data |> filter(BLL_geq_5_suppressed) |> pull(under_yo5_pplE),
+        # get suppression bound 
+        ell = merged_data |> filter(BLL_geq_5_suppressed) |> pull(ell),
+        nhanes_prior_var = pr_var
+    )
+}
+
+### Data plotting
+
+# Correlation plot
+get_corplot <- function(state_data, features = c("median_annual_incomeE","house_price_medianE","poor_fam_propE","black_ppl_propE", "bp_pre_1959E_prop", "svi_socioeconomic_pctile")){
+  # use geomtile to plot correlation matrix
+  state_data |> 
+    select(all_of(features)) |> 
+    cor() |> 
+    melt() |>
+    ggplot(aes(Var1, Var2, fill = value)) +
+    geom_tile() +
+    geom_text(aes(label = sprintf("%.2f", value)), color = "black", size = 3) +
+    scale_fill_gradient2(low = "blue", high = "red", mid = "white", midpoint = 0, limit = c(-1, 1)) +
+    theme_minimal() + 
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    coord_fixed()
+}
+
+# Get spread of (normalized features) in the data
+get_spread_plot <- function(state_data, features = c("median_annual_incomeE", "poor_fam_propE")){
+    # plot in grid, 3 cols
+    state_data |> 
+        select(all_of(features)) |> 
+        gather() |> 
+        ggplot(aes(value)) +
+        geom_histogram(bins = 30, alpha = 0.5) +
+        facet_wrap(~key, scales = "free") +
+        theme_minimal()
+}
+
 ### functions for STAN model fit instances
 get_coefficients <- function(fit){
   fit$summary() |> 
@@ -72,24 +137,21 @@ plot_betas <- function(fit, title = "Posterior distributions") {
         ggtitle(title)
 }
 
-### function for data preparation for STAN model with x's in logit
-build_stan_vector_logit_2 <-  function(merged_data, pr_var = 1, logit_features = c("median_annual_incomeE", "poor_fam_propE")){
-    list(
-        N_obs = merged_data |> filter(!BLL_geq_5_suppressed) |> count() |> pull(n),
-        N_cens = merged_data |> filter(BLL_geq_5_suppressed) |> count() |> pull(n),
-        K = length(features),
-        L = 2, # number of features in logit
-        y_obs = merged_data |> filter(!BLL_geq_5_suppressed) |> pull(BLL_geq_5),
-        x_obs = merged_data |> filter(!BLL_geq_5_suppressed) |> select(all_of(features)) |> as.matrix(),
-        x_cens = merged_data |> filter(BLL_geq_5_suppressed) |> select(all_of(features)) |> as.matrix(),
-        w_obs = merged_data |> filter(!BLL_geq_5_suppressed) |> select(logit_features) |> as.matrix(),
-        w_cens = merged_data |> filter(BLL_geq_5_suppressed) |> select(logit_features) |> as.matrix(),
-        z_obs = merged_data |> filter(!BLL_geq_5_suppressed) |> pull(ped_per_100k),
-        z_cens = merged_data |> filter(BLL_geq_5_suppressed) |> pull(ped_per_100k),
-        kids_obs = merged_data |> filter(!BLL_geq_5_suppressed) |> pull(under_yo5_pplE),
-        kids_cens = merged_data |> filter(BLL_geq_5_suppressed) |> pull(under_yo5_pplE),
-        # get suppression bound 
-        ell = merged_data |> filter(BLL_geq_5_suppressed) |> pull(ell),
-        nhanes_prior_var = pr_var
-    )
+
+plot_pi_posterior_means <- function(fit) {   
+    pi_posterior_means <- fit$draws(format = "draws_df") |>
+        select(starts_with("pi_"), all_of(".chain")) |>
+        group_by(.chain) |>
+        summarise_all(mean) |>
+        pivot_longer(cols = -c(.chain), names_to = "pi", values_to = "mean") |> 
+        ungroup()
+
+    pi_posterior_means |> 
+        mutate(.chain = as.factor(.chain)) |>
+        ggplot(aes(x = mean)) +
+        geom_histogram(aes(fill = .chain), bins = 30, alpha = 0.5) +
+        coord_flip()
 }
+
+
+
