@@ -225,7 +225,7 @@ fit_w_priors_2 <- stan_model_w_priors$sample(
 fit_w_priors_2 |> get_coefficients() |> knitr::kable(digits = 3)
 ```
 
-This is worse than before...
+This is worse than before... Why?
 
 Let us now look at including some features in the logit side.
 
