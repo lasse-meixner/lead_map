@@ -1,0 +1,133 @@
+---
+title: "More thinned poisson regression with exclusion restrictions"
+format:
+    html:
+      code-fold: true
+---
+
+-   results from simulation showed that insufficient spread support of X's added to logit could be a source of identification problems.
+-   here I will assess the X spread and potentially see if pooling more data or adding fake data points could help.
+
+```{r}
+library(tidyverse)
+# run init file
+source("../init.R")
+source("model_analytics.R")
+```
+
+Let's first go back to Massachusettes
+
+```{r}
+# import tract data
+find_and_set_directory("US/predictors/processed_data")
+tract_data  <- read_csv("final_tract.csv")
+
+# import lead data
+find_and_set_directory("US/lead_data/reuters/scripts")
+source("00_merging_functions.R")
+
+single_state_data <- function(state_name, drop_outcome = c(), pred_preprocess_func = NULL){
+    # load and assign the state data
+    load_state(state_name, from_raw = TRUE) # from 00_merging_functions.R 
+    state_data <- get(str_to_lower(state_name))
+    # preprocess lead data
+    state_lead <- state_data |>
+        filter(year == 2010) |> #NOTE: 2010 is in the middle of our period and has max testing in many states
+        # preprocess lead data
+        preprocess_lead_data()
+      
+    state_pred <- tract_data |> filter(STATE_ABBR == state_name) |> preprocess_pred_data(info_vars = tract_info_vars, additional_preprocess = pred_preprocess_func)
+
+    # merge
+    state_merged <- state_pred |> 
+        left_join(state_lead, by = c("TRACT" = "tract")) |> 
+        final_checks(drop=drop_outcome)
+}
+```
+
+```{r}
+ma_final <- single_state_data("MA")
+```
+
+## Assess spread of X's
+
+```{r}
+# assess spread of X's
+get_spread_plot(ma_final, features)
+```
+
+Some of those variables are very skewed, like the poor family proportion, black people proportion and median house prices.
+
+## Rerunning MA with median house prices
+
+Rerunning MA with only the house price also in the logit:
+
+```{r}
+library(cmdstanr)
+# load model
+
+model <- cmdstan_model("poisson_thinned_exclusion_x_logit_subset.stan")
+
+# prepare data
+ma_final <- single_state_data("MA")
+ma_list <- build_stan_vector_logit_2(ma_final, pr_var = 1, logit_features = c("house_price_medianE"))
+
+# fit
+fit <- model$sample(data = ma_list, chains = 4, iter_warmup = 1000, iter_sampling = 1000)
+fit |> get_coefficients() |> knitr::kable(digits = 3)
+```
+
+This takes ages to fit. The logit slopes are unindentified. The poisson slopes look okay.
+
+```{r}
+fit |> plot_betas(title="MA with only house price in logit")
+```
+
+Looking at the implied thinning probabilities:
+
+```{r}
+fit |> plot_pi_posterior_means()
+```
+
+So the model is essentially not thinning at all, it is "free" to shoot the log odds up to very high values through arbitrarily high coefficients on pediatricians and median house prices.
+
+## Rerunning MA with **log** median house prices
+
+Let's see if having more spread in the median house prices helps. To do this, I add the log instead of the level in the logit side.
+
+We need to take the log before scaling:
+
+```{r}
+log_transform_house_price <- function(df) {
+    df |> mutate(log_house_price_medianE = log(house_price_medianE))
+}
+
+ma_final_2 <- single_state_data("MA", pred_preprocess_func = log_transform_house_price)
+```
+
+Plotting the scaled log house prices:
+
+```{r}
+# plot log
+ma_final_2 |> ggplot(aes(log_house_price_medianE)) + geom_histogram()
+```
+
+```{r}
+# prepare data
+ma_list_2 <- build_stan_vector_logit_2(ma_final_2, pr_var = 1, logit_features = c("log_house_price_medianE"))
+
+# fit
+fit_2 <- model$sample(data = ma_list_2, chains = 4, iter_warmup = 1000, iter_sampling = 1000, refresh = 500) #note that in poisson I still add the level
+
+fit_2 |> get_coefficients() |> knitr::kable(digits = 3)
+```
+
+This actually has worse convergence values...?!
+
+
+```{r}
+fit_2 |> plot_betas(title="MA with log house price in logit")
+```
+
+bimodals are back...
+
