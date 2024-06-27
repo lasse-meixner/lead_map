@@ -122,12 +122,16 @@ fit_2 <- model$sample(data = ma_list_2, chains = 4, iter_warmup = 1000, iter_sam
 fit_2 |> get_coefficients() |> knitr::kable(digits = 3)
 ```
 
-This actually has worse convergence values...?!
-
+This looks slightly better in terms of convergence values. Plotting:
 
 ```{r}
 fit_2 |> plot_betas(title="MA with log house price in logit")
 ```
 
-bimodals are back...
+How about the posteriors means of $\pi$?
 
+```{r}
+fit_2 |> plot_pi_posterior_means()
+```
+
+We can see a little more activity here. But this still seems "too high"...
