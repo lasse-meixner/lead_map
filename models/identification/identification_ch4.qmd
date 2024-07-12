@@ -1,0 +1,24 @@
+---
+title: "Understanding identification in pogit from the ground up pt. 4"
+format:
+    html:
+      code-fold: true
+---
+
+We saw that insufficiently spread support on the x's could be the root of the identification issues. In addition, we haven't yet used the information on the number of tested (cf. multiple discussions about this and its dependence of the unknown $\Pr(\text{Tested}|-)$ & the freeform document.)
+
+Here I focus on the **logit side**:
+
+1\. Estimate a first stage not on $\Pr(\text{Tested}|+)$, as done so far, but simply on $\Pr(\text{Tested})$ to see how relevant our exclusion restriction and our Xs are.
+
+2\. Run some prior predictive checks on the implied $\Pr(\text{Tested}|+)$ with covariates that appeared meaningful in the first stage.
+
+### First stage on the number of tested.
+
+We can run either a logit on the probability of being tested, or a poisson on the number of tested given an offset. I'll go with the former.
+
+```{r}
+# take in tested, kids and Xs
+
+
+```
