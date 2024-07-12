@@ -11,6 +11,25 @@ tract_info_vars <- c("TRACT","STATE_NAME","COUNTY")
 offset_var <- c("under_yo5_pplE","ped_per_100k")
 features <- c("median_annual_incomeE","house_price_medianE","poor_fam_propE","black_ppl_propE", "bp_pre_1959E_prop", "svi_socioeconomic_pctile")
 
+# HIGH LEVEL loader
+single_state_data <- function(state_name, drop_outcome = c(), info_vars = tract_info_vars, pred_preprocess_func = NULL){
+    # load and assign the state data
+    load_state(state_name, from_raw = TRUE) # from 00_merging_functions.R 
+    state_data <- get(str_to_lower(state_name))
+    # preprocess lead data
+    state_lead <- state_data |>
+        filter(year == 2010) |> #NOTE: 2010 is in the middle of our period and has max testing in many states
+        # preprocess lead data
+        preprocess_lead_data()
+      
+    state_pred <- tract_data |> filter(STATE_ABBR == state_name) |> preprocess_pred_data(info_vars = info_vars, additional_preprocess = pred_preprocess_func)
+
+    # merge
+    state_merged <- state_pred |> 
+        left_join(state_lead, by = c("TRACT" = "tract")) |> 
+        final_checks(drop=drop_outcome)
+}
+
 preprocess_pred_data <- function(zip_or_tract_data, info_vars, additional_preprocess = NULL){
     #' selects relevant PREDICTOR variables, drops NAs and scales data
     #' 

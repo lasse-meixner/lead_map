@@ -26,7 +26,7 @@ tract_data  <- read_csv("final_tract.csv")
 find_and_set_directory("US/lead_data/reuters/scripts")
 source("00_merging_functions.R")
 
-single_state_data <- function(state_name, drop_outcome = c(), pred_preprocess_func = NULL){
+single_state_data <- function(state_name, drop_outcome = c(), info_vars = tract_info_vars, pred_preprocess_func = NULL){
     # load and assign the state data
     load_state(state_name, from_raw = TRUE) # from 00_merging_functions.R 
     state_data <- get(str_to_lower(state_name))
@@ -36,7 +36,7 @@ single_state_data <- function(state_name, drop_outcome = c(), pred_preprocess_fu
         # preprocess lead data
         preprocess_lead_data()
       
-    state_pred <- tract_data |> filter(STATE_ABBR == state_name) |> preprocess_pred_data(info_vars = tract_info_vars, additional_preprocess = pred_preprocess_func)
+    state_pred <- tract_data |> filter(STATE_ABBR == state_name) |> preprocess_pred_data(info_vars = info_vars, additional_preprocess = pred_preprocess_func)
 
     # merge
     state_merged <- state_pred |> 
