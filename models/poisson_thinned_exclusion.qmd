@@ -120,7 +120,7 @@ build_stan_vector  <-  function(merged_data){
 # import stan model
 library(cmdstanr)
 
-stan_model <- cmdstan_model("poisson_thinned_exclusion.stan")
+stan_model <- cmdstan_model("poisson_thinned_exclusion_w_priors.stan")
 stan_model$print()
 ```
 
@@ -191,6 +191,8 @@ fit <- stan_model_prior$sample(
 )
 ```
 
+There is something wrong with MA data that I have to figure out (in other states below this does not appear).
+
 ### MD (zero suppression)
 
 ```{r}
@@ -217,6 +219,57 @@ get_coefficients(fit_md) |>
 ```{r}
 plot_betas(fit_md, title = "Posterior distributions for MD")
 ```
+
+Rerunning the same model but with the x's in the logit.
+
+```{r}
+# load stan model with x in logit
+stan_model_x_in_logit <- cmdstan_model("poisson_thinned_exclusion_x_logit_subset.stan")
+
+# I need to modify the data transformation as STAN now takes additional inputs.
+build_stan_vector_logit_2 <-  function(merged_data, pr_var = 1, logit_features = c("median_annual_incomeE", "poor_fam_propE")){
+    list(
+        N_obs = merged_data |> filter(!BLL_geq_5_suppressed) |> count() |> pull(n),
+        N_cens = merged_data |> filter(BLL_geq_5_suppressed) |> count() |> pull(n),
+        K = length(features),
+        L = 2, # number of features in logit
+        y_obs = merged_data |> filter(!BLL_geq_5_suppressed) |> pull(BLL_geq_5),
+        x_obs = merged_data |> filter(!BLL_geq_5_suppressed) |> select(all_of(features)) |> as.matrix(),
+        x_cens = merged_data |> filter(BLL_geq_5_suppressed) |> select(all_of(features)) |> as.matrix(),
+        w_obs = merged_data |> filter(!BLL_geq_5_suppressed) |> select(logit_features) |> as.matrix(),
+        w_cens = merged_data |> filter(BLL_geq_5_suppressed) |> select(logit_features) |> as.matrix(),
+        z_obs = merged_data |> filter(!BLL_geq_5_suppressed) |> pull(ped_per_100k),
+        z_cens = merged_data |> filter(BLL_geq_5_suppressed) |> pull(ped_per_100k),
+        kids_obs = merged_data |> filter(!BLL_geq_5_suppressed) |> pull(under_yo5_pplE),
+        kids_cens = merged_data |> filter(BLL_geq_5_suppressed) |> pull(under_yo5_pplE),
+        # get suppression bound 
+        ell = merged_data |> filter(BLL_geq_5_suppressed) |> pull(ell),
+        nhanes_prior_var = pr_var
+    )
+}
+
+stan_vector_md_2 <- build_stan_vector_logit_2(md_final)
+
+# sample
+fit_md_x_logit <- stan_model_x_in_logit$sample(
+  data = stan_vector_md_2,
+  seed = 1234,
+  chains = 4, 
+  parallel_chains = 4,
+  refresh = 500
+)
+```
+
+```{r}
+get_coefficients(fit_md_x_logit) |> 
+  knitr::kable(digits=3)
+```
+
+```{r}
+plot_betas(fit_md_x_logit, title = "Posterior distributions for MD with x in logit")
+```
+
+Similar to the simulation from learn_bayes we see that the uncertainty is greater, and that there appears to be some identification issues, in particular in the variables that are also added to the logit side.
 
 ### NH (zero suppression)
 
@@ -509,5 +562,3 @@ get_coefficients(fit_prior) |>
 ```{r}
 plot_betas(fit_prior, title = "Distributions of coefficients for MA, MD and NH with prior")
 ```
-
-
