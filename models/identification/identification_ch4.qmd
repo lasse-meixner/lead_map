@@ -18,7 +18,12 @@ Here I focus on the **logit side**:
 We can run either a logit on the probability of being tested, or a poisson on the number of tested given an offset. I'll go with the former.
 
 ```{r}
-# take in tested, kids and Xs
+library(tidyverse)
+# run init file
+source("../../init.R")
+source("../model_analytics.R") # takes care of pred & lead imports
 
-
+# load RI
+ma_final <- single_state_tract("MA") # from model_analytics.R
+ri_final <- single_state_zip("RI")
 ```
