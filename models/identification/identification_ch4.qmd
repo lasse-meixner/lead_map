@@ -15,15 +15,159 @@ Here I focus on the **logit side**:
 
 ### First stage on the number of tested.
 
-We can run either a logit on the probability of being tested, or a poisson on the number of tested given an offset. I'll go with the former.
+Since we only get the testing **rate,** I use a poisson on the number of tested given an offset. I'll go with the former.
 
 ```{r}
 library(tidyverse)
+library(broom)
 # run init file
 source("../../init.R")
 source("../model_analytics.R") # takes care of pred & lead imports
 
 # load RI
 ma_final <- single_state_tract("MA") # from model_analytics.R
-ri_final <- single_state_zip("RI")
+ri_final <- single_state_zip("RI") # from model_analytics.R
 ```
+
+### Estimating a first stage on Pr(tested)
+
+I am ignoring information about the testing regimes that might differ between high and low risk areas. (I could potentially get some Simpson effects here, where e.g. a low income implies less testing within each risk group, but that there is more testing in low income areas by nature of the changed testing regime in (riskier) low income areas.)
+
+#### Massachusetts
+
+```{r}
+# auxiliary function to estimate logit on pr of tested
+
+first_stage <- function(state_final){
+  # run poisson with kids as offset
+  logit_tested <- glm(as.formula(paste("tested ~ ", paste(features, collapse = " + "))), 
+                      data = state_final, 
+                      family = poisson(link = "log"),
+                      offset = log(under_yo5_pplE))
+}
+
+plot_predicted_tests <- function(state_final, logit_tested){
+  # plot the predicted tests
+  state_final$fitted <- predict(logit_tested, type = "response")
+  
+  state_final |> 
+    ggplot() +
+    geom_point(aes(x = tested, y = fitted)) +
+    geom_abline(intercept = 0, slope = 1, color = "red") +
+    labs(title = "Predicted vs. actual tests",
+         x = "Actual tests",
+         y = "Predicted tests")
+}
+
+```
+
+```{r}
+# run first stage on MA
+ma_fs <- first_stage(ma_final)
+ma_fs |> summary()
+
+```
+
+```{r}
+plot_predicted_tests(ma_final, logit_tested_ma)
+```
+
+```{r}
+# plot two scatterplots: predicted and actual respectively against bp_pre_1959E_prop
+ma_final$fitted <- predict(logit_tested_ma, type = "response")
+
+ma_final |>
+  ggplot() +
+  geom_point(aes(x = bp_pre_1959E_prop, y = tested)) +
+  geom_point(aes(x = bp_pre_1959E_prop, y = fitted), color = "blue") +
+  labs(title = "Tests (predicted blue) vs. pre-1959 housing",
+       x = "Pre-1959 housing",
+       y = "Tests")
+```
+
+Aggregated:
+
+```{r echo=FALSE}
+# Create bins for the bp_pre_1959E_prop variable
+ma_final <- ma_final %>%
+  mutate(bp_pre_1959E_prop_bin = cut(bp_pre_1959E_prop, breaks = 5), right = FALSE)
+
+# Reshape the data to have a long format for plotting
+ma_long <- ma_final %>%
+  select(bp_pre_1959E_prop_bin, tested, fitted) %>%
+  pivot_longer(cols = c(tested, fitted), names_to = "variable", values_to = "value")
+
+# Plot the boxplots using ggplot2
+ggplot(ma_long, aes(x = bp_pre_1959E_prop_bin, y = value, fill = variable)) +
+  geom_boxplot(position = position_dodge(width = 0.9)) +
+  scale_fill_manual(values = c("tested" = "black", "fitted" = "blue"), 
+                    labels = c("Actual", "Predicted")) +
+  labs(title = "Tests (predicted blue) vs. pre-1959 housing",
+       x = "Pre-1959 housing (binned by 0.5 windows)",
+       y = "Tests") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+Looks fairly well behaved...
+
+#### Rhode Island
+
+```{r}
+# run first stage on RI
+
+ri_fs <- first_stage(ri_final)
+ri_fs |> summary()
+```
+
+```{r}
+plot_predicted_tests(ri_final, logit_tested_ri)
+```
+#### Maryland
+
+```{r}
+md_final <- single_state_tract("MD") # from model_analytics.R
+```
+```{r}
+# run first stage on MD
+md_fs <- first_stage(md_final)
+md_fs |> summary()
+```
+
+```{r}
+plot_predicted_tests(md_final, md_fs)
+```
+#### New Hampshire
+
+```{r}
+mi_final <- single_state_zip("MI") # from model_analytics.R
+```
+```{r}
+# run first stage on MI
+mi_fs <- first_stage(mi_final)
+mi_fs |> summary()
+```
+
+```{r}
+plot_predicted_tests(mi_final, mi_fs)
+```
+
+### Model comparison
+
+Comparing the coefficients
+
+```{r}
+library(modelsummary)
+
+models <- list("MA" = ma_fs, "RI" = ri_fs, "MD" = md_fs, "MI" = mi_fs)
+modelsummary(models, stars = TRUE)
+```
+
+For the prior predictive checks I will focus on income, housing age, and the SVI index.
+
+### Prior predictive checks
+
+```{r}
+
+```
+
