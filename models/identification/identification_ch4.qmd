@@ -69,12 +69,12 @@ ma_fs |> summary()
 ```
 
 ```{r}
-plot_predicted_tests(ma_final, logit_tested_ma)
+plot_predicted_tests(ma_final, ma_fs)
 ```
 
 ```{r}
 # plot two scatterplots: predicted and actual respectively against bp_pre_1959E_prop
-ma_final$fitted <- predict(logit_tested_ma, type = "response")
+ma_final$fitted <- predict(ma_fs, type = "response")
 
 ma_final |>
   ggplot() +
@@ -109,7 +109,7 @@ ggplot(ma_long, aes(x = bp_pre_1959E_prop_bin, y = value, fill = variable)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-Looks fairly well behaved...
+Looks fairly well behaved, in the sense that there does not appear to be any systematic risk-group-wise bias.
 
 Let us quickly double check that a beta regression, a functional form closer to the logit specification in our STAN model yields similar results on which of our features matter for testing.
 
@@ -141,7 +141,7 @@ ri_fs |> summary()
 ```
 
 ```{r}
-plot_predicted_tests(ri_final, logit_tested_ri)
+plot_predicted_tests(ri_final, ri_fs)
 ```
 ```{r}
 ri_fs_beta <- first_stage_beta(ri_final)
@@ -242,12 +242,13 @@ Let's see how tightness of priors affects the prior distribution of thinning pro
 # prior predictive sampling
 
 sample_prior <- function(state_final, n, tightness){
-  bp_var <- tightness[[1]]
-  ai_var <- tightness[[2]]
-  svi_var <- tightness[[3]]
+  intercept_var <- tightness[[1]]
+  bp_var <- tightness[[2]]
+  ai_var <- tightness[[3]]
+  svi_var <- tightness[[4]]
   
   # sample from priors
-  gamma <- rnorm(n, mean = 0, sd = 1.5)
+  gamma <- rnorm(n, 0, intercept_var)
   beta_1 <- rnorm(n, 0, bp_var)
   beta_2 <- rnorm(n, 0, ai_var)
   beta_3 <- rnorm(n, 0, svi_var)
@@ -256,17 +257,56 @@ sample_prior <- function(state_final, n, tightness){
   coefs <- data.frame(gamma, beta_1, beta_2, beta_3)
   
   # for each row in coefs, using map, calculate the thinning probabilities for the data, then average over all draws
-  thinning_probs <- map_dfc(1:n, ~{
+  thinning_probs <- suppressMessages(map_dfc(1:n, ~{
     row <- coefs[.x, ]
     probs <- plogis(row$gamma + row$beta_1 * state_final$median_annual_incomeE + row$beta_2 * state_final$bp_pre_1959E_prop + row$beta_3 * state_final$svi_socioeconomic_pctile)
     data.frame(probs)
-  })
+  }))
 }
 ```
 
 ```{r}
 # sample from the prior
-ma_sample_prior <- sample_prior(ma_final, 100, c(1,1,1))
+ma_sample_prior <- sample_prior(ma_final, 100, c(1.5,1,1,1))
+ma_sample_prior |>
+  pivot_longer(cols = everything(), names_to = "variable", values_to = "value") |>
+  ggplot(aes(x = value, color = variable)) +
+  geom_density() +
+  theme_minimal() +
+  # hide legend
+  theme(legend.position = "none")
+```
+If we make them ridiculously tight at 0 the thinning should be close to 0.5:
+
+```{r}
+# sample from the prior
+ma_sample_prior <- sample_prior(ma_final, 100, c(1e-4,1e-4,1e-4,1e-4))
+ma_sample_prior |>
+  pivot_longer(cols = everything(), names_to = "variable", values_to = "value") |>
+  ggplot(aes(x = value, color = variable, alpha = 0.2)) +
+  geom_density() +
+  theme_minimal() +
+  # hide legend
+  theme(legend.position = "none")
+```
+If we leave the N(0,1.5) prior on the intercept and leave the slopes tight, the masses should look uniformly spread.
+
+```{r}
+# sample from the prior
+ma_sample_prior <- sample_prior(ma_final, 100, c(1.5,1e-4,1e-4,1e-4))
+ma_sample_prior |>
+  pivot_longer(cols = everything(), names_to = "variable", values_to = "value") |>
+  ggplot(aes(x = value, color = variable, alpha = 0.2)) +
+  geom_density() +
+  theme_minimal() +
+  # hide legend
+  theme(legend.position = "none")
+```
+They are indeed. The more room we give the slopes, the more we expect the thinnings to be spread out towards the extremes
+
+```{r}
+# sample from the prior
+ma_sample_prior <- sample_prior(ma_final, 100, c(1.2,3,3,3))
 ma_sample_prior |>
   pivot_longer(cols = everything(), names_to = "variable", values_to = "value") |>
   ggplot(aes(x = value, color = variable)) +
@@ -278,24 +318,60 @@ ma_sample_prior |>
 
 ```{r}
 # sample from the prior
-ma_sample_prior <- sample_prior(ma_final, 100, c(3,3,3))
+ma_sample_prior <- sample_prior(ma_final, 100, c(1.2,10,10,10))
 ma_sample_prior |>
   pivot_longer(cols = everything(), names_to = "variable", values_to = "value") |>
-  ggplot(aes(x = value, color = variable, alpha = 0.2)) +
-  geom_density() +
-  theme_minimal() +
-  # hide legend
-  theme(legend.position = "none")
-```
-```{r}
-# sample from the prior
-ma_sample_prior <- sample_prior(ma_final, 100, c(10,10,10))
-ma_sample_prior |>
-  pivot_longer(cols = everything(), names_to = "variable", values_to = "value") |>
-  ggplot(aes(x = value, color = variable, alpha = 0.2)) +
+  ggplot(aes(x = value, color = variable)) +
   geom_density() +
   theme_minimal() +
   # hide legend
   theme(legend.position = "none")
 ```
 
+For independent normal priors, they need to be quite tight to make the thinning behave reasonably.
+
+If instead we put lognormal priors on the coefficients for housing age and svi, we enforce they have a positive influence on the log-odds. In terms of scale, since they are standardized (almost all the data between -2 and 2), we would expect two standard deviations to explain **at most** all the meaningful variation in the log-odds, which is from -4 to 4. This implies a reasonable restriction of (0,2) on the level scale for $\beta$, which (roughly) comes out of a log normal distribution with (-0.2,0.4).
+
+
+```{r}
+beta <- rlnorm(1000, -0.2, 0.4)
+plot(density(beta))
+```
+
+
+```{r}
+sample_prior_2 <- function(state_final, n, tightness){
+  bp_var <- tightness[[1]]
+  ai_var <- tightness[[2]]
+  svi_var <- tightness[[3]]
+  
+  # sample from priors
+  gamma <- rnorm(n, mean = 0, sd = 1)
+  beta_1 <- rlnorm(n, -0.2, bp_var) # log normal
+  beta_2 <- rnorm(n, 0, ai_var)
+  beta_3 <- rlnorm(n, -0.2, svi_var) # log normal
+  
+  # put into a dataframe
+  coefs <- data.frame(gamma, beta_1, beta_2, beta_3)
+  
+  # for each row in coefs, using map, calculate the thinning probabilities for the data, then average over all draws
+  thinning_probs <- suppressMessages(map_dfc(1:n, ~{
+    row <- coefs[.x, ]
+    probs <- plogis(row$gamma + row$beta_1 * state_final$median_annual_incomeE + row$beta_2 * state_final$bp_pre_1959E_prop + row$beta_3 * state_final$svi_socioeconomic_pctile)
+    data.frame(probs)
+  }))
+}
+```
+
+```{r}
+# sample from the new prior
+ma_sample_prior_2 <- sample_prior_2(ma_final, 300, c(0.4,1,0.4))
+ma_sample_prior_2 |>
+  pivot_longer(cols = everything(), names_to = "variable", values_to = "value") |>
+  ggplot(aes(x = value, color = variable)) +
+  geom_density() +
+  theme_minimal() +
+  # hide legend
+  theme(legend.position = "none")
+```
+This looks already much better behaved, in the sense that it implies a reasonable but uniform (and in that sense) weak prior on the thinning probabilities.

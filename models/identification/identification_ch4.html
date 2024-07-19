@@ -1,0 +1,1808 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.4.555">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Understanding identification in pogit from the ground up pt.&nbsp;4</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="identification_ch4_files/libs/clipboard/clipboard.min.js"></script>
+<script src="identification_ch4_files/libs/quarto-html/quarto.js"></script>
+<script src="identification_ch4_files/libs/quarto-html/popper.min.js"></script>
+<script src="identification_ch4_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="identification_ch4_files/libs/quarto-html/anchor.min.js"></script>
+<link href="identification_ch4_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="identification_ch4_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="identification_ch4_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="identification_ch4_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="identification_ch4_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body class="fullcontent">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Understanding identification in pogit from the ground up pt.&nbsp;4</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<p>We saw that insufficiently spread support on the x’s could be the root of the identification issues. In addition, we haven’t yet used the information on the number of tested (cf.&nbsp;multiple discussions about this and its dependence of the unknown <span class="math inline">\(\Pr(\text{Tested}|-)\)</span> &amp; the freeform document.)</p>
+<p>Here I focus on the <strong>logit side</strong>:</p>
+<p>1. Estimate a first stage not on <span class="math inline">\(\Pr(\text{Tested}|+)\)</span>, as done so far, but simply on <span class="math inline">\(\Pr(\text{Tested})\)</span> to see how relevant our exclusion restriction and our Xs are.</p>
+<p>2. Run some prior predictive checks on the implied <span class="math inline">\(\Pr(\text{Tested}|+)\)</span> with covariates that appeared meaningful in the first stage.</p>
+<section id="first-stage-on-the-number-of-tested." class="level3">
+<h3 class="anchored" data-anchor-id="first-stage-on-the-number-of-tested.">First stage on the number of tested.</h3>
+<p>For each geographical unit, I am only observing the overall testing <strong>rate</strong>, rather than a binary outcome. I thus use a poisson on the number of tested with the number of kids as an offset.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stderr">
+<pre><code>── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
+✔ dplyr     1.1.2     ✔ readr     2.1.4
+✔ forcats   1.0.0     ✔ stringr   1.5.0
+✔ ggplot2   3.4.1     ✔ tibble    3.2.1
+✔ lubridate 1.9.2     ✔ tidyr     1.3.0
+✔ purrr     1.0.1     
+── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+✖ dplyr::filter() masks stats::filter()
+✖ dplyr::lag()    masks stats::lag()
+ℹ Use the ]8;;http://conflicted.r-lib.org/conflicted package]8;; to force all conflicts to become errors</code></pre>
+</div>
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(broom)</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="co"># run init file</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="fu">source</span>(<span class="st">"../../init.R"</span>)</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="fu">source</span>(<span class="st">"../model_analytics.R"</span>) <span class="co"># takes care of pred &amp; lead imports</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: bayesplot
+This is bayesplot version 1.10.0
+- Online documentation and vignettes at mc-stan.org/bayesplot
+- bayesplot theme set to bayesplot::theme_default()
+   * Does _not_ affect other ggplot2 plots
+   * See ?bayesplot_theme_set for details on theme setting
+
+Attaching package: 'reshape2'
+
+The following object is masked from 'package:tidyr':
+
+    smiths
+
+
+Attaching package: 'jsonlite'
+
+The following object is masked from 'package:purrr':
+
+    flatten
+
+Rows: 19311 Columns: 139── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+chr  (14): TRACT, NAME, ST, STATE_FIPS, CNTY_FIPS, STCOFIPS, STATE_ABBR, STA...
+dbl (125): total_ppl_acs20E, median_annual_incomeE, house_price_medianE, ren...
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.Rows: 20044 Columns: 124── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+chr   (2): STATE_ABBR, zip
+dbl (122): total_ppl_acs20E, median_annual_incomeE, house_price_medianE, bui...
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
+</div>
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># load RI</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>ma_final <span class="ot">&lt;-</span> <span class="fu">single_state_tract</span>(<span class="st">"MA"</span>) <span class="co"># from model_analytics.R</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Loading MA from processed_data"
+[1] "No processed file for MA found, loading from source files"
+[1] "File BLL_MA_Raw.xlsx already in local folder."
+[1] "Additional features added: "</code></pre>
+</div>
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>ri_final <span class="ot">&lt;-</span> <span class="fu">single_state_zip</span>(<span class="st">"RI"</span>) <span class="co"># from model_analytics.R</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Building RI from raw_data"
+[1] "File BLL_RI_Raw.xlsx already in local folder."
+[1] "Additional features added: "</code></pre>
+</div>
+</div>
+</section>
+<section id="estimating-a-first-stage-on-prtested" class="level3">
+<h3 class="anchored" data-anchor-id="estimating-a-first-stage-on-prtested">Estimating a first stage on Pr(tested)</h3>
+<p>I am ignoring information about the testing regimes that might differ between high and low risk areas. (I could potentially get some Simpson effects here, where e.g.&nbsp;a low income implies less testing within each risk group, but that there is more testing in low income areas by nature of the changed testing regime in (riskier) low income areas.)</p>
+<section id="massachusetts" class="level4">
+<h4 class="anchored" data-anchor-id="massachusetts">Massachusetts</h4>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># auxiliary function to estimate logit on pr of tested</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>first_stage <span class="ot">&lt;-</span> <span class="cf">function</span>(state_final){</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>  <span class="co"># run poisson with kids as offset</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>  logit_tested <span class="ot">&lt;-</span> <span class="fu">glm</span>(<span class="fu">as.formula</span>(<span class="fu">paste</span>(<span class="st">"tested ~ ped_per_100k + "</span>, <span class="fu">paste</span>(features, <span class="at">collapse =</span> <span class="st">" + "</span>))), </span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>                      <span class="at">data =</span> state_final, </span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>                      <span class="at">family =</span> <span class="fu">poisson</span>(<span class="at">link =</span> <span class="st">"log"</span>),</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>                      <span class="at">offset =</span> <span class="fu">log</span>(under_yo5_pplE))</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>plot_predicted_tests <span class="ot">&lt;-</span> <span class="cf">function</span>(state_final, logit_tested){</span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>  <span class="co"># plot the predicted tests</span></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>  state_final<span class="sc">$</span>fitted <span class="ot">&lt;-</span> <span class="fu">predict</span>(logit_tested, <span class="at">type =</span> <span class="st">"response"</span>)</span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>  state_final <span class="sc">|&gt;</span> </span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ggplot</span>() <span class="sc">+</span></span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">x =</span> tested, <span class="at">y =</span> fitted)) <span class="sc">+</span></span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_abline</span>(<span class="at">intercept =</span> <span class="dv">0</span>, <span class="at">slope =</span> <span class="dv">1</span>, <span class="at">color =</span> <span class="st">"red"</span>) <span class="sc">+</span></span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Predicted vs. actual tests"</span>,</span>
+<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a>         <span class="at">x =</span> <span class="st">"Actual tests"</span>,</span>
+<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a>         <span class="at">y =</span> <span class="st">"Predicted tests"</span>)</span>
+<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># run first stage on MA</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>ma_fs <span class="ot">&lt;-</span> <span class="fu">first_stage</span>(ma_final)</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>ma_fs <span class="sc">|&gt;</span> <span class="fu">summary</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+glm(formula = as.formula(paste("tested ~ ped_per_100k + ", paste(features, 
+    collapse = " + "))), family = poisson(link = "log"), data = state_final, 
+    offset = log(under_yo5_pplE))
+
+Deviance Residuals: 
+     Min        1Q    Median        3Q       Max  
+-18.6949   -2.2291    0.2037    3.1049    9.4442  
+
+Coefficients:
+                           Estimate Std. Error  z value Pr(&gt;|z|)    
+(Intercept)              -6.090e-01  5.588e-03 -108.977  &lt; 2e-16 ***
+ped_per_100k             -7.472e-05  3.572e-05   -2.092  0.03647 *  
+median_annual_incomeE    -3.394e-02  5.104e-03   -6.650 2.94e-11 ***
+house_price_medianE      -1.343e-02  4.404e-03   -3.050  0.00229 ** 
+poor_fam_propE           -6.403e-04  4.170e-03   -0.154  0.87797    
+black_ppl_propE           5.884e-03  3.156e-03    1.865  0.06224 .  
+bp_pre_1959E_prop         5.837e-02  3.285e-03   17.772  &lt; 2e-16 ***
+svi_socioeconomic_pctile  5.526e-02  5.728e-03    9.648  &lt; 2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+(Dispersion parameter for poisson family taken to be 1)
+
+    Null deviance: 17627  on 965  degrees of freedom
+Residual deviance: 15350  on 958  degrees of freedom
+AIC: 21784
+
+Number of Fisher Scoring iterations: 4</code></pre>
+</div>
+</div>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_predicted_tests</span>(ma_final, ma_fs)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="identification_ch4_files/figure-html/unnamed-chunk-4-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co"># plot two scatterplots: predicted and actual respectively against bp_pre_1959E_prop</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>ma_final<span class="sc">$</span>fitted <span class="ot">&lt;-</span> <span class="fu">predict</span>(ma_fs, <span class="at">type =</span> <span class="st">"response"</span>)</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>ma_final <span class="sc">|&gt;</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>() <span class="sc">+</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">x =</span> bp_pre_1959E_prop, <span class="at">y =</span> tested)) <span class="sc">+</span></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">x =</span> bp_pre_1959E_prop, <span class="at">y =</span> fitted), <span class="at">color =</span> <span class="st">"blue"</span>) <span class="sc">+</span></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Tests (predicted blue) vs. pre-1959 housing"</span>,</span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>       <span class="at">x =</span> <span class="st">"Pre-1959 housing"</span>,</span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>       <span class="at">y =</span> <span class="st">"Tests"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="identification_ch4_files/figure-html/unnamed-chunk-5-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Aggregated:</p>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="identification_ch4_files/figure-html/unnamed-chunk-6-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Looks fairly well behaved, in the sense that there does not appear to be any systematic risk-group-wise bias.</p>
+<p>Let us quickly double check that a beta regression, a functional form closer to the logit specification in our STAN model yields similar results on which of our features matter for testing.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(betareg)</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>first_stage_beta <span class="ot">&lt;-</span> <span class="cf">function</span>(state_final){</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>  <span class="co"># get Pr(tested)</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>  state_final<span class="sc">$</span>pr_tested <span class="ot">&lt;-</span> state_final<span class="sc">$</span>tested <span class="sc">/</span> state_final<span class="sc">$</span>under_yo5_pplE</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>  <span class="co"># some areas have pr = 1, need to epsilon adjust</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>  state_final<span class="sc">$</span>pr_tested <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(state_final<span class="sc">$</span>pr_tested <span class="sc">==</span> <span class="dv">1</span>, <span class="fl">0.9999</span>, state_final<span class="sc">$</span>pr_tested)</span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>  <span class="co"># run beta regression</span></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>  beta_tested <span class="ot">&lt;-</span> <span class="fu">betareg</span>(<span class="fu">as.formula</span>(<span class="fu">paste</span>(<span class="st">"pr_tested ~ ped_per_100k + "</span>, <span class="fu">paste</span>(features, <span class="at">collapse =</span> <span class="st">" + "</span>))), </span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>                         <span class="at">data =</span> state_final, <span class="at">link =</span> <span class="st">"logit"</span>)</span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>ma_fs_beta <span class="ot">&lt;-</span> <span class="fu">first_stage_beta</span>(ma_final)</span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>ma_fs_beta <span class="sc">|&gt;</span> <span class="fu">summary</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+betareg(formula = as.formula(paste("pr_tested ~ ped_per_100k + ", paste(features, 
+    collapse = " + "))), data = state_final, link = "logit")
+
+Standardized weighted residuals 2:
+    Min      1Q  Median      3Q     Max 
+-3.3921 -0.6258 -0.2458  0.3807  8.4069 
+
+Coefficients (mean model with logit link):
+                           Estimate Std. Error z value Pr(&gt;|z|)    
+(Intercept)               0.4917613  0.0599003   8.210  &lt; 2e-16 ***
+ped_per_100k             -0.0007158  0.0003753  -1.907 0.056511 .  
+median_annual_incomeE    -0.0351918  0.0458279  -0.768 0.442539    
+house_price_medianE      -0.0415252  0.0392486  -1.058 0.290053    
+poor_fam_propE           -0.0172456  0.0468606  -0.368 0.712860    
+black_ppl_propE           0.0406077  0.0377952   1.074 0.282637    
+bp_pre_1959E_prop         0.1261714  0.0327494   3.853 0.000117 ***
+svi_socioeconomic_pctile  0.1525781  0.0588975   2.591 0.009582 ** 
+
+Phi coefficients (precision model with identity link):
+      Estimate Std. Error z value Pr(&gt;|z|)    
+(phi)   4.2772     0.1774   24.11   &lt;2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+
+Type of estimator: ML (maximum likelihood)
+Log-likelihood: 188.6 on 9 Df
+Pseudo R-squared: 0.06925
+Number of iterations: 19 (BFGS) + 1 (Fisher scoring) </code></pre>
+</div>
+</div>
+</section>
+<section id="rhode-island" class="level4">
+<h4 class="anchored" data-anchor-id="rhode-island">Rhode Island</h4>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co"># run first stage on RI</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>ri_fs <span class="ot">&lt;-</span> <span class="fu">first_stage</span>(ri_final)</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>ri_fs <span class="sc">|&gt;</span> <span class="fu">summary</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+glm(formula = as.formula(paste("tested ~ ped_per_100k + ", paste(features, 
+    collapse = " + "))), family = poisson(link = "log"), data = state_final, 
+    offset = log(under_yo5_pplE))
+
+Deviance Residuals: 
+    Min       1Q   Median       3Q      Max  
+-40.972  -13.028   -1.313    8.947   33.466  
+
+Coefficients:
+                           Estimate Std. Error z value Pr(&gt;|z|)    
+(Intercept)              -1.384e+00  1.825e-02 -75.808  &lt; 2e-16 ***
+ped_per_100k             -1.321e-05  1.441e-04  -0.092    0.927    
+median_annual_incomeE    -5.009e-01  2.341e-02 -21.399  &lt; 2e-16 ***
+house_price_medianE       1.437e-01  2.430e-02   5.913 3.36e-09 ***
+poor_fam_propE           -3.340e-01  1.661e-02 -20.105  &lt; 2e-16 ***
+black_ppl_propE           1.279e-02  1.031e-02   1.241    0.215    
+bp_pre_1959E_prop         2.427e-01  9.057e-03  26.796  &lt; 2e-16 ***
+svi_socioeconomic_pctile  4.379e-01  1.812e-02  24.164  &lt; 2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+(Dispersion parameter for poisson family taken to be 1)
+
+    Null deviance: 29197  on 96  degrees of freedom
+Residual deviance: 21347  on 89  degrees of freedom
+AIC: 21925
+
+Number of Fisher Scoring iterations: 6</code></pre>
+</div>
+</div>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_predicted_tests</span>(ri_final, ri_fs)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="identification_ch4_files/figure-html/unnamed-chunk-9-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>ri_fs_beta <span class="ot">&lt;-</span> <span class="fu">first_stage_beta</span>(ri_final)</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>ri_fs_beta <span class="sc">|&gt;</span> <span class="fu">summary</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+betareg(formula = as.formula(paste("pr_tested ~ ped_per_100k + ", paste(features, 
+    collapse = " + "))), data = state_final, link = "logit")
+
+Standardized weighted residuals 2:
+    Min      1Q  Median      3Q     Max 
+-2.9058 -0.7107  0.2589  0.7277  2.1029 
+
+Coefficients (mean model with logit link):
+                          Estimate Std. Error z value Pr(&gt;|z|)   
+(Intercept)              -0.798621   0.254383  -3.139  0.00169 **
+ped_per_100k             -0.002718   0.002029  -1.339  0.18045   
+median_annual_incomeE    -0.086570   0.405718  -0.213  0.83103   
+house_price_medianE      -0.182734   0.417959  -0.437  0.66196   
+poor_fam_propE           -0.141375   0.237499  -0.595  0.55167   
+black_ppl_propE          -0.019711   0.211970  -0.093  0.92591   
+bp_pre_1959E_prop         0.143454   0.146293   0.981  0.32679   
+svi_socioeconomic_pctile  0.248391   0.258423   0.961  0.33646   
+
+Phi coefficients (precision model with identity link):
+      Estimate Std. Error z value Pr(&gt;|z|)    
+(phi)   2.3716     0.3275   7.242 4.41e-13 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+
+Type of estimator: ML (maximum likelihood)
+Log-likelihood: 62.44 on 9 Df
+Pseudo R-squared: 0.1336
+Number of iterations: 19 (BFGS) + 1 (Fisher scoring) </code></pre>
+</div>
+</div>
+</section>
+<section id="maryland" class="level4">
+<h4 class="anchored" data-anchor-id="maryland">Maryland</h4>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>md_final <span class="ot">&lt;-</span> <span class="fu">single_state_tract</span>(<span class="st">"MD"</span>) <span class="co"># from model_analytics.R</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Loading MD from processed_data"
+[1] "No processed file for MD found, loading from source files"
+[1] "File BLL_MD_Raw.xlsx already in local folder."
+[1] "Additional features added: "</code></pre>
+</div>
+</div>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="co"># run first stage on MD</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>md_fs <span class="ot">&lt;-</span> <span class="fu">first_stage</span>(md_final)</span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>md_fs <span class="sc">|&gt;</span> <span class="fu">summary</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+glm(formula = as.formula(paste("tested ~ ped_per_100k + ", paste(features, 
+    collapse = " + "))), family = poisson(link = "log"), data = state_final, 
+    offset = log(under_yo5_pplE))
+
+Deviance Residuals: 
+     Min        1Q    Median        3Q       Max  
+-16.3749   -2.4654    0.2129    2.6738   12.4571  
+
+Coefficients:
+                           Estimate Std. Error z value Pr(&gt;|z|)    
+(Intercept)              -1.254e+00  8.455e-03 -148.32   &lt;2e-16 ***
+ped_per_100k              8.996e-05  6.381e-05    1.41    0.159    
+median_annual_incomeE    -1.145e-01  8.889e-03  -12.88   &lt;2e-16 ***
+house_price_medianE       1.013e-01  7.331e-03   13.81   &lt;2e-16 ***
+poor_fam_propE           -6.029e-02  4.918e-03  -12.26   &lt;2e-16 ***
+black_ppl_propE           5.857e-02  4.729e-03   12.38   &lt;2e-16 ***
+bp_pre_1959E_prop         1.900e-01  5.109e-03   37.20   &lt;2e-16 ***
+svi_socioeconomic_pctile  1.229e-01  7.384e-03   16.64   &lt;2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+(Dispersion parameter for poisson family taken to be 1)
+
+    Null deviance: 16556  on 777  degrees of freedom
+Residual deviance: 11705  on 770  degrees of freedom
+AIC: 16410
+
+Number of Fisher Scoring iterations: 4</code></pre>
+</div>
+</div>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_predicted_tests</span>(md_final, md_fs)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="identification_ch4_files/figure-html/unnamed-chunk-13-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>md_fs_beta <span class="ot">&lt;-</span> <span class="fu">first_stage_beta</span>(md_final)</span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>md_fs_beta <span class="sc">|&gt;</span> <span class="fu">summary</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+betareg(formula = as.formula(paste("pr_tested ~ ped_per_100k + ", paste(features, 
+    collapse = " + "))), data = state_final, link = "logit")
+
+Standardized weighted residuals 2:
+    Min      1Q  Median      3Q     Max 
+-2.8331 -0.6697 -0.0886  0.4836  5.9336 
+
+Coefficients (mean model with logit link):
+                           Estimate Std. Error z value Pr(&gt;|z|)    
+(Intercept)              -0.7458913  0.0519146 -14.368  &lt; 2e-16 ***
+ped_per_100k              0.0005733  0.0004062   1.411 0.158208    
+median_annual_incomeE    -0.0882181  0.0505276  -1.746 0.080821 .  
+house_price_medianE       0.0882698  0.0417615   2.114 0.034544 *  
+poor_fam_propE           -0.1148240  0.0328855  -3.492 0.000480 ***
+black_ppl_propE           0.1043104  0.0297086   3.511 0.000446 ***
+bp_pre_1959E_prop         0.2794589  0.0310690   8.995  &lt; 2e-16 ***
+svi_socioeconomic_pctile  0.2222719  0.0456817   4.866 1.14e-06 ***
+
+Phi coefficients (precision model with identity link):
+      Estimate Std. Error z value Pr(&gt;|z|)    
+(phi)   8.3623     0.4047   20.66   &lt;2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+
+Type of estimator: ML (maximum likelihood)
+Log-likelihood: 387.8 on 9 Df
+Pseudo R-squared: 0.2949
+Number of iterations: 17 (BFGS) + 1 (Fisher scoring) </code></pre>
+</div>
+</div>
+<p>The signs are the same as in the poisson model, this looks consistent.</p>
+</section>
+<section id="michigan" class="level4">
+<h4 class="anchored" data-anchor-id="michigan">Michigan</h4>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>mi_final <span class="ot">&lt;-</span> <span class="fu">single_state_zip</span>(<span class="st">"MI"</span>) <span class="co"># from model_analytics.R</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Building MI from raw_data"
+[1] "File BLL_MI_Raw.xlsx already in local folder."</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Expecting numeric in A2078 / R2078C1: got 'UNKNOWN'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Expecting numeric in A2079 / R2079C1: got 'UNKNOWN'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Expecting numeric in A2080 / R2080C1: got 'UNKNOWN'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Expecting numeric in A2081 / R2081C1: got 'UNKNOWN'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Expecting numeric in A2082 / R2082C1: got 'UNKNOWN'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Expecting numeric in A2083 / R2083C1: got 'UNKNOWN'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Expecting numeric in A2084 / R2084C1: got 'UNKNOWN'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Expecting numeric in A2085 / R2085C1: got 'UNKNOWN'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Expecting numeric in A2086 / R2086C1: got 'UNKNOWN'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Expecting numeric in A2087 / R2087C1: got 'UNKNOWN'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Expecting numeric in A2088 / R2088C1: got 'UNKNOWN'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Expecting numeric in A2089 / R2089C1: got 'UNKNOWN'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Expecting numeric in A2090 / R2090C1: got 'UNKNOWN'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Expecting numeric in A2091 / R2091C1: got 'UNKNOWN'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Expecting numeric in A2092 / R2092C1: got 'UNKNOWN'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Expecting numeric in A2093 / R2093C1: got 'UNKNOWN'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Expecting numeric in A2094 / R2094C1: got 'UNKNOWN'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Expecting numeric in A2095 / R2095C1: got 'UNKNOWN'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Expecting numeric in A2096 / R2096C1: got 'UNKNOWN'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Expecting numeric in A2097 / R2097C1: got 'UNKNOWN'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Expecting numeric in A2098 / R2098C1: got 'UNKNOWN'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Expecting numeric in A2099 / R2099C1: got 'UNKNOWN'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Expecting numeric in A2100 / R2100C1: got 'UNKNOWN'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Expecting numeric in A2101 / R2101C1: got 'UNKNOWN'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Expecting numeric in A2102 / R2102C1: got 'UNKNOWN'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Expecting numeric in A2103 / R2103C1: got 'UNKNOWN'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Expecting numeric in A2104 / R2104C1: got 'UNKNOWN'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Expecting numeric in A2105 / R2105C1: got 'UNKNOWN'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Expecting numeric in A2106 / R2106C1: got 'UNKNOWN'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Expecting numeric in A2107 / R2107C1: got 'UNKNOWN'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Expecting numeric in A2108 / R2108C1: got 'UNKNOWN'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Expecting numeric in A2109 / R2109C1: got 'UNKNOWN'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Expecting numeric in A2110 / R2110C1: got 'UNKNOWN'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Expecting numeric in A2111 / R2111C1: got 'UNKNOWN'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Expecting numeric in A2112 / R2112C1: got 'PO Boxes'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Expecting numeric in A2113 / R2113C1: got 'GRAND TOTAL:'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Expecting numeric in A2115 / R2115C1: got 'NOTE: (1) Removed all zip codes belonging to an entity (such as 48913 for State of Michigan). 
+              (2) Grouped all PO Boxes together'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Expecting numeric in A2116 / R2116C1: got '**Nonzero values less than
+6 are not shown to protect patient confidentiality. Additional values greater
+than or equal to zero may also be suppressed to prevent backcalculation.'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Expecting numeric in A2118 / R2118C1: got 'Data as of October 21,
+2016'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Expecting numeric in A2119 / R2119C1: got 'Source: MDHHS Data
+Warehouse'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Values from `value` are not uniquely identified; output will contain list-cols.
+• Use `values_fn = list` to suppress this warning.
+• Use `values_fn = {summary_fun}` to summarise duplicates.
+• Use the following dplyr code to identify duplicates.
+  {data} %&gt;%
+  dplyr::group_by(`Zip Code`, State, County, year, name) %&gt;%
+  dplyr::summarise(n = dplyr::n(), .groups = "drop") %&gt;%
+  dplyr::filter(n &gt; 1L)</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: There were 2 warnings in `mutate()`.
+The first warning was:
+ℹ In argument: `tested_suppressed = str_detect(tested, "&lt;")`.
+Caused by warning in `stri_detect_regex()`:
+! argument is not an atomic vector; coercing
+ℹ Run `dplyr::last_dplyr_warnings()` to see the 1 remaining warning.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: There were 2 warnings in `mutate()`.
+The first warning was:
+ℹ In argument: `tested = str_remove(tested, "&lt;")`.
+Caused by warning in `stri_replace_first_regex()`:
+! argument is not an atomic vector; coercing
+ℹ Run `dplyr::last_dplyr_warnings()` to see the 1 remaining warning.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: There were 2 warnings in `mutate()`.
+The first warning was:
+ℹ In argument: `tested = as.numeric(tested)`.
+Caused by warning:
+! NAs introduced by coercion
+ℹ Run `dplyr::last_dplyr_warnings()` to see the 1 remaining warning.</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Additional features added: "</code></pre>
+</div>
+</div>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb75"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb75-1"><a href="#cb75-1" aria-hidden="true" tabindex="-1"></a><span class="co"># run first stage on MI</span></span>
+<span id="cb75-2"><a href="#cb75-2" aria-hidden="true" tabindex="-1"></a>mi_fs <span class="ot">&lt;-</span> <span class="fu">first_stage</span>(mi_final)</span>
+<span id="cb75-3"><a href="#cb75-3" aria-hidden="true" tabindex="-1"></a>mi_fs <span class="sc">|&gt;</span> <span class="fu">summary</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+glm(formula = as.formula(paste("tested ~ ped_per_100k + ", paste(features, 
+    collapse = " + "))), family = poisson(link = "log"), data = state_final, 
+    offset = log(under_yo5_pplE))
+
+Deviance Residuals: 
+    Min       1Q   Median       3Q      Max  
+-51.449   -3.676    0.005    2.830   35.681  
+
+Coefficients:
+                           Estimate Std. Error  z value Pr(&gt;|z|)    
+(Intercept)              -1.686e+00  4.760e-03 -354.181  &lt; 2e-16 ***
+ped_per_100k              1.529e-03  4.983e-05   30.685  &lt; 2e-16 ***
+median_annual_incomeE    -1.139e-01  5.769e-03  -19.750  &lt; 2e-16 ***
+house_price_medianE      -7.898e-03  6.069e-03   -1.301  0.19315    
+poor_fam_propE            1.427e-02  4.338e-03    3.289  0.00101 ** 
+black_ppl_propE           1.640e-01  2.481e-03   66.120  &lt; 2e-16 ***
+bp_pre_1959E_prop         9.091e-02  3.128e-03   29.058  &lt; 2e-16 ***
+svi_socioeconomic_pctile  1.581e-01  4.904e-03   32.233  &lt; 2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+(Dispersion parameter for poisson family taken to be 1)
+
+    Null deviance: 105441  on 1128  degrees of freedom
+Residual deviance:  66615  on 1121  degrees of freedom
+AIC: 72798
+
+Number of Fisher Scoring iterations: 5</code></pre>
+</div>
+</div>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb77"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb77-1"><a href="#cb77-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_predicted_tests</span>(mi_final, mi_fs)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="identification_ch4_files/figure-html/unnamed-chunk-17-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb78"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb78-1"><a href="#cb78-1" aria-hidden="true" tabindex="-1"></a>mi_fs_beta <span class="ot">&lt;-</span> <span class="fu">first_stage_beta</span>(mi_final)</span>
+<span id="cb78-2"><a href="#cb78-2" aria-hidden="true" tabindex="-1"></a>mi_fs_beta <span class="sc">|&gt;</span> <span class="fu">summary</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+betareg(formula = as.formula(paste("pr_tested ~ ped_per_100k + ", paste(features, 
+    collapse = " + "))), data = state_final, link = "logit")
+
+Standardized weighted residuals 2:
+    Min      1Q  Median      3Q     Max 
+-5.3822 -0.4805  0.1715  0.6224  6.5507 
+
+Coefficients (mean model with logit link):
+                           Estimate Std. Error z value Pr(&gt;|z|)    
+(Intercept)              -1.1777619  0.0429548 -27.419  &lt; 2e-16 ***
+ped_per_100k             -0.0001237  0.0006021  -0.205  0.83726    
+median_annual_incomeE    -0.3610693  0.0927829  -3.892 9.96e-05 ***
+house_price_medianE       0.0960554  0.0938683   1.023  0.30617    
+poor_fam_propE            0.0258250  0.0547044   0.472  0.63687    
+black_ppl_propE           0.3833517  0.0429658   8.922  &lt; 2e-16 ***
+bp_pre_1959E_prop         0.1113187  0.0353740   3.147  0.00165 ** 
+svi_socioeconomic_pctile -0.0081510  0.0450916  -0.181  0.85655    
+
+Phi coefficients (precision model with identity link):
+      Estimate Std. Error z value Pr(&gt;|z|)    
+(phi)   5.0967     0.2091   24.37   &lt;2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+
+Type of estimator: ML (maximum likelihood)
+Log-likelihood: 674.6 on 9 Df
+Pseudo R-squared: 0.1404
+Number of iterations: 20 (BFGS) + 2 (Fisher scoring) </code></pre>
+</div>
+</div>
+<p>Only for Michigan does the rate of pediatricians matter (in the Poisson), yet this is not robust to the functional form.</p>
+</section>
+</section>
+<section id="model-comparison" class="level3">
+<h3 class="anchored" data-anchor-id="model-comparison">Model comparison</h3>
+<p>Comparing the coefficients</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb80"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb80-1"><a href="#cb80-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(modelsummary)</span>
+<span id="cb80-2"><a href="#cb80-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb80-3"><a href="#cb80-3" aria-hidden="true" tabindex="-1"></a>models <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="st">"MA"</span> <span class="ot">=</span> ma_fs, <span class="st">"MA_beta"</span> <span class="ot">=</span> ma_fs_beta, <span class="st">"RI"</span> <span class="ot">=</span> ri_fs, <span class="st">"RI_beta"</span> <span class="ot">=</span> ri_fs_beta, <span class="st">"MD"</span> <span class="ot">=</span> md_fs, <span class="st">"MD_beta"</span> <span class="ot">=</span> md_fs_beta, <span class="st">"MI"</span> <span class="ot">=</span> mi_fs, <span class="st">"MI_beta"</span> <span class="ot">=</span> mi_fs_beta)</span>
+<span id="cb80-4"><a href="#cb80-4" aria-hidden="true" tabindex="-1"></a><span class="fu">modelsummary</span>(models, <span class="at">stars =</span> <span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<colgroup>
+<col style="width: 21%">
+<col style="width: 10%">
+<col style="width: 8%">
+<col style="width: 10%">
+<col style="width: 8%">
+<col style="width: 10%">
+<col style="width: 9%">
+<col style="width: 10%">
+<col style="width: 9%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;"></th>
+<th style="text-align: right;">MA</th>
+<th style="text-align: right;">MA_beta</th>
+<th style="text-align: right;">RI</th>
+<th style="text-align: right;">RI_beta</th>
+<th style="text-align: right;">MD</th>
+<th style="text-align: right;">MD_beta</th>
+<th style="text-align: right;">MI</th>
+<th style="text-align: right;">MI_beta</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">(Intercept)</td>
+<td style="text-align: right;">-0.609***</td>
+<td style="text-align: right;">0.492***</td>
+<td style="text-align: right;">-1.384***</td>
+<td style="text-align: right;">-0.799**</td>
+<td style="text-align: right;">-1.254***</td>
+<td style="text-align: right;">-0.746***</td>
+<td style="text-align: right;">-1.686***</td>
+<td style="text-align: right;">-1.178***</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"></td>
+<td style="text-align: right;">(0.006)</td>
+<td style="text-align: right;">(0.060)</td>
+<td style="text-align: right;">(0.018)</td>
+<td style="text-align: right;">(0.254)</td>
+<td style="text-align: right;">(0.008)</td>
+<td style="text-align: right;">(0.052)</td>
+<td style="text-align: right;">(0.005)</td>
+<td style="text-align: right;">(0.043)</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">ped_per_100k</td>
+<td style="text-align: right;">0.000*</td>
+<td style="text-align: right;">-0.001+</td>
+<td style="text-align: right;">0.000</td>
+<td style="text-align: right;">-0.003</td>
+<td style="text-align: right;">0.000</td>
+<td style="text-align: right;">0.001</td>
+<td style="text-align: right;">0.002***</td>
+<td style="text-align: right;">0.000</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"></td>
+<td style="text-align: right;">(0.000)</td>
+<td style="text-align: right;">(0.000)</td>
+<td style="text-align: right;">(0.000)</td>
+<td style="text-align: right;">(0.002)</td>
+<td style="text-align: right;">(0.000)</td>
+<td style="text-align: right;">(0.000)</td>
+<td style="text-align: right;">(0.000)</td>
+<td style="text-align: right;">(0.001)</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">median_annual_incomeE</td>
+<td style="text-align: right;">-0.034***</td>
+<td style="text-align: right;">-0.035</td>
+<td style="text-align: right;">-0.501***</td>
+<td style="text-align: right;">-0.087</td>
+<td style="text-align: right;">-0.114***</td>
+<td style="text-align: right;">-0.088+</td>
+<td style="text-align: right;">-0.114***</td>
+<td style="text-align: right;">-0.361***</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"></td>
+<td style="text-align: right;">(0.005)</td>
+<td style="text-align: right;">(0.046)</td>
+<td style="text-align: right;">(0.023)</td>
+<td style="text-align: right;">(0.406)</td>
+<td style="text-align: right;">(0.009)</td>
+<td style="text-align: right;">(0.051)</td>
+<td style="text-align: right;">(0.006)</td>
+<td style="text-align: right;">(0.093)</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">house_price_medianE</td>
+<td style="text-align: right;">-0.013**</td>
+<td style="text-align: right;">-0.042</td>
+<td style="text-align: right;">0.144***</td>
+<td style="text-align: right;">-0.183</td>
+<td style="text-align: right;">0.101***</td>
+<td style="text-align: right;">0.088*</td>
+<td style="text-align: right;">-0.008</td>
+<td style="text-align: right;">0.096</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"></td>
+<td style="text-align: right;">(0.004)</td>
+<td style="text-align: right;">(0.039)</td>
+<td style="text-align: right;">(0.024)</td>
+<td style="text-align: right;">(0.418)</td>
+<td style="text-align: right;">(0.007)</td>
+<td style="text-align: right;">(0.042)</td>
+<td style="text-align: right;">(0.006)</td>
+<td style="text-align: right;">(0.094)</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">poor_fam_propE</td>
+<td style="text-align: right;">-0.001</td>
+<td style="text-align: right;">-0.017</td>
+<td style="text-align: right;">-0.334***</td>
+<td style="text-align: right;">-0.141</td>
+<td style="text-align: right;">-0.060***</td>
+<td style="text-align: right;">-0.115***</td>
+<td style="text-align: right;">0.014**</td>
+<td style="text-align: right;">0.026</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"></td>
+<td style="text-align: right;">(0.004)</td>
+<td style="text-align: right;">(0.047)</td>
+<td style="text-align: right;">(0.017)</td>
+<td style="text-align: right;">(0.237)</td>
+<td style="text-align: right;">(0.005)</td>
+<td style="text-align: right;">(0.033)</td>
+<td style="text-align: right;">(0.004)</td>
+<td style="text-align: right;">(0.055)</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">black_ppl_propE</td>
+<td style="text-align: right;">0.006+</td>
+<td style="text-align: right;">0.041</td>
+<td style="text-align: right;">0.013</td>
+<td style="text-align: right;">-0.020</td>
+<td style="text-align: right;">0.059***</td>
+<td style="text-align: right;">0.104***</td>
+<td style="text-align: right;">0.164***</td>
+<td style="text-align: right;">0.383***</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"></td>
+<td style="text-align: right;">(0.003)</td>
+<td style="text-align: right;">(0.038)</td>
+<td style="text-align: right;">(0.010)</td>
+<td style="text-align: right;">(0.212)</td>
+<td style="text-align: right;">(0.005)</td>
+<td style="text-align: right;">(0.030)</td>
+<td style="text-align: right;">(0.002)</td>
+<td style="text-align: right;">(0.043)</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">bp_pre_1959E_prop</td>
+<td style="text-align: right;">0.058***</td>
+<td style="text-align: right;">0.126***</td>
+<td style="text-align: right;">0.243***</td>
+<td style="text-align: right;">0.143</td>
+<td style="text-align: right;">0.190***</td>
+<td style="text-align: right;">0.279***</td>
+<td style="text-align: right;">0.091***</td>
+<td style="text-align: right;">0.111**</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"></td>
+<td style="text-align: right;">(0.003)</td>
+<td style="text-align: right;">(0.033)</td>
+<td style="text-align: right;">(0.009)</td>
+<td style="text-align: right;">(0.146)</td>
+<td style="text-align: right;">(0.005)</td>
+<td style="text-align: right;">(0.031)</td>
+<td style="text-align: right;">(0.003)</td>
+<td style="text-align: right;">(0.035)</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">svi_socioeconomic_pctile</td>
+<td style="text-align: right;">0.055***</td>
+<td style="text-align: right;">0.153**</td>
+<td style="text-align: right;">0.438***</td>
+<td style="text-align: right;">0.248</td>
+<td style="text-align: right;">0.123***</td>
+<td style="text-align: right;">0.222***</td>
+<td style="text-align: right;">0.158***</td>
+<td style="text-align: right;">-0.008</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"></td>
+<td style="text-align: right;">(0.006)</td>
+<td style="text-align: right;">(0.059)</td>
+<td style="text-align: right;">(0.018)</td>
+<td style="text-align: right;">(0.258)</td>
+<td style="text-align: right;">(0.007)</td>
+<td style="text-align: right;">(0.046)</td>
+<td style="text-align: right;">(0.005)</td>
+<td style="text-align: right;">(0.045)</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">:————————-</td>
+<td style="text-align: right;">————:</td>
+<td style="text-align: right;">———:</td>
+<td style="text-align: right;">————:</td>
+<td style="text-align: right;">———:</td>
+<td style="text-align: right;">————:</td>
+<td style="text-align: right;">———-:</td>
+<td style="text-align: right;">————:</td>
+<td style="text-align: right;">———-:</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Num.Obs.</td>
+<td style="text-align: right;">966</td>
+<td style="text-align: right;">966</td>
+<td style="text-align: right;">97</td>
+<td style="text-align: right;">97</td>
+<td style="text-align: right;">778</td>
+<td style="text-align: right;">778</td>
+<td style="text-align: right;">1129</td>
+<td style="text-align: right;">1129</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">R2</td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;">0.069</td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;">0.134</td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;">0.295</td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;">0.140</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">AIC</td>
+<td style="text-align: right;">821623.0</td>
+<td style="text-align: right;">-359.2</td>
+<td style="text-align: right;">234083.9</td>
+<td style="text-align: right;">-106.9</td>
+<td style="text-align: right;">380068.0</td>
+<td style="text-align: right;">-757.6</td>
+<td style="text-align: right;">1260385.0</td>
+<td style="text-align: right;">-1331.3</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">BIC</td>
+<td style="text-align: right;">821662.0</td>
+<td style="text-align: right;">-315.3</td>
+<td style="text-align: right;">234104.5</td>
+<td style="text-align: right;">-83.7</td>
+<td style="text-align: right;">380105.2</td>
+<td style="text-align: right;">-715.7</td>
+<td style="text-align: right;">1260425.2</td>
+<td style="text-align: right;">-1286.0</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Log.Lik.</td>
+<td style="text-align: right;">-410803.494</td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;">-117033.933</td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;">-190025.993</td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;">-630184.503</td>
+<td style="text-align: right;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">RMSE</td>
+<td style="text-align: right;">51.51</td>
+<td style="text-align: right;">0.19</td>
+<td style="text-align: right;">286.25</td>
+<td style="text-align: right;">0.22</td>
+<td style="text-align: right;">38.04</td>
+<td style="text-align: right;">0.15</td>
+<td style="text-align: right;">124.92</td>
+<td style="text-align: right;">0.16</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Note:</strong> ^^ + p &lt; 0.1, * p &lt; 0.05, ** p &lt; 0.01, *** p &lt; 0.001</p>
+</div>
+</div>
+<p>For the prior predictive checks I will focus on income, housing age, and the SVI index.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb81"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb81-1"><a href="#cb81-1" aria-hidden="true" tabindex="-1"></a>logit_predictors <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"median_annual_incomeE"</span>, <span class="st">"bp_pre_1959E_prop"</span>, <span class="st">"svi_socioeconomic_pctile"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+</section>
+<section id="prior-predictive-checks" class="level3">
+<h3 class="anchored" data-anchor-id="prior-predictive-checks">Prior predictive checks</h3>
+<p>In our model so far, we specified the model for the thinning probability <span class="math inline">\(\pi\)</span> as a logit model.</p>
+<p><span class="math display">\[\log\left(\frac{\pi_i}{1-\pi_i}\right) = \gamma + \beta_1 \text{ Income}_i + \beta_2 \text{ Housing Age}_i + \beta_3 \text{ SVI}_i\]</span> where all predictor variables are standardized. For the intercept, a prior of <span class="math inline">\(\gamma \sim N(0, 1.5)\)</span> implies a smooth prior on the support of <span class="math inline">\(\pi_i\)</span> between <span class="math inline">\([0,1]\)</span>.</p>
+<p>For the coefficients on the predictors, we have a choice to make. A few points to note: - In general, with increasing number of predictors and a given (uninformative) prior, the implied probability distribution is spread out, so <strong>weak priors</strong> will imply a strong prior on the thinning. - Can sample priors independently or from a joint distribution. In complex models the latter is often preferable. - Could use log-normal priors for coefficients on variables such as housing age, as they enforce positive relationships that embody our scientific knowledge about presence of old paint.</p>
+<p>Plotting the predictors:</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb82"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb82-1"><a href="#cb82-1" aria-hidden="true" tabindex="-1"></a><span class="co"># get histograms of the three predictors in one row</span></span>
+<span id="cb82-2"><a href="#cb82-2" aria-hidden="true" tabindex="-1"></a>ma_final <span class="sc">|&gt;</span> </span>
+<span id="cb82-3"><a href="#cb82-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="fu">all_of</span>(logit_predictors)) <span class="sc">|&gt;</span> </span>
+<span id="cb82-4"><a href="#cb82-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="fu">all_of</span>(logit_predictors), <span class="at">names_to =</span> <span class="st">"variable"</span>, <span class="at">values_to =</span> <span class="st">"value"</span>) <span class="sc">|&gt;</span> </span>
+<span id="cb82-5"><a href="#cb82-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>() <span class="sc">+</span></span>
+<span id="cb82-6"><a href="#cb82-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>(<span class="fu">aes</span>(<span class="at">x =</span> value, <span class="at">fill =</span> variable), <span class="at">bins =</span> <span class="dv">10</span>, <span class="at">alpha =</span> <span class="fl">0.5</span>, <span class="at">position =</span> <span class="st">"identity"</span>) <span class="sc">+</span></span>
+<span id="cb82-7"><a href="#cb82-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="sc">~</span>variable, <span class="at">scales =</span> <span class="st">"free"</span>) <span class="sc">+</span></span>
+<span id="cb82-8"><a href="#cb82-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="identification_ch4_files/figure-html/unnamed-chunk-21-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Let’s see how tightness of priors affects the prior distribution of thinning probabilities.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb83"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb83-1"><a href="#cb83-1" aria-hidden="true" tabindex="-1"></a><span class="co"># prior predictive sampling</span></span>
+<span id="cb83-2"><a href="#cb83-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb83-3"><a href="#cb83-3" aria-hidden="true" tabindex="-1"></a>sample_prior <span class="ot">&lt;-</span> <span class="cf">function</span>(state_final, n, tightness){</span>
+<span id="cb83-4"><a href="#cb83-4" aria-hidden="true" tabindex="-1"></a>  intercept_var <span class="ot">&lt;-</span> tightness[[<span class="dv">1</span>]]</span>
+<span id="cb83-5"><a href="#cb83-5" aria-hidden="true" tabindex="-1"></a>  bp_var <span class="ot">&lt;-</span> tightness[[<span class="dv">2</span>]]</span>
+<span id="cb83-6"><a href="#cb83-6" aria-hidden="true" tabindex="-1"></a>  ai_var <span class="ot">&lt;-</span> tightness[[<span class="dv">3</span>]]</span>
+<span id="cb83-7"><a href="#cb83-7" aria-hidden="true" tabindex="-1"></a>  svi_var <span class="ot">&lt;-</span> tightness[[<span class="dv">4</span>]]</span>
+<span id="cb83-8"><a href="#cb83-8" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb83-9"><a href="#cb83-9" aria-hidden="true" tabindex="-1"></a>  <span class="co"># sample from priors</span></span>
+<span id="cb83-10"><a href="#cb83-10" aria-hidden="true" tabindex="-1"></a>  gamma <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(n, <span class="dv">0</span>, intercept_var)</span>
+<span id="cb83-11"><a href="#cb83-11" aria-hidden="true" tabindex="-1"></a>  beta_1 <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(n, <span class="dv">0</span>, bp_var)</span>
+<span id="cb83-12"><a href="#cb83-12" aria-hidden="true" tabindex="-1"></a>  beta_2 <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(n, <span class="dv">0</span>, ai_var)</span>
+<span id="cb83-13"><a href="#cb83-13" aria-hidden="true" tabindex="-1"></a>  beta_3 <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(n, <span class="dv">0</span>, svi_var)</span>
+<span id="cb83-14"><a href="#cb83-14" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb83-15"><a href="#cb83-15" aria-hidden="true" tabindex="-1"></a>  <span class="co"># put into a dataframe</span></span>
+<span id="cb83-16"><a href="#cb83-16" aria-hidden="true" tabindex="-1"></a>  coefs <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(gamma, beta_1, beta_2, beta_3)</span>
+<span id="cb83-17"><a href="#cb83-17" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb83-18"><a href="#cb83-18" aria-hidden="true" tabindex="-1"></a>  <span class="co"># for each row in coefs, using map, calculate the thinning probabilities for the data, then average over all draws</span></span>
+<span id="cb83-19"><a href="#cb83-19" aria-hidden="true" tabindex="-1"></a>  thinning_probs <span class="ot">&lt;-</span> <span class="fu">suppressMessages</span>(<span class="fu">map_dfc</span>(<span class="dv">1</span><span class="sc">:</span>n, <span class="sc">~</span>{</span>
+<span id="cb83-20"><a href="#cb83-20" aria-hidden="true" tabindex="-1"></a>    row <span class="ot">&lt;-</span> coefs[.x, ]</span>
+<span id="cb83-21"><a href="#cb83-21" aria-hidden="true" tabindex="-1"></a>    probs <span class="ot">&lt;-</span> <span class="fu">plogis</span>(row<span class="sc">$</span>gamma <span class="sc">+</span> row<span class="sc">$</span>beta_1 <span class="sc">*</span> state_final<span class="sc">$</span>median_annual_incomeE <span class="sc">+</span> row<span class="sc">$</span>beta_2 <span class="sc">*</span> state_final<span class="sc">$</span>bp_pre_1959E_prop <span class="sc">+</span> row<span class="sc">$</span>beta_3 <span class="sc">*</span> state_final<span class="sc">$</span>svi_socioeconomic_pctile)</span>
+<span id="cb83-22"><a href="#cb83-22" aria-hidden="true" tabindex="-1"></a>    <span class="fu">data.frame</span>(probs)</span>
+<span id="cb83-23"><a href="#cb83-23" aria-hidden="true" tabindex="-1"></a>  }))</span>
+<span id="cb83-24"><a href="#cb83-24" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb84"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb84-1"><a href="#cb84-1" aria-hidden="true" tabindex="-1"></a><span class="co"># sample from the prior</span></span>
+<span id="cb84-2"><a href="#cb84-2" aria-hidden="true" tabindex="-1"></a>ma_sample_prior <span class="ot">&lt;-</span> <span class="fu">sample_prior</span>(ma_final, <span class="dv">100</span>, <span class="fu">c</span>(<span class="fl">1.5</span>,<span class="dv">1</span>,<span class="dv">1</span>,<span class="dv">1</span>))</span>
+<span id="cb84-3"><a href="#cb84-3" aria-hidden="true" tabindex="-1"></a>ma_sample_prior <span class="sc">|&gt;</span></span>
+<span id="cb84-4"><a href="#cb84-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="fu">everything</span>(), <span class="at">names_to =</span> <span class="st">"variable"</span>, <span class="at">values_to =</span> <span class="st">"value"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb84-5"><a href="#cb84-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> value, <span class="at">color =</span> variable)) <span class="sc">+</span></span>
+<span id="cb84-6"><a href="#cb84-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_density</span>() <span class="sc">+</span></span>
+<span id="cb84-7"><a href="#cb84-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
+<span id="cb84-8"><a href="#cb84-8" aria-hidden="true" tabindex="-1"></a>  <span class="co"># hide legend</span></span>
+<span id="cb84-9"><a href="#cb84-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"none"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="identification_ch4_files/figure-html/unnamed-chunk-23-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>If we make them ridiculously tight at 0 the thinning should be close to 0.5:</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb85"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb85-1"><a href="#cb85-1" aria-hidden="true" tabindex="-1"></a><span class="co"># sample from the prior</span></span>
+<span id="cb85-2"><a href="#cb85-2" aria-hidden="true" tabindex="-1"></a>ma_sample_prior <span class="ot">&lt;-</span> <span class="fu">sample_prior</span>(ma_final, <span class="dv">100</span>, <span class="fu">c</span>(<span class="fl">1e-4</span>,<span class="fl">1e-4</span>,<span class="fl">1e-4</span>,<span class="fl">1e-4</span>))</span>
+<span id="cb85-3"><a href="#cb85-3" aria-hidden="true" tabindex="-1"></a>ma_sample_prior <span class="sc">|&gt;</span></span>
+<span id="cb85-4"><a href="#cb85-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="fu">everything</span>(), <span class="at">names_to =</span> <span class="st">"variable"</span>, <span class="at">values_to =</span> <span class="st">"value"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb85-5"><a href="#cb85-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> value, <span class="at">color =</span> variable, <span class="at">alpha =</span> <span class="fl">0.2</span>)) <span class="sc">+</span></span>
+<span id="cb85-6"><a href="#cb85-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_density</span>() <span class="sc">+</span></span>
+<span id="cb85-7"><a href="#cb85-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
+<span id="cb85-8"><a href="#cb85-8" aria-hidden="true" tabindex="-1"></a>  <span class="co"># hide legend</span></span>
+<span id="cb85-9"><a href="#cb85-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"none"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="identification_ch4_files/figure-html/unnamed-chunk-24-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>If we leave the N(0,1.5) prior on the intercept and leave the slopes tight, the masses should look uniformly spread.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb86"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb86-1"><a href="#cb86-1" aria-hidden="true" tabindex="-1"></a><span class="co"># sample from the prior</span></span>
+<span id="cb86-2"><a href="#cb86-2" aria-hidden="true" tabindex="-1"></a>ma_sample_prior <span class="ot">&lt;-</span> <span class="fu">sample_prior</span>(ma_final, <span class="dv">100</span>, <span class="fu">c</span>(<span class="fl">1.5</span>,<span class="fl">1e-4</span>,<span class="fl">1e-4</span>,<span class="fl">1e-4</span>))</span>
+<span id="cb86-3"><a href="#cb86-3" aria-hidden="true" tabindex="-1"></a>ma_sample_prior <span class="sc">|&gt;</span></span>
+<span id="cb86-4"><a href="#cb86-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="fu">everything</span>(), <span class="at">names_to =</span> <span class="st">"variable"</span>, <span class="at">values_to =</span> <span class="st">"value"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb86-5"><a href="#cb86-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> value, <span class="at">color =</span> variable, <span class="at">alpha =</span> <span class="fl">0.2</span>)) <span class="sc">+</span></span>
+<span id="cb86-6"><a href="#cb86-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_density</span>() <span class="sc">+</span></span>
+<span id="cb86-7"><a href="#cb86-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
+<span id="cb86-8"><a href="#cb86-8" aria-hidden="true" tabindex="-1"></a>  <span class="co"># hide legend</span></span>
+<span id="cb86-9"><a href="#cb86-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"none"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="identification_ch4_files/figure-html/unnamed-chunk-25-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>They are indeed. The more room we give the slopes, the more we expect the thinnings to be spread out towards the extremes</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb87"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb87-1"><a href="#cb87-1" aria-hidden="true" tabindex="-1"></a><span class="co"># sample from the prior</span></span>
+<span id="cb87-2"><a href="#cb87-2" aria-hidden="true" tabindex="-1"></a>ma_sample_prior <span class="ot">&lt;-</span> <span class="fu">sample_prior</span>(ma_final, <span class="dv">100</span>, <span class="fu">c</span>(<span class="fl">1.2</span>,<span class="dv">3</span>,<span class="dv">3</span>,<span class="dv">3</span>))</span>
+<span id="cb87-3"><a href="#cb87-3" aria-hidden="true" tabindex="-1"></a>ma_sample_prior <span class="sc">|&gt;</span></span>
+<span id="cb87-4"><a href="#cb87-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="fu">everything</span>(), <span class="at">names_to =</span> <span class="st">"variable"</span>, <span class="at">values_to =</span> <span class="st">"value"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb87-5"><a href="#cb87-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> value, <span class="at">color =</span> variable)) <span class="sc">+</span></span>
+<span id="cb87-6"><a href="#cb87-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_density</span>() <span class="sc">+</span></span>
+<span id="cb87-7"><a href="#cb87-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
+<span id="cb87-8"><a href="#cb87-8" aria-hidden="true" tabindex="-1"></a>  <span class="co"># hide legend</span></span>
+<span id="cb87-9"><a href="#cb87-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"none"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="identification_ch4_files/figure-html/unnamed-chunk-26-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb88"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb88-1"><a href="#cb88-1" aria-hidden="true" tabindex="-1"></a><span class="co"># sample from the prior</span></span>
+<span id="cb88-2"><a href="#cb88-2" aria-hidden="true" tabindex="-1"></a>ma_sample_prior <span class="ot">&lt;-</span> <span class="fu">sample_prior</span>(ma_final, <span class="dv">100</span>, <span class="fu">c</span>(<span class="fl">1.2</span>,<span class="dv">10</span>,<span class="dv">10</span>,<span class="dv">10</span>))</span>
+<span id="cb88-3"><a href="#cb88-3" aria-hidden="true" tabindex="-1"></a>ma_sample_prior <span class="sc">|&gt;</span></span>
+<span id="cb88-4"><a href="#cb88-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="fu">everything</span>(), <span class="at">names_to =</span> <span class="st">"variable"</span>, <span class="at">values_to =</span> <span class="st">"value"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb88-5"><a href="#cb88-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> value, <span class="at">color =</span> variable)) <span class="sc">+</span></span>
+<span id="cb88-6"><a href="#cb88-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_density</span>() <span class="sc">+</span></span>
+<span id="cb88-7"><a href="#cb88-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
+<span id="cb88-8"><a href="#cb88-8" aria-hidden="true" tabindex="-1"></a>  <span class="co"># hide legend</span></span>
+<span id="cb88-9"><a href="#cb88-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"none"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="identification_ch4_files/figure-html/unnamed-chunk-27-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>For independent normal priors, they need to be quite tight to make the thinning behave reasonably.</p>
+<p>If instead we put lognormal priors on the coefficients for housing age and svi, we enforce they have a positive influence on the log-odds. In terms of scale, since they are standardized (almost all the data between -2 and 2), we would expect two standard deviations to explain <strong>at most</strong> all the meaningful variation in the log-odds, which is from -4 to 4. This implies a reasonable restriction of (0,2) on the level scale for <span class="math inline">\(\beta\)</span>, which (roughly) comes out of a log normal distribution with (-0.2,0.4).</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb89"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb89-1"><a href="#cb89-1" aria-hidden="true" tabindex="-1"></a>beta <span class="ot">&lt;-</span> <span class="fu">rlnorm</span>(<span class="dv">1000</span>, <span class="sc">-</span><span class="fl">0.2</span>, <span class="fl">0.4</span>)</span>
+<span id="cb89-2"><a href="#cb89-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="fu">density</span>(beta))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="identification_ch4_files/figure-html/unnamed-chunk-28-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb90"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb90-1"><a href="#cb90-1" aria-hidden="true" tabindex="-1"></a>sample_prior_2 <span class="ot">&lt;-</span> <span class="cf">function</span>(state_final, n, tightness){</span>
+<span id="cb90-2"><a href="#cb90-2" aria-hidden="true" tabindex="-1"></a>  bp_var <span class="ot">&lt;-</span> tightness[[<span class="dv">1</span>]]</span>
+<span id="cb90-3"><a href="#cb90-3" aria-hidden="true" tabindex="-1"></a>  ai_var <span class="ot">&lt;-</span> tightness[[<span class="dv">2</span>]]</span>
+<span id="cb90-4"><a href="#cb90-4" aria-hidden="true" tabindex="-1"></a>  svi_var <span class="ot">&lt;-</span> tightness[[<span class="dv">3</span>]]</span>
+<span id="cb90-5"><a href="#cb90-5" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb90-6"><a href="#cb90-6" aria-hidden="true" tabindex="-1"></a>  <span class="co"># sample from priors</span></span>
+<span id="cb90-7"><a href="#cb90-7" aria-hidden="true" tabindex="-1"></a>  gamma <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(n, <span class="at">mean =</span> <span class="dv">0</span>, <span class="at">sd =</span> <span class="dv">1</span>)</span>
+<span id="cb90-8"><a href="#cb90-8" aria-hidden="true" tabindex="-1"></a>  beta_1 <span class="ot">&lt;-</span> <span class="fu">rlnorm</span>(n, <span class="sc">-</span><span class="fl">0.2</span>, bp_var) <span class="co"># log normal</span></span>
+<span id="cb90-9"><a href="#cb90-9" aria-hidden="true" tabindex="-1"></a>  beta_2 <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(n, <span class="dv">0</span>, ai_var)</span>
+<span id="cb90-10"><a href="#cb90-10" aria-hidden="true" tabindex="-1"></a>  beta_3 <span class="ot">&lt;-</span> <span class="fu">rlnorm</span>(n, <span class="sc">-</span><span class="fl">0.2</span>, svi_var) <span class="co"># log normal</span></span>
+<span id="cb90-11"><a href="#cb90-11" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb90-12"><a href="#cb90-12" aria-hidden="true" tabindex="-1"></a>  <span class="co"># put into a dataframe</span></span>
+<span id="cb90-13"><a href="#cb90-13" aria-hidden="true" tabindex="-1"></a>  coefs <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(gamma, beta_1, beta_2, beta_3)</span>
+<span id="cb90-14"><a href="#cb90-14" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb90-15"><a href="#cb90-15" aria-hidden="true" tabindex="-1"></a>  <span class="co"># for each row in coefs, using map, calculate the thinning probabilities for the data, then average over all draws</span></span>
+<span id="cb90-16"><a href="#cb90-16" aria-hidden="true" tabindex="-1"></a>  thinning_probs <span class="ot">&lt;-</span> <span class="fu">suppressMessages</span>(<span class="fu">map_dfc</span>(<span class="dv">1</span><span class="sc">:</span>n, <span class="sc">~</span>{</span>
+<span id="cb90-17"><a href="#cb90-17" aria-hidden="true" tabindex="-1"></a>    row <span class="ot">&lt;-</span> coefs[.x, ]</span>
+<span id="cb90-18"><a href="#cb90-18" aria-hidden="true" tabindex="-1"></a>    probs <span class="ot">&lt;-</span> <span class="fu">plogis</span>(row<span class="sc">$</span>gamma <span class="sc">+</span> row<span class="sc">$</span>beta_1 <span class="sc">*</span> state_final<span class="sc">$</span>median_annual_incomeE <span class="sc">+</span> row<span class="sc">$</span>beta_2 <span class="sc">*</span> state_final<span class="sc">$</span>bp_pre_1959E_prop <span class="sc">+</span> row<span class="sc">$</span>beta_3 <span class="sc">*</span> state_final<span class="sc">$</span>svi_socioeconomic_pctile)</span>
+<span id="cb90-19"><a href="#cb90-19" aria-hidden="true" tabindex="-1"></a>    <span class="fu">data.frame</span>(probs)</span>
+<span id="cb90-20"><a href="#cb90-20" aria-hidden="true" tabindex="-1"></a>  }))</span>
+<span id="cb90-21"><a href="#cb90-21" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb91"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb91-1"><a href="#cb91-1" aria-hidden="true" tabindex="-1"></a><span class="co"># sample from the new prior</span></span>
+<span id="cb91-2"><a href="#cb91-2" aria-hidden="true" tabindex="-1"></a>ma_sample_prior_2 <span class="ot">&lt;-</span> <span class="fu">sample_prior_2</span>(ma_final, <span class="dv">300</span>, <span class="fu">c</span>(<span class="fl">0.4</span>,<span class="dv">1</span>,<span class="fl">0.4</span>))</span>
+<span id="cb91-3"><a href="#cb91-3" aria-hidden="true" tabindex="-1"></a>ma_sample_prior_2 <span class="sc">|&gt;</span></span>
+<span id="cb91-4"><a href="#cb91-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="fu">everything</span>(), <span class="at">names_to =</span> <span class="st">"variable"</span>, <span class="at">values_to =</span> <span class="st">"value"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb91-5"><a href="#cb91-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> value, <span class="at">color =</span> variable)) <span class="sc">+</span></span>
+<span id="cb91-6"><a href="#cb91-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_density</span>() <span class="sc">+</span></span>
+<span id="cb91-7"><a href="#cb91-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
+<span id="cb91-8"><a href="#cb91-8" aria-hidden="true" tabindex="-1"></a>  <span class="co"># hide legend</span></span>
+<span id="cb91-9"><a href="#cb91-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"none"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="identification_ch4_files/figure-html/unnamed-chunk-30-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>This looks already much better behaved, in the sense that it implies a reasonable but uniform (and in that sense) weak prior on the thinning probabilities.</p>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      // TODO in 1.5, we should make sure this works without a callout special case
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
