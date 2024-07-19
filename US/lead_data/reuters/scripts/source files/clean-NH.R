@@ -11,17 +11,7 @@ file_path <- 'BLL_NH_Raw.xlsx'
 nh2_path <- 'BLL_NH2_Raw.xlsx'
 nh3_path <- 'NH_COUNTY.xlsx'
 
-
-if (exists("drop_get_from_root")) {
-    drop_get_from_root(paste0("../../raw_data/", file_path))
-    drop_get_from_root(nh2_path)
-    drop_get_from_root(nh3_path)
-} else {
-    source("../00_drop_box_access.R")
-    drop_get_from_root(paste0("../../raw_data/", file_path))
-    drop_get_from_root(nh2_path)
-    drop_get_from_root(nh3_path)
-}
+# TODO: add gdrive download
 
 # read in data
 nh <- read_excel(paste0("../../raw_data/", file_path), col_names = FALSE, skip = 1)
