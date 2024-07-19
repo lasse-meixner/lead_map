@@ -15,7 +15,7 @@ Here I focus on the **logit side**:
 
 ### First stage on the number of tested.
 
-Since we only get the testing **rate,** I use a poisson on the number of tested given an offset. I'll go with the former.
+For each geographical unit, I am only observing the overall testing **rate**, rather than a binary outcome. I thus use a poisson on the number of tested with the number of kids as an offset.
 
 ```{r}
 library(tidyverse)
@@ -40,7 +40,7 @@ I am ignoring information about the testing regimes that might differ between hi
 
 first_stage <- function(state_final){
   # run poisson with kids as offset
-  logit_tested <- glm(as.formula(paste("tested ~ ", paste(features, collapse = " + "))), 
+  logit_tested <- glm(as.formula(paste("tested ~ ped_per_100k + ", paste(features, collapse = " + "))), 
                       data = state_final, 
                       family = poisson(link = "log"),
                       offset = log(under_yo5_pplE))
@@ -111,6 +111,26 @@ ggplot(ma_long, aes(x = bp_pre_1959E_prop_bin, y = value, fill = variable)) +
 
 Looks fairly well behaved...
 
+Let us quickly double check that a beta regression, a functional form closer to the logit specification in our STAN model yields similar results on which of our features matter for testing.
+
+```{r}
+library(betareg)
+
+first_stage_beta <- function(state_final){
+  # get Pr(tested)
+  state_final$pr_tested <- state_final$tested / state_final$under_yo5_pplE
+  # some areas have pr = 1, need to epsilon adjust
+  state_final$pr_tested <- ifelse(state_final$pr_tested == 1, 0.9999, state_final$pr_tested)
+  # run beta regression
+  beta_tested <- betareg(as.formula(paste("pr_tested ~ ped_per_100k + ", paste(features, collapse = " + "))), 
+                         data = state_final, link = "logit")
+}
+
+ma_fs_beta <- first_stage_beta(ma_final)
+ma_fs_beta |> summary()
+```
+
+
 #### Rhode Island
 
 ```{r}
@@ -123,6 +143,12 @@ ri_fs |> summary()
 ```{r}
 plot_predicted_tests(ri_final, logit_tested_ri)
 ```
+```{r}
+ri_fs_beta <- first_stage_beta(ri_final)
+ri_fs_beta |> summary()
+```
+
+
 #### Maryland
 
 ```{r}
@@ -137,7 +163,14 @@ md_fs |> summary()
 ```{r}
 plot_predicted_tests(md_final, md_fs)
 ```
-#### New Hampshire
+```{r}
+md_fs_beta <- first_stage_beta(md_final)
+md_fs_beta |> summary()
+```
+
+The signs are the same as in the poisson model, this looks consistent.
+
+#### Michigan
 
 ```{r}
 mi_final <- single_state_zip("MI") # from model_analytics.R
@@ -151,6 +184,13 @@ mi_fs |> summary()
 ```{r}
 plot_predicted_tests(mi_final, mi_fs)
 ```
+```{r}
+mi_fs_beta <- first_stage_beta(mi_final)
+mi_fs_beta |> summary()
+
+```
+
+Only for Michigan does the rate of pediatricians matter (in the Poisson), yet this is not robust to the functional form.
 
 ### Model comparison
 
@@ -159,15 +199,103 @@ Comparing the coefficients
 ```{r}
 library(modelsummary)
 
-models <- list("MA" = ma_fs, "RI" = ri_fs, "MD" = md_fs, "MI" = mi_fs)
+models <- list("MA" = ma_fs, "MA_beta" = ma_fs_beta, "RI" = ri_fs, "RI_beta" = ri_fs_beta, "MD" = md_fs, "MD_beta" = md_fs_beta, "MI" = mi_fs, "MI_beta" = mi_fs_beta)
 modelsummary(models, stars = TRUE)
 ```
 
 For the prior predictive checks I will focus on income, housing age, and the SVI index.
 
+```{r}
+logit_predictors <- c("median_annual_incomeE", "bp_pre_1959E_prop", "svi_socioeconomic_pctile")
+```
+
+
 ### Prior predictive checks
 
-```{r}
+In our model so far, we specified the model for the thinning probability $\pi$ as a logit model.
 
+$$\log\left(\frac{\pi_i}{1-\pi_i}\right) = \gamma + \beta_1 \text{ Income}_i + \beta_2 \text{ Housing Age}_i + \beta_3 \text{ SVI}_i$$
+where all predictor variables are standardized. For the intercept, a prior of $\gamma \sim N(0, 1.5)$ implies a smooth prior on the support of $\pi_i$ between $[0,1]$.
+
+For the coefficients on the predictors, we have a choice to make. A few points to note:
+- In general, with increasing number of predictors and a given (uninformative) prior, the implied probability distribution is spread out, so **weak priors** will imply a strong prior on the thinning.
+- Can sample priors independently or from a joint distribution. In complex models the latter is often preferable.
+- Could use log-normal priors for coefficients on variables such as housing age, as they enforce positive relationships that embody our scientific knowledge about presence of old paint.
+
+
+Plotting the predictors:
+
+```{r}
+# get histograms of the three predictors in one row
+ma_final |> 
+  select(all_of(logit_predictors)) |> 
+  pivot_longer(cols = all_of(logit_predictors), names_to = "variable", values_to = "value") |> 
+  ggplot() +
+  geom_histogram(aes(x = value, fill = variable), bins = 10, alpha = 0.5, position = "identity") +
+  facet_wrap(~variable, scales = "free") +
+  theme_minimal()
+```
+
+Let's see how tightness of priors affects the prior distribution of thinning probabilities.
+
+```{r}
+# prior predictive sampling
+
+sample_prior <- function(state_final, n, tightness){
+  bp_var <- tightness[[1]]
+  ai_var <- tightness[[2]]
+  svi_var <- tightness[[3]]
+  
+  # sample from priors
+  gamma <- rnorm(n, mean = 0, sd = 1.5)
+  beta_1 <- rnorm(n, 0, bp_var)
+  beta_2 <- rnorm(n, 0, ai_var)
+  beta_3 <- rnorm(n, 0, svi_var)
+  
+  # put into a dataframe
+  coefs <- data.frame(gamma, beta_1, beta_2, beta_3)
+  
+  # for each row in coefs, using map, calculate the thinning probabilities for the data, then average over all draws
+  thinning_probs <- map_dfc(1:n, ~{
+    row <- coefs[.x, ]
+    probs <- plogis(row$gamma + row$beta_1 * state_final$median_annual_incomeE + row$beta_2 * state_final$bp_pre_1959E_prop + row$beta_3 * state_final$svi_socioeconomic_pctile)
+    data.frame(probs)
+  })
+}
+```
+
+```{r}
+# sample from the prior
+ma_sample_prior <- sample_prior(ma_final, 100, c(1,1,1))
+ma_sample_prior |>
+  pivot_longer(cols = everything(), names_to = "variable", values_to = "value") |>
+  ggplot(aes(x = value, color = variable)) +
+  geom_density() +
+  theme_minimal() +
+  # hide legend
+  theme(legend.position = "none")
+```
+
+```{r}
+# sample from the prior
+ma_sample_prior <- sample_prior(ma_final, 100, c(3,3,3))
+ma_sample_prior |>
+  pivot_longer(cols = everything(), names_to = "variable", values_to = "value") |>
+  ggplot(aes(x = value, color = variable, alpha = 0.2)) +
+  geom_density() +
+  theme_minimal() +
+  # hide legend
+  theme(legend.position = "none")
+```
+```{r}
+# sample from the prior
+ma_sample_prior <- sample_prior(ma_final, 100, c(10,10,10))
+ma_sample_prior |>
+  pivot_longer(cols = everything(), names_to = "variable", values_to = "value") |>
+  ggplot(aes(x = value, color = variable, alpha = 0.2)) +
+  geom_density() +
+  theme_minimal() +
+  # hide legend
+  theme(legend.position = "none")
 ```
 
