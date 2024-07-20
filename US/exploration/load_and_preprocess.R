@@ -36,7 +36,9 @@ single_state_tract <- function(state_name, drop_outcome = c(), pred_preprocess_f
     }
     
     # preprocess lead data
-    state_lead <- state_data |> preprocess_lead_data()
+    state_lead <- state_data |>
+        mutate(tract = as.character(tract)) |>
+        preprocess_lead_data()
     
     # preprocess pred data
     state_pred <- tract_data |> 
