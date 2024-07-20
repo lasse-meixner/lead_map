@@ -1,0 +1,189 @@
+# Script that computes relevant descriptives and summary statistics for each state's data
+
+# imports
+library(tidyverse)
+library(jsonlite)
+library(modelsummary)
+source("../../init.R")
+
+### metadata
+
+# get metadata from ~US root
+metadata  <- fromJSON("../metadata.json")
+# extract required metadata (lists)
+zip_states <- metadata$zip_states
+tract_states <- metadata$tract_states
+id_variables <- metadata$id_variables
+ratio_variables <- metadata$proportion_variables
+count_variables <- metadata$count_variables
+
+# run analytics
+source("load_and_preprocess.R") # -> single_state_zip, single_state_tract
+
+# auxiliary function to load/accept data #todo: if state is loaded (e.g. for all years) and want to run model for specific year, loading with string throws error.
+take_state_data <- function(state_name, year = NULL) {
+  if (is.character(state_name)) { # accepts either str passed to the loading pipeline or an already loaded df
+    if (state_name %in% zip_states) {
+      return(single_state_zip(state_name, filter_year = year)) # from load_and_preprocess.R
+    } else if (state_name %in% tract_states) {
+      return(single_state_tract(state_name, filter_year = year)) # from load_and_preprocess.R
+    } else {
+      stop(sprintf("State %s is not in list of states", state_name))
+    }
+  } else if (is.data.frame(state_name)) {
+    return(state_name)
+  } else {
+    stop("state_name must be a string or a data frame")
+  }
+}
+
+# data summary function
+data_summary <- function(state_name, year = 2010){
+    # load data from string or accept already stored dataframe
+    state_data <- take_state_data(state_name, year)
+
+    # Check for the presence of BLL_geq_5 and BLL_geq_10 variables
+    has_bll_geq_5 <- "BLL_geq_5" %in% names(state_data)
+    has_bll_geq_10 <- "BLL_geq_10" %in% names(state_data)
+
+    # create lead summary statistics table
+    lead_summary <- state_data |>
+        group_by(year) |>
+        summarise(
+            n_obs = n(),
+            lead_cens_5 = if(has_bll_geq_5) sum(BLL_geq_5_suppressed, na.rm = TRUE) else NA_integer_,
+            lead_nocens_5 = if(has_bll_geq_5) sum(!BLL_geq_5_suppressed, na.rm = TRUE) else NA_integer_,
+            lead_censR_5 = if(has_bll_geq_5) lead_cens_5 / n_obs else NA_real_,
+            lead_cens_10 = if(has_bll_geq_10) sum(BLL_geq_10_suppressed, na.rm = TRUE) else NA_integer_,
+            lead_nocens_10 = if(has_bll_geq_10) sum(!BLL_geq_10_suppressed, na.rm = TRUE) else NA_integer_,
+            lead_censR_10 = if(has_bll_geq_10) lead_cens_10 / n_obs else NA_real_,
+            test_cens = sum(tested_suppressed, na.rm = TRUE),
+            test_censR = test_cens / n_obs,
+            sup_threshold_5 = if("ell_5" %in% names(state_data)) max(state_data$ell_5, na.rm = TRUE) else NA,
+            sup_threshold_10 = if("ell_10" %in% names(state_data)) max(state_data$ell_10, na.rm = TRUE) else NA,
+            median_lead_5 = if(has_bll_geq_5) median(BLL_geq_5, na.rm = TRUE) else NA_real_,
+            q75_lead_5 = if(has_bll_geq_5) quantile(BLL_geq_5, 0.75, na.rm = TRUE) else NA_real_,
+            max_lead_5 = if(has_bll_geq_5) max(BLL_geq_5, na.rm = TRUE) else NA_real_,
+            median_lead_10 = if(has_bll_geq_10) median(BLL_geq_10, na.rm = TRUE) else NA_real_,
+            q75_lead_10 = if(has_bll_geq_10) quantile(BLL_geq_10, 0.75, na.rm = TRUE) else NA_real_,
+            max_lead_10 = if(has_bll_geq_10) max(BLL_geq_10, na.rm = TRUE) else NA_real_
+        ) |>
+        # drop if all values in a column are NA
+        select(where(~!all(is.na(.))))
+    
+    # predictor overview
+    pred_summary <- datasummary_skim(state_data, output = "kableExtra") # from modelsummary pkg
+    
+    # get density of non-suppressed BLL values for BLL_geq_5 and BLL_geq_10 if they exist
+    lead_distribution <- list()
+    if (has_bll_geq_5) {
+        lead_distribution[[1]] <- state_data |>
+            filter(!BLL_geq_5_suppressed) |>
+            ggplot(aes(x = BLL_geq_5)) +
+            geom_histogram(binwidth = 1) +
+            labs(title = "Distribution of non-censored BLL_geq_5 values")
+    }
+    if (has_bll_geq_10) {
+        lead_distribution[[2]] <- state_data |>
+            filter(!BLL_geq_10_suppressed) |>
+            ggplot(aes(x = BLL_geq_10)) +
+            geom_histogram(binwidth = 1) +
+            labs(title = "Distribution of non-censored BLL_geq_10 values")
+    }
+
+    # get correlation plot of predictors
+    pred_correlation <- get_corplot(state_data) # defined below
+
+    return(list(lead_summary, pred_summary, lead_distribution, pred_correlation))
+}
+
+
+lead_count_model_summary <- function(state_name, year = 2010, outcome = "BLL_geq_5"){
+    # load data from string or accept already stored dataframe
+    state_data <- take_state_data(state_name, year)
+
+    library(cmdstanr)
+
+    # load stan model
+    find_and_set_directory("lead_map/models")
+    stan_model <- cmdstan_model("poisson_many_X_suppression.stan")
+
+    # create stan data with all features based on outcome variable
+    if (outcome == "BLL_geq_5") {
+      stan_data_many_X <- list(
+        N_obs = state_data |> filter(!BLL_geq_5_suppressed) |> count() |> pull(n),
+        N_cens = state_data |> filter(BLL_geq_5_suppressed) |> count() |> pull(n),
+        K = length(features),
+        y_obs = state_data |> filter(!BLL_geq_5_suppressed) |> pull(BLL_geq_5) |> as.numeric(),
+        x_obs = state_data |> filter(!BLL_geq_5_suppressed) |> select(all_of(features)),
+        x_cens = state_data |> filter(BLL_geq_5_suppressed) |> select(all_of(features)),
+        kids_obs = state_data |> filter(!BLL_geq_5_suppressed) |> pull(under_yo5_pplE),
+        kids_cens = state_data |> filter(BLL_geq_5_suppressed) |> pull(under_yo5_pplE),
+        ell = max(state_data$ell_5, na.rm = TRUE) |> as.integer()
+      )
+    } else if (outcome == "BLL_geq_10") {
+      stan_data_many_X <- list(
+        N_obs = state_data |> filter(!BLL_geq_10_suppressed) |> count() |> pull(n),
+        N_cens = state_data |> filter(BLL_geq_10_suppressed) |> count() |> pull(n),
+        K = length(features),
+        y_obs = state_data |> filter(!BLL_geq_10_suppressed) |> pull(BLL_geq_10) |> as.numeric(),
+        x_obs = state_data |> filter(!BLL_geq_10_suppressed) |> select(all_of(features)),
+        x_cens = state_data |> filter(BLL_geq_10_suppressed) |> select(all_of(features)),
+        kids_obs = state_data |> filter(!BLL_geq_10_suppressed) |> pull(under_yo5_pplE),
+        kids_cens = state_data |> filter(BLL_geq_10_suppressed) |> pull(under_yo5_pplE),
+        ell = max(state_data$ell_10, na.rm = TRUE) |> as.integer()
+      )
+    } else {
+      stop("Outcome must be either BLL_geq_5 or BLL_geq_10")
+    }
+
+    # sample
+    fit <- stan_model$sample(
+    data = stan_data_many_X,
+    seed = 1234,
+    chains = 4, 
+    parallel_chains = 4,
+    refresh = 500
+    )
+
+    # return summary
+    fit$summary() |> 
+    # rename all of the beta[j] by their feature names
+    mutate(variable = ifelse(str_detect(variable, "beta"), paste0(features[as.numeric(str_extract(variable, "[0-9]+"))]), variable)) |>
+    # unselect all variables that contain tilde
+    filter(!str_detect(variable, "tilde")) |>
+    knitr::kable(digits = 3)
+}
+
+### Data plotting
+
+# Correlation plot
+get_corplot <- function(state_data, features = c("median_annual_incomeE","house_price_medianE","poor_fam_propE","black_ppl_propE", "bp_pre_1959E_prop", "svi_socioeconomic_pctile")){
+  # use geomtile to plot correlation matrix
+  state_data |> 
+    select(all_of(features)) |> 
+    cor() |> 
+    melt() |>
+    ggplot(aes(Var1, Var2, fill = value)) +
+    geom_tile() +
+    geom_text(aes(label = sprintf("%.2f", value)), color = "black", size = 3) +
+    scale_fill_gradient2(low = "blue", high = "red", mid = "white", midpoint = 0, limit = c(-1, 1)) +
+    theme_minimal() + 
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    coord_fixed() +
+    # hide Var1 Var2 labels
+    theme(axis.title.x = element_blank(),
+          axis.title.y = element_blank())
+}
+
+# Get spread of (normalized features) in the data
+get_spread_plot <- function(state_data, features = c("median_annual_incomeE","house_price_medianE","poor_fam_propE","black_ppl_propE", "bp_pre_1959E_prop", "svi_socioeconomic_pctile")){
+    # plot in grid, 3 cols
+    state_data |> 
+        select(all_of(features)) |> 
+        gather() |> 
+        ggplot(aes(value)) +
+        geom_histogram(bins = 30, alpha = 0.5) +
+        facet_wrap(~key, scales = "free") +
+        theme_minimal()
+}
