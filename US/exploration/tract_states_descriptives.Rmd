@@ -23,10 +23,10 @@ ratio_variables <- metadata$proportion_variables
 count_variables <- metadata$count_variables
 ```
 
-Practice with ma
 ```{r}
 source("compute_descriptives.R")
 ```
+
 ### TRACT states
 ```{r}
 print(tract_states)
