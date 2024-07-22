@@ -25,7 +25,7 @@ take_state_data <- function(state_name, year = NULL) {
   if (is.character(state_name)) { # accepts either str passed to the loading pipeline or an already loaded df
     # remove obj if present (note: bug proof but is this desireable?)
     if (exists(str_to_lower(state_name))) {
-      rm(list = str_to_lower(state_name))
+      rm(list = str_to_lower(state_name), envir = .GlobalEnv)
     }
     if (state_name %in% zip_states) {
       return(single_state_zip(state_name, filter_year = year)) # from load_and_preprocess.R
