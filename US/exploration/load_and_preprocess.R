@@ -28,7 +28,7 @@ features <- c("median_annual_incomeE","house_price_medianE","poor_fam_propE","bl
 single_state_tract <- function(state_name, drop_outcome = c(), pred_preprocess_func = NULL, filter_year = NULL){
     # load and assign the state data
     load_state(state_name, from_raw = FALSE) # from 00_merging_functions.R 
-    state_data <- get(str_to_lower(state_name))
+    state_data <- get(str_to_lower(state_name)) # (overwritten after merge)
     
     # Apply conditional filtering based on filter_year
     if (!is.null(filter_year)) {
@@ -46,16 +46,21 @@ single_state_tract <- function(state_name, drop_outcome = c(), pred_preprocess_f
       preprocess_pred_data(info_vars = tract_info_vars, additional_preprocess = pred_preprocess_func)
 
     # merge
-    state_merged <- state_pred |> 
-        left_join(state_lead, by = c("TRACT" = "tract")) |> 
+    state_merged <- state_lead |> 
+        left_join(state_pred, by = c("tract" = "TRACT")) |> 
         final_checks(drop=drop_outcome)
+
+    # assign merged data to state name (for convenience of further analysis)
+    assign(str_to_lower(state_name), state_merged, envir = .GlobalEnv)
+
+    return(state_merged)
 }
 
 # HIGH LEVEL loader for zips
 single_state_zip <- function(state_name, drop_outcome = c(), pred_preprocess_func = NULL, filter_year = NULL){
     # load and assign the state data
     load_state(state_name, from_raw = FALSE) # from 00_merging_functions.R 
-    state_data <- get(str_to_lower(state_name))
+    state_data <- get(str_to_lower(state_name)) # (overwritten after merge)
     
     # Apply conditional filtering based on filter_year
     if (!is.null(filter_year)) {
@@ -75,9 +80,14 @@ single_state_zip <- function(state_name, drop_outcome = c(), pred_preprocess_fun
         preprocess_pred_data(info_vars = zip_info_vars, additional_preprocess = pred_preprocess_func)
 
     # merge
-    state_merged <- state_pred |> 
-        left_join(state_lead, by = "zip") |> 
+    state_merged <- state_lead |> 
+        left_join(state_pred, by = "zip") |> 
         final_checks(drop=drop_outcome)
+    
+    # assign merged data to state name (for convenience of further analysis)
+    assign(str_to_lower(state_name), state_merged, envir = .GlobalEnv)
+
+    return(state_merged)
 }
 
 ### auxiliary functions for high level wrapper above
