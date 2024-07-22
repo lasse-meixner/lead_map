@@ -1,0 +1,77 @@
+---
+ title: "Descriptives of tract states"
+ format:
+     html:
+       code-fold: true
+---
+
+```{r}
+library(tidyverse)
+library(jsonlite)
+source("../../init.R")
+source("load_and_preprocess.R")
+```
+Getting metadata
+```{r}
+# get metadata from ~US root
+metadata  <- fromJSON("../metadata.json")
+# extract required metadata (lists)
+zip_states <- metadata$zip_states
+tract_states <- metadata$tract_states
+id_variables <- metadata$id_variables
+ratio_variables <- metadata$proportion_variables
+count_variables <- metadata$count_variables
+```
+
+Practice with ma
+```{r}
+source("compute_descriptives.R")
+```
+### TRACT states
+```{r}
+print(tract_states)
+```
+```{r}
+data_summary("OH", year = NULL)
+```
+```{r}
+data_summary("PA", year = NULL)
+```
+```{r}
+data_summary("CO", year = NULL)
+```
+
+```{r}
+data_summary("MD", year = NULL)
+```
+
+```{r}
+data_summary("MA", year = NULL)
+```
+
+```{r}
+data_summary("MN", year = NULL)
+```
+
+NYC is not available.
+
+```{r}
+data_summary("NC", year = NULL)
+```
+
+```{r}
+data_summary("IN", year = NULL)
+```
+
+```{r}
+data_summary("OR", year = NULL)
+```
+
+```{r}
+data_summary("NH", year = NULL)
+```
+
+```{r}
+data_summary("WI", year = NULL)
+```
+
