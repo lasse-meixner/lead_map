@@ -1,0 +1,19 @@
+---
+ title: "Descriptives of zip states"
+ format:
+     html:
+       code-fold: true
+---
+
+### ZIP states
+```{r}
+print(zip_states)
+```
+
+```{r}
+data_summary("CT", year = NULL)
+```
+
+The only possible reason for this loss of observations after the merging are the final checks which assert that the number of kids must be weakly greater than the number of tested (cf. load_and_preprocess.R: function -> "final_checks()"). Either the testing numbers are too high, or our ZIP estimate of the number of kids is too low, or the population of kids has fallen by more than the "untested" margin in most ZIPs in the period of a few years (which is very unlikely).
+
+Could it have to do with cross walking, or is it a raw data issue?
