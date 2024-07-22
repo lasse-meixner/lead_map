@@ -50,8 +50,8 @@ single_state_tract <- function(state_name, drop_outcome = c(), pred_preprocess_f
         left_join(state_pred, by = c("tract" = "TRACT")) |> 
         final_checks(drop=drop_outcome)
 
-    # assign merged data to state name (for convenience of further analysis)
-    assign(str_to_lower(state_name), state_merged, envir = .GlobalEnv)
+    # assign merged data to "{state_name}_merged" (for convenience of further analysis)
+    assign(str_to_lower(paste0(state_name, "_merged")), state_merged, envir = .GlobalEnv)
 
     return(state_merged)
 }
@@ -84,8 +84,8 @@ single_state_zip <- function(state_name, drop_outcome = c(), pred_preprocess_fun
         left_join(state_pred, by = "zip") |> 
         final_checks(drop=drop_outcome)
     
-    # assign merged data to state name (for convenience of further analysis)
-    assign(str_to_lower(state_name), state_merged, envir = .GlobalEnv)
+    # assign merged data to "{state_name}_merged" (for convenience of further analysis)
+    assign(str_to_lower(paste0(state_name, "_merged")), state_merged, envir = .GlobalEnv)
 
     return(state_merged)
 }
