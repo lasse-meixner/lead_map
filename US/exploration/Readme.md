@@ -10,5 +10,10 @@ Install [miniconda](https://docs.conda.io/en/latest/miniconda.html) if you don't
 
 The app depends on a shapefile file from the `raw_data/` directory that can be created by sourcing `get_tract_geometries.R`. If this file is missing, the app will throw an appropriate error message during launch.
 
-## `compute_descriptives.R`
-TODO:
+## `tract_states_descriptives.Rmd`
+
+Provides summary statistics and descriptive plots for US tract states. Depends on wrapping functions from `load_and_preprocess.R` as well as `compute_descriptives.R`.
+
+## `zip_states_descriptives.Rmd`
+
+Same as above but for ZIPS.
