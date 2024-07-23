@@ -1,0 +1,88 @@
+data {
+    int<lower=0> N_obs;
+    int<lower=0> N_cens;
+    int<lower=1> K; // number of predictors in poisson
+    int<lower=1> L; // number of predictors in logit (from x)
+    array[N_obs] int<lower=0> y_obs; 
+    // add P predictors (median_income, house_price, poverty, black_prop, building_period, svi) as individual vectors - to be able to specify priors on individual coefs
+    vector[N_obs] median_income_obs;
+    vector[N_obs] house_price_obs;
+    vector[N_obs] poverty_obs;
+    vector[N_obs] black_prop_obs;
+    vector[N_obs] building_period_obs;
+    vector[N_obs] svi_obs;
+    // censored data
+    vector[N_cens] median_income_cens;
+    vector[N_cens] house_price_cens;
+    vector[N_cens] poverty_cens;
+    vector[N_cens] black_prop_cens;
+    vector[N_cens] building_period_cens;
+    vector[N_cens] svi_cens;
+    // pediatrician as exclusion 
+    vector[N_obs] z_obs; // exclusion
+    vector[N_cens] z_cens;
+    vector[N_obs] kids_obs; // offset
+    vector[N_cens] kids_cens;
+    array[N_cens] int<lower=0> ell;
+ }
+
+ transformed data {
+    int<lower=0> N = N_obs + N_cens;
+    vector[N_obs] log_kids_obs = log(kids_obs);
+    vector[N_cens] log_kids_cens = log(kids_cens);
+    // create composite vectors for predictors (ignoring the censoring for PPC)
+    vector[N] median_income = append_row(median_income_obs, median_income_cens);
+    vector[N] house_price = append_row(house_price_obs, house_price_cens);
+    vector[N] poverty = append_row(poverty_obs, poverty_cens);
+    vector[N] black_prop = append_row(black_prop_obs, black_prop_cens);
+    vector[N] building_period = append_row(building_period_obs, building_period_cens);
+    vector[N] svi = append_row(svi_obs, svi_cens);
+    // create composite vectors for exclusion
+    vector[N] z = append_row(z_obs, z_cens);
+    // create composite vectors for kids
+    vector[N] log_kids = append_row(log_kids_obs, log_kids_cens);
+}
+
+ parameters {
+    // poisson params
+    real alpha;
+    real beta_inc;
+    real beta_hp;
+    real beta_poverty;
+    real beta_black;
+    real beta_bp;
+    real beta_svi;
+    // logit params
+    real gamma;
+    real delta; // for pediatricians
+    real kappa_inc;
+    real kappa_bp;
+    real kappa_svi;
+ }
+
+// omit model for now -> want to do prior predictive checks. we want these priors to a) include some additional information we have about these predictors effect on testing & lead, and b) regularize estimation in the weakly identified model.
+
+generated quantities {
+    // poisson priors
+    real alpha ~ normal(-1.69, 10);
+    real beta_inc ~ normal(0, 1);
+    real beta_hp ~ normal(0, 1);
+    real beta_poverty ~ normal(0, 1);
+    real beta_black ~ normal(0, 1);
+    real beta_bp ~ normal(0, 1);
+    real beta_svi ~ normal(0, 1);
+
+    // logit priors
+    real gamma ~ normal(0, 6) //
+    real delta ~ lognormal(1, 1.5); // for pediatricians
+    real kappa_inc ~ normal(0, 1);
+    real kappa_bp ~ lognormal(0, 0.4);
+    real kappa_svi ~ normal(0, 1);
+
+    // simulate quantities
+    real mu[N]  = exp(alpha + beta_inc * median_income + beta_hp * house_price + beta_poverty * poverty + beta_black * black_prop + beta_bp * building_period + beta_svi * svi);
+    real pi[N] = inv_logit(gamma + delta * z + kappa_inc * median_income + kappa_bp * building_period + kappa_svi * svi);
+    real lambda[N] = mu .* pi;
+    int y_thinned[N] = poisson_rng(lambda);
+    int y_star[N] = poisson_rng(mu);
+}
