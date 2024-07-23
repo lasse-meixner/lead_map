@@ -1,0 +1,227 @@
+---
+title: "Understanding identification in pogit from the ground up pt. 2"
+format:
+    html:
+      code-fold: true
+---
+
+Part 1 covered some first modifications of the most simple pogit in search of what breaks our model. As long as the data was normally distributed, everything sees fine unless one introduces nearly-perfect multicollinearity in the logit. This is not a big insight since we know this to break identification in any (index) model.
+
+In the real data, we also have identification issues **even if** the logit variables are few and barely correlated at all. So we must look elsewhere.
+
+My other suspicion was that identification in the real data fails because of particularities of the DGP. On paper, if e.g. both $X$ and $Z$ are binary, I think that (without further restrictions) identification of the poisson parameters is impossible. With continuous data, I first I thought that maybe identification fails if there is a high concentration of data points for which the logit probability has sufficiently little curvature. 
+
+Here I'll try to dive a little into the dgp-related questions that might be related to breaking the sampling for Rhode Island and some of the tracts I've tried. There I observed that the implied thinning probabilities (implied by the great mass of parameter values sampled by the four chains, even though poorly converging) are concentrated at 1. The main question in the back of my mind is if there is a **general** identification issues where **we can never rule** out high thinning rates ($\pi$) and low occurence rates ($\mu$) if we put X in the logit, or if this a particular feature of a DGP that would make identification difficult for the sampler (which is very unlikely to be the case).
+
+## Something about the curvature?
+
+The second derivative of the logistic is
+
+$$\frac{d^2}{dx^2} \text{logistic}(x) = -\frac{e^x(e^x - 1)}{(e^x + 1)^3}$$
+
+which tends to 0 when the index (which measure the *log odds*) $x$ goes to either $-\infty$ or $\infty$ and is zero at $x=0$. For these values, the curvature is small and the function therefore approximately linear. This corresponds to probabilities approaching 0 or 1 respectively, or those very close to 0.5.
+
+```{r, echo=FALSE}
+library(dplyr)
+library(ggplot2)
+# plot the logistic and its second derivative
+x_seq <- seq(-10, 10, length.out = 1000)
+logistic <- function(x) 1 / (1 + exp(-x))
+d2_logistic <- function(x) -exp(x) * (exp(x) - 1) / (exp(x) + 1)^3
+
+logistic_v  <- logistic(x_seq)
+d2_logistic_v <- d2_logistic(x_seq)
+
+data.frame(x = x_seq, logistic_v = logistic_v, d2_logistic_v = d2_logistic_v) |>
+  ggplot(aes(x = x)) +
+  geom_line(aes(y = logistic_v), color = "black") +
+  geom_line(aes(y = d2_logistic_v), color = "grey") +
+  labs(title = "Logistic and its second derivative",
+       x = "x",
+       y = "value")
+```
+
+Let us start by simulating the same data as in pt. 1 and have a look at how the $\pi_i$ values, which are the thinning probabilities, are distributed.
+
+```{r}
+# data simulation as in Ch1
+set.seed(1999)
+library(mvtnorm)
+
+n <- 1000
+rho <- 0.5
+S <- matrix(c(1, rho,
+              rho, 1), 2, 2, byrow = TRUE)
+x_z <- rmvnorm(n, sigma = S)
+x <- x_z[,1] 
+z <- x_z[,2] 
+
+alpha <- 0.5 # poisson intercept
+beta <- 1 # x in poisson
+log_mu <- alpha + beta * (x - mean(x)) # poisson rate
+ystar <- rpois(n, exp(log_mu)) # unobserved count
+
+gamma <- (-0.5) # logit intercept
+delta <- 1.2 # excluded z in logit
+kappa <- 0.5 # x in logit
+logit_pi <- gamma + delta * (z - mean(z)) + kappa * (x - mean(x)) # logit probability
+y <- rbinom(n, size = ystar, prob = plogis(logit_pi)) # observed (thinned) count
+
+true_params <- c(alpha = alpha, beta = beta, gamma = gamma, delta = delta, kappa = kappa)
+
+```
+
+We saw that under this DGP, there are no model problems and sampling is efficient.
+
+Here our thinning probabilities are distributed as follows:
+
+```{r}
+library(ggplot2)
+library(dplyr)
+
+x_seq <- seq(min(logit_pi), max(logit_pi), length.out = 1000)
+d2_logistic_df <- data.frame(x = x_seq, d2_logistic_v = d2_logistic(x_seq), logit_pi = logit_pi)
+
+d2_logistic_df |>
+    ggplot() +
+    geom_histogram(aes(x = logit_pi), bins = 30, fill = "grey") +
+    geom_line(aes(x = x, y = d2_logistic_v*300), color = "black") +
+    labs(title = "Distribution of thinning probabilities (log odds)",
+             x = "log odds",
+             y = "count")
+```
+
+This implies the following distribution of thinning probabilities:
+
+```{r}
+hist(plogis(logit_pi))
+```
+
+As a heuristic metric, let us consider the (empirical) expected curvature of the the logistic function at the thinning probabilities.
+
+$$\frac{1}{n} \sum_{i=1}^n -\frac{e^{\pi_i}(e^{\pi_i} - 1)}{(e^{\pi_i} + 1)^3}$$
+
+```{r}
+mean(d2_logistic(logit_pi))
+```
+
+Let's now make this more ugly: We modify the DGP such that the thinning probabilities in our samples are more concentrated around zero and 1 (the sampling chains in for the real data draw mostly ones - although the chains do not mix well...).
+
+I will first leave x nicely normally distributed, and just crank up its influence on the logit part of the model to push the thinning probabilities towards 0 and 1.
+
+```{r}
+kappa_new <- 3 # x in logit
+```
+
+Creating new thinning probabilities:
+
+```{r}
+logit_pi_new <- gamma + delta * (z - mean(z)) + kappa_new * (x - mean(x))
+probs <- plogis(logit_pi_new)
+hist(probs)
+```
+
+and has a much lower expected curvature:
+
+```{r}
+mean(d2_logistic(logit_pi_new))
+```
+
+Let us now compare estimation. I ignore the censoring which matters only for computational matters but not the core of the identification problem.
+
+```{r}
+library(cmdstanr)
+
+# load model
+stan_model <- cmdstan_model("thinned_poisson_w_priors_x_logit.stan")
+
+# original data
+dat <- list(N = n, y = y, x = x, z = z, alpha_prior_var = 1)
+
+# fit
+fit <- stan_model$sample(data = dat, chains = 4, parallel_chains = 4, refresh = 500)
+```
+
+```{r, echo=FALSE}
+library(bayesplot)
+library(ggplot2)
+
+# auxiliary function to plot diagnostics (posterior draws, trace plots)
+
+plot_diagnostics <- function(fit){
+    draws <- fit$draws(format = "draws_df") |>
+        dplyr::select(-lp__)
+
+    fig1 <- mcmc_areas(draws, prob = 0.9) + ggtitle("Posterior draws") +
+        theme_minimal()
+
+    fig2 <- mcmc_trace(draws) + ggtitle("Trace plots") + theme_minimal()
+
+    fig3 <- mcmc_rank_ecdf(draws, prob = 0.99, plot_diff = TRUE) + ggtitle("Cumulative rank plots (difference)") +
+    theme_minimal()
+
+    # potentially add plot for divergent transitions
+
+    list(fig1, fig2, fig3)
+}
+```
+
+```{r}
+plot_diagnostics(fit)
+```
+
+Now we generate data with the new DGP and estimate the model again.
+
+```{r}
+# new data
+y_new <- rbinom(n, size = ystar, prob = plogis(logit_pi_new))
+dat_new <- list(N = n, y = y_new, x = x, z = z, alpha_prior_var = 1)
+
+# fit
+fit_new <- stan_model$sample(data = dat_new, chains = 4, parallel_chains = 4, refresh = 500)
+
+plot_diagnostics(fit_new)
+```
+
+```{r}
+fit_new$summary() |>
+    knitr::kable(digits = 2)
+```
+
+This does lead to identification issues! We can also push this further to the extreme: Let's make the thinning probabilities even more concentrated around 0 and 1.
+
+```{r}
+kappa_new_2 <- 10 # x in logit
+logit_pi_new_2 <- gamma + delta * (z - mean(z)) + kappa_new_2 * (x - mean(x))
+probs_new_2 <- plogis(logit_pi_new_2)
+hist(probs_new_2)
+```
+
+Average curvature is now even lower:
+
+```{r}
+mean(d2_logistic(logit_pi_new_2))
+```
+
+1.  Estimating this should be even worse:
+
+```{r}
+y_new_2 <- rbinom(n, size = ystar, prob = plogis(logit_pi_new_2))
+dat_new_2 <- list(N = n, y = y_new_2, x = x, z = z, alpha_prior_var = 0.1)
+
+fit_new_2 <- stan_model$sample(data = dat_new_2, chains = 4, parallel_chains = 4, refresh = 500)
+
+fit_new_2$summary() |>
+    knitr::kable(digits = 2)
+```
+
+```{r}
+plot_diagnostics(fit_new_2)
+```
+
+::: callout-note
+For some very odd reason whenever this is run by command this gives very different results than the output from rendering the html file... Because of different initializations? I tried this about 2 times and it is consistenty different. It is possible that for even extremer values of $\kappa$ the extremism might reduce stochastic variability in a way that makes the model converge better again, this I have to figure out as well. But it doesnt make sense that the results depend from where the code is run. I need to fix this \[#todo:\].
+:::
+It is even worse! So I find that if I change the DGP such that the thinning probabilities are concentrated more towards 0 or 1, we get bad sampling properties that hint at an identification problem. In other words, the model sampling breaks down if the sampler finds that thinning is **extreme** or **not substantially happening** for a sufficiently large number of data points. My intuition is telling me that the $\pi$'s look a lot like the case where X is binary, i.e. they do no sufficiently exploit the curvature along the logistic function.
+
+So the next testable claim would be: Pick X's that are sufficiently varying and imply a sufficiently balanced support of thinning probabilities. This is what I will do in the next chapter.

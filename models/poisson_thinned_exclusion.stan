@@ -37,7 +37,7 @@ data {
      real mu_cens = exp(log_kids_cens[j] + alpha + dot_product(beta,x_cens[j]));
      real pi_cens = inv_logit(gamma + delta * z_cens[j]);
      real lambda_cens = mu_cens * pi_cens;
-     target += log_diff_exp(poisson_lcdf(ell[j] | lambda_cens), poisson_lpmf(0 | lambda_cens));
+     target += log_diff_exp(poisson_lcdf(ell[j] | lambda_cens), poisson_lpmf(0 | lambda_cens)); // lcdf gives Pr(x <= ell), i.e. leq(!)
    }
  }
 
