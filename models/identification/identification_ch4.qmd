@@ -192,6 +192,12 @@ mi_fs_beta |> summary()
 
 Only for Michigan does the rate of pediatricians matter (in the Poisson), yet this is not robust to the functional form.
 
+```{r}
+ny_final <- single_state_zip("NY") # from model_analytics.R
+ny_fs <- first_stage(ny_final)
+ny_fs |> summary()
+```
+
 ### Model comparison
 
 Comparing the coefficients
