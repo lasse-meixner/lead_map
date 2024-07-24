@@ -1,8 +1,6 @@
 data {
     int<lower=0> N_obs;
     int<lower=0> N_cens;
-    int<lower=1> K; // number of predictors in poisson
-    int<lower=1> L; // number of predictors in logit (from x)
     array[N_obs] int<lower=0> y_obs; 
     // add P predictors (median_income, house_price, poverty, black_prop, building_period, svi) as individual vectors - to be able to specify priors on individual coefs
     vector[N_obs] median_income_obs;
@@ -23,7 +21,7 @@ data {
     vector[N_cens] z_cens;
     vector[N_obs] kids_obs; // offset
     vector[N_cens] kids_cens;
-    array[N_cens] int<lower=0> ell;
+    // array[N_cens] int<lower=0> ell;
  }
 
  transformed data {
@@ -43,46 +41,47 @@ data {
     vector[N] log_kids = append_row(log_kids_obs, log_kids_cens);
 }
 
- parameters {
-    // poisson params
-    real alpha;
-    real beta_inc;
-    real beta_hp;
-    real beta_poverty;
-    real beta_black;
-    real beta_bp;
-    real beta_svi;
-    // logit params
-    real gamma;
-    real delta; // for pediatricians
-    real kappa_inc;
-    real kappa_bp;
-    real kappa_svi;
- }
+// Note: commented out here since we are not estimating yet, just for oversight
+// parameters {
+//     // poisson params
+//     real alpha;
+//     real beta_inc;
+//     real beta_hp;
+//     real beta_poverty;
+//     real beta_black;
+//     real beta_bp;
+//     real beta_svi;
+//     // logit params
+//     real gamma;
+//     real delta; // for pediatricians
+//     real kappa_inc;
+//     real kappa_bp;
+//     real kappa_svi;
+//  }
 
 // omit model for now -> want to do prior predictive checks. we want these priors to a) include some additional information we have about these predictors effect on testing & lead, and b) regularize estimation in the weakly identified model.
 
 generated quantities {
-    // poisson priors
-    real alpha ~ normal(-1.69, 10);
-    real beta_inc ~ normal(0, 1);
-    real beta_hp ~ normal(0, 1);
-    real beta_poverty ~ normal(0, 1);
-    real beta_black ~ normal(0, 1);
-    real beta_bp ~ normal(0, 1);
-    real beta_svi ~ normal(0, 1);
+    // poisson priors (Note: It's quite "easy" to hit the upper bound on the rate...)
+    real alpha = normal_rng(-1.69, 4);
+    real beta_inc = normal_rng(0, 0.1);
+    real beta_hp = normal_rng(0, 0.1);
+    real beta_poverty = normal_rng(0, 0.1);
+    real beta_black = normal_rng(0, 0.1);
+    real beta_bp = normal_rng(0, 0.1);
+    real beta_svi = normal_rng(0, 0.1);
 
     // logit priors
-    real gamma ~ normal(0, 6) //
-    real delta ~ lognormal(1, 1.5); // for pediatricians
-    real kappa_inc ~ normal(0, 1);
-    real kappa_bp ~ lognormal(0, 0.4);
-    real kappa_svi ~ normal(0, 1);
+    real gamma = normal_rng(0, 1.2); // for logit intercept - from "Rethinking" playlist suggestion
+    real delta = lognormal_rng(1, 1.5); // for pediatricians (unscaled)
+    real kappa_inc = normal_rng(0, 1);
+    real kappa_bp = lognormal_rng(0, 0.4);
+    real kappa_svi = normal_rng(0, 1);
 
     // simulate quantities
-    real mu[N]  = exp(alpha + beta_inc * median_income + beta_hp * house_price + beta_poverty * poverty + beta_black * black_prop + beta_bp * building_period + beta_svi * svi);
-    real pi[N] = inv_logit(gamma + delta * z + kappa_inc * median_income + kappa_bp * building_period + kappa_svi * svi);
-    real lambda[N] = mu .* pi;
-    int y_thinned[N] = poisson_rng(lambda);
-    int y_star[N] = poisson_rng(mu);
+    vector[N] mu = exp(alpha + beta_inc * median_income + beta_hp * house_price + beta_poverty * poverty + beta_black * black_prop + beta_bp * building_period + beta_svi * svi);
+    vector[N] pi = inv_logit(gamma + delta * z + kappa_inc * median_income + kappa_bp * building_period + kappa_svi * svi);
+    vector[N] lambda = mu .* pi;
+    array[N] int<lower=0> y_thinned = poisson_rng(lambda);
+    array[N] int<lower=0> y_star = poisson_rng(mu);
 }

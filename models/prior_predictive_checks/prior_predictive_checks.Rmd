@@ -1,0 +1,105 @@
+---
+ title: "Some prior predictive checks"
+ format:
+     html:
+       code-fold: true
+---
+
+```{r}
+library(tidyverse)
+library(jsonlite)
+source("../../init.R")
+```
+
+Navigating to the US directory to load use the US data loading wrappers.
+
+```{r}
+find_and_set_directory("US/exploration")
+source("load_and_preprocess.R")
+find_and_set_directory("US/exploration")
+source("compute_descriptives.R")
+```
+
+In particular, I want to focus on two tract states, Ohio and Massachusetts, as well as two ZIP states, New Jersey and Illinois.
+
+```{r}
+data_summary("OH", year = 2010)
+```
+
+
+For now, I take no additional preprocessing steps on the predictors passed to the logit side, income, building period, and SVI.
+
+```{r}
+# load STAN model
+library(cmdstanr)
+
+find_and_set_directory("models/prior_predictive_checks")
+ppc_stan <- cmdstan_model("poisson_thinned_exclusion_ppc.stan")
+
+# create function to prep data for given STAN model
+
+stan_data <- function(state_final){
+  list(
+    N_obs = state_final |> filter(!BLL_geq_5_suppressed) |> count() |> pull(n),
+    N_cens = state_final |> filter(BLL_geq_5_suppressed) |> count() |> pull(n),
+    y_obs = state_final |> filter(!BLL_geq_5_suppressed) |> pull(BLL_geq_5),
+    # obs
+    median_income_obs = state_final |> filter(!BLL_geq_5_suppressed) |> pull(median_annual_incomeE),
+    house_price_obs = state_final |> filter(!BLL_geq_5_suppressed) |> pull(house_price_medianE),
+    poverty_obs = state_final |> filter(!BLL_geq_5_suppressed) |> pull(poor_fam_propE),
+    black_prop_obs = state_final |> filter(!BLL_geq_5_suppressed) |> pull(black_ppl_propE),
+    building_period_obs = state_final |> filter(!BLL_geq_5_suppressed) |> pull(bp_pre_1959E_prop),
+    svi_obs = state_final |> filter(!BLL_geq_5_suppressed) |> pull(svi_socioeconomic_pctile),
+    # censored
+    median_income_cens = state_final |> filter(BLL_geq_5_suppressed) |> pull(median_annual_incomeE),
+    house_price_cens = state_final |> filter(BLL_geq_5_suppressed) |> pull(house_price_medianE),
+    poverty_cens = state_final |> filter(BLL_geq_5_suppressed) |> pull(poor_fam_propE),
+    black_prop_cens = state_final |> filter(BLL_geq_5_suppressed) |> pull(black_ppl_propE),
+    building_period_cens = state_final |> filter(BLL_geq_5_suppressed) |> pull(bp_pre_1959E_prop),
+    svi_cens = state_final |> filter(BLL_geq_5_suppressed) |> pull(svi_socioeconomic_pctile),
+    # pediatricians & kids
+    z_obs = state_final |> filter(!BLL_geq_5_suppressed) |> pull(ped_per_100k),
+    z_cens = state_final |> filter(BLL_geq_5_suppressed) |> pull(ped_per_100k),
+    kids_obs = state_final |> filter(!BLL_geq_5_suppressed) |> pull(under_yo5_pplE),
+    kids_cens = state_final |> filter(BLL_geq_5_suppressed) |> pull(under_yo5_pplE)
+  )
+}
+```
+
+```{r}
+# sample from prior predictive distribution
+oh_stan <- stan_data(oh_merged)
+
+ppc_samples <- ppc_stan$sample(
+  data = oh_stan,
+  iter_sampling = 100,
+  fixed_param = TRUE) # required for RNG?
+```
+```{r}
+# want to extract the samples
+ppc_samples$summary() |> filter(str_detect(variable, "y_thinned")) |> knitr::kable(digits = 3)
+```
+
+```{r}
+# add y_thinned from $summary to oh_merged
+oh_merged_ppc <- oh_merged |> 
+  bind_cols(ppc_samples$summary() |> 
+              filter(str_detect(variable, "y_thinned")) |>
+              select(c(mean, median, q5, q95)))
+```
+
+```{r}
+library(bayesplot)
+
+# extract and plot draws
+ppc_samples$draws(format = "draws_df") |> 
+  # select columns that contain "y_thinned"
+  select(starts_with("y_thinned")) |>
+  # randomly select 100 columns of those (for speed)
+  select(sample(1:4000, 10)) |>
+  mcmc_areas(prob = 0.9, alpha = 0.1) +
+  ggtitle("Prior predictive checks for Ohio") +
+  xlim(0,100)
+
+```
+
