@@ -8,6 +8,7 @@ data {
   vector[N_obs] kids_obs;
   vector[N_cens] kids_cens;
   int<lower=0> ell;
+  bool zero_sup;
 }
 
 transformed data {
@@ -24,15 +25,20 @@ parameters {
 }
 
 model {
+  // add priors
+  alpha ~ normal(0, 2);
+  beta ~ normal(0, 1); // implicitely vectorized
   y_obs ~ poisson_log_glm(x_obs, alpha, beta); 
   real mu_j;
   for(j in 1:N_cens) {
     mu_j = exp(log_kids_cens[j] + alpha + dot_product(beta, x_cens[j])); // Is there a better way to do this?
-    target += log_diff_exp(poisson_lcdf(ell | mu_j), poisson_lpmf(0 | mu_j));
+    if (zero_sup) 
+      target += poisson_lcdf(ell | mu_j);
+    else
+      target += log_diff_exp(poisson_lcdf(ell | mu_j), poisson_lpmf(0 | mu_j));
   }
 }
 
 generated quantities {
-  array[N] int<lower=0> y_tilde
-    = poisson_log_rng(log_kids + alpha + X * beta);
+  array[N] int<lower=0> y_star = poisson_log_rng(log_kids + alpha + X * beta);
 }
