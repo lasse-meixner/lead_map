@@ -36,17 +36,19 @@ load_state <- function(state_str, from_raw = FALSE) {
       tryCatch(source(paste0("clean-", toupper(state_str), ".R")),
                 error = function(e) {
                   print(paste0("Error loading ", state_str, " file: ", e$message))
-                })
+                }
+              )
   } else {
     print(paste0("Loading ", state_str, " from processed_data"))
     # try to set wd to /processed_data/ and load file, otherwise catch error and rerun with from_raw = TRUE
     file_name <- paste0(str_to_lower(state_str), ".csv")
     find_and_set_directory("US/lead_data/reuters/processed_data")
-    tryCatch(assign(str_to_lower(state_str), read_csv(file_name)),
+    tryCatch(assign(str_to_lower(state_str), read_csv(file_name), envir = .GlobalEnv),
               error = function(e) {
                 print(paste0("Error loading ", state_str, " file: ", e$message))
                 load_state(state_str, from_raw = TRUE)
-              })
+              }
+            )
   }
 }
 
