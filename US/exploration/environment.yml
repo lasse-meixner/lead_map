@@ -1,0 +1,9 @@
+name: lead_map
+channels:
+  - defaults
+dependencies:
+  - dash
+  - python=3.10
+  - pandas
+  - plotly
+  - geopandas
