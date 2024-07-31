@@ -73,9 +73,9 @@ generated quantities {
 
     // logit priors
     real gamma = normal_rng(0, 1.2); // for logit intercept - from "Rethinking" playlist suggestion
-    real delta = lognormal_rng(1, 1.5); // for pediatricians (unscaled)
+    real delta = normal_rng(0, 1); // for pediatricians
     real kappa_inc = normal_rng(0, 1);
-    real kappa_bp = lognormal_rng(0, 0.4);
+    real kappa_bp = normal_rng(0, 1); //lognormal_rng(0, 0.4);
     real kappa_svi = normal_rng(0, 1);
 
     // simulate quantities
