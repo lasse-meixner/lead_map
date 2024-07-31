@@ -1,13 +1,13 @@
 data {
   int<lower=0> N_obs;
   int<lower=0> N_cens;
-  int<lower=1> K;
-  array[N_obs] int<lower=0> y_obs; // BLL_geq_*
+  int<lower=1> K; // nr. features
+  array[N_obs] int<lower=0> y_obs; // non-suppressed outcome count
   matrix[N_obs, K] x_obs; 
   matrix[N_cens, K] x_cens;
   vector[N_obs] kids_obs;
   vector[N_cens] kids_cens;
-  int<lower=0> ell; // BLL reporting threshold
+  int<lower=0> ell; // upper reporting threshold
   int<lower=0, upper=1> zero_sup; // whether count of 0 is reported or included in suppression range 
 }
 
@@ -31,7 +31,7 @@ model {
   y_obs ~ poisson_log(log_kids_obs + alpha + x_obs * beta);
   real mu_j;
   for(j in 1:N_cens) {
-    mu_j = exp(log_kids_cens[j] + alpha + dot_product(beta, x_cens[j])); // Is there a better way to do this?
+    mu_j = exp(log_kids_cens[j] + alpha + dot_product(beta, x_cens[j]));
     if (zero_sup) 
       target += poisson_lcdf(ell | mu_j);
     else

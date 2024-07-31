@@ -4,6 +4,7 @@
 library(tidyverse)
 library(jsonlite)
 library(modelsummary)
+library(kableExtra)
 source("../../init.R")
 
 ### metadata
@@ -76,7 +77,7 @@ data_summary <- function(state_name, year = 2010){
         select(where(~!all(is.na(.))))
     
     # predictor overview
-    pred_summary <- datasummary_skim(state_data, output = "kableExtra") # from modelsummary pkg
+    pred_summary <- datasummary_skim(state_data, type = "numeric", histogram = TRUE)
     
     # get density of non-suppressed BLL values for BLL_geq_5 and BLL_geq_10 if they exist
     lead_distribution <- list()
@@ -102,11 +103,12 @@ data_summary <- function(state_name, year = 2010){
 }
 
 
-lead_count_model_summary <- function(state_name, year = 2010, outcome = "BLL_geq_5"){
+lead_count_model_summary <- function(state_name, year = 2010, outcome = "BLL_geq_5", plot=TRUE){
     # load data from string or accept already stored dataframe
     state_data <- take_state_data(state_name, year)
 
     require(cmdstanr)
+    require(bayesplot)
 
     # load stan model
     find_and_set_directory("lead_map/models")
@@ -149,19 +151,29 @@ lead_count_model_summary <- function(state_name, year = 2010, outcome = "BLL_geq
       seed = 1234,
       chains = 4, 
       parallel_chains = 4,
-      refresh = 500
+      refresh = NULL,
+      show_messages = FALSE
     )
 
     # return summary
-    fit$summary() |> 
+    fit_summary <- fit$summary() |> 
     # rename all of the beta[j] by their feature names
     mutate(variable = ifelse(str_detect(variable, "beta"), paste0(features[as.numeric(str_extract(variable, "[0-9]+"))]), variable)) |>
     # unselect all variables that contain tilde
-    filter(!str_detect(variable, "tilde") & !str_detect(variable, "thinned") & !str_detect(variable, "star")) |>
-    knitr::kable(digits = 3)
+    filter(!str_detect(variable, "tilde") & !str_detect(variable, "thinned") & !str_detect(variable, "star"))
+
+    if (plot){
+      coef_plot <- fit$draws(format = "draws_df") |>
+        rename_with(~features[as.numeric(str_extract(., "[0-9]+"))], starts_with("beta")) |>
+        select(features) |>
+        mcmc_areas(prob = 0.8) +
+        theme_minimal()
+    }
+
+    list(table = fit_summary, plot = coef_plot)
 }
 
-pr_tested_model_summary <- function(state_name, year = 2010, plot=TRUE){
+test_count_model_summary <- function(state_name, year = 2010, plot=TRUE){
     state_data <- take_state_data(state_name, year)
 
     require(cmdstanr)
@@ -169,27 +181,24 @@ pr_tested_model_summary <- function(state_name, year = 2010, plot=TRUE){
     
     # load stan model
     find_and_set_directory("lead_map/models")
-    stan_model <- cmdstan_model("logit_many_X_suppression.stan")
+    stan_model <- cmdstan_model("poisson_many_X_suppression.stan")
 
-    logit_features = c(features, c("ped_per_100k"))
-
-    # add pr_tested (cannot be done in lead preprocessing since depends on kids var in pred data)
+    # standardize pediatricians per 100k and add to features
     state_data <- state_data |>
-      mutate(
-        pr_tested = tested / under_yo5_pplE,
-        tested_ell_ratio = tested_ell / under_yo5_pplE)
-
+        mutate(ped_per_100k = (ped_per_100k - mean(ped_per_100k))/sd(ped_per_100k))
+    features_for_testing = c(features, c("ped_per_100k"))
 
     # create stan data for logistic regression
     stan_data_many_X <- list(
       N_obs = state_data |> filter(!tested_suppressed) |> count() |> pull(n),
       N_cens = state_data |> filter(tested_suppressed) |> count() |> pull(n),
-      K = length(logit_features),
-      pi_obs = state_data |> filter(!tested_suppressed) |> pull(pr_tested),
-      x_obs = state_data |> filter(!tested_suppressed) |> select(all_of(logit_features)),
-      x_cens = state_data |> filter(tested_suppressed) |> select(all_of(logit_features)),
+      K = length(features_for_testing),
+      y_obs = state_data |> filter(!tested_suppressed) |> pull(tested),
+      x_obs = state_data |> filter(!tested_suppressed) |> select(all_of(features_for_testing)),
+      x_cens = state_data |> filter(tested_suppressed) |> select(all_of(features_for_testing)),
+      kids_obs = state_data |> filter(!tested_suppressed) |> pull(under_yo5_pplE),
       kids_cens = state_data |> filter(tested_suppressed) |> pull(under_yo5_pplE),
-      ell_ratio = max(state_data$tested_ell_ratio, na.rm = TRUE),
+      ell = max(state_data$tested_ell, na.rm = TRUE) |> as.integer(),
       zero_sup = all(state_data$zero_sup_tested, na.rm = TRUE) |> as.integer()
     )
 
@@ -199,24 +208,26 @@ pr_tested_model_summary <- function(state_name, year = 2010, plot=TRUE){
       seed = 1234,
       chains = 4, 
       parallel_chains = 4,
-      refresh = 500
+      refresh = NULL,
+      show_messages = FALSE
     )
 
     # return summary
-    fit_summary <- fit$summary() |>
-      # rename all of the kappa [j] by their feature names
-      mutate(variable = ifelse(str_detect(variable, "kappa"), paste0(logit_features[as.numeric(str_extract(variable, "[0-9]+"))]), variable)) |>
-      knitr::kable(digits = 3)
+    fit_summary <- fit$summary() |> 
+      # rename all of the beta[j] by their feature names
+      mutate(variable = ifelse(str_detect(varigable, "beta"), paste0(features[as.numeric(str_extract(variable, "[0-9]+"))]), variable)) |>
+      # unselect all variables that contain tilde
+      filter(!str_detect(variable, "tilde") & !str_detect(variable, "thinned") & !str_detect(variable, "star"))
     
     if (plot){
       coef_plot <- fit$draws(format = "draws_df") |>
-        rename_with(~logit_features[as.numeric(str_extract(., "[0-9]+"))], starts_with("kappa")) |>
-        select(logit_features) |>
+        rename_with(~features_for_testing[as.numeric(str_extract(., "[0-9]+"))], starts_with("beta")) |>
+        select(features_for_testing) |>
         mcmc_areas(prob = 0.8) +
         theme_minimal()
     }
 
-    list(fit_summary, coef_plot)
+    list(table = fit_summary, plot = coef_plot)
 }
 
 ### Data plotting
