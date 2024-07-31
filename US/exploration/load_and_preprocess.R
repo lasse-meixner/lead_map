@@ -98,8 +98,6 @@ preprocess_pred_data <- function(zip_or_tract_data, info_vars, additional_prepro
     pp_data <- zip_or_tract_data |> 
         select(all_of(c(features, offset_var, info_vars))) |>
         distinct() |>
-        # drop NAs
-        drop_na() |>
         # drop if poor_fam_propE==0 (missing value in census API)
         filter(poor_fam_propE!=0)
 
@@ -107,6 +105,10 @@ preprocess_pred_data <- function(zip_or_tract_data, info_vars, additional_prepro
     if (!is.null(additional_preprocess) && is.function(additional_preprocess)) {
         pp_data <- additional_preprocess(pp_data)
     }
+
+    # drop rows with INF or NA
+    pp_data <- pp_data |>
+        filter(across(where(is.numeric), is.finite))
 
     # find all additional features added by additional_preprocess (must contain any of features in the name)
     additional_features <- pp_data |> select(-all_of(c(features, offset_var, info_vars))) |> names() |> str_subset(paste0(features, collapse = "|"))
@@ -126,15 +128,21 @@ preprocess_lead_data <- function(lead_data){
     
     # Combine all mutate operations and process BLL_geq_5 and BLL_geq_10 if present
     lead_data <- lead_data |> 
-        mutate(tested_suppressed = str_detect(tested, "<"),
-               tested = as.numeric(str_remove(tested, "<")),
-               BLL_geq_5_suppressed = if(has_bll_geq_5) str_detect(BLL_geq_5, "<") else NA,
-               BLL_geq_5 = if(has_bll_geq_5) as.numeric(str_remove(BLL_geq_5, "<")) else NA,
-               BLL_geq_10_suppressed = if(has_bll_geq_10) str_detect(BLL_geq_10, "<") else NA,
-               BLL_geq_10 = if(has_bll_geq_10) as.numeric(str_remove(BLL_geq_10, "<")) else NA) |>
+        mutate(
+            tested_suppressed = str_detect(tested, "<"),
+            tested = as.numeric(str_remove(tested, "<")),
+            tested_ell = min(tested[tested > 0]),
+            zero_sup_tested = all(tested > 0),
+            BLL_geq_5_suppressed = if(has_bll_geq_5) str_detect(BLL_geq_5, "<") else NA,
+            BLL_geq_5 = if(has_bll_geq_5) as.numeric(str_remove(BLL_geq_5, "<")) else NA,
+            BLL_geq_10_suppressed = if(has_bll_geq_10) str_detect(BLL_geq_10, "<") else NA,
+            BLL_geq_10 = if(has_bll_geq_10) as.numeric(str_remove(BLL_geq_10, "<")) else NA) |>
         group_by(state) |>
-        mutate(ell_5 = if(has_bll_geq_5) min(BLL_geq_5[BLL_geq_5 > 0], na.rm = TRUE) - 1 else NA,
-               ell_10 = if(has_bll_geq_10) min(BLL_geq_10[BLL_geq_10 > 0], na.rm = TRUE) - 1 else NA) |>
+        mutate(
+            ell_5 = if(has_bll_geq_5) min(BLL_geq_5[BLL_geq_5 > 0], na.rm = TRUE) - 1 else NA,
+            zero_sup_BLL_5 = if (has_bll_geq_5) all(BLL_geq_5 > 0) else NA,
+            ell_10 = if(has_bll_geq_10) min(BLL_geq_10[BLL_geq_10 > 0], na.rm = TRUE) - 1 else NA,
+            zero_sup_BLL_10 = if (has_bll_geq_10) all(BLL_geq_10 > 0) else NA) |>
         ungroup()
     
     # Remove columns that are entirely NA
@@ -143,16 +151,17 @@ preprocess_lead_data <- function(lead_data){
     return(lead_data)
 }
 
-final_checks  <- function(merged_data, drop="BLL_geq_10"){
+final_checks <- function(merged_data, drop="BLL_geq_10"){
     #' implements final data checks and optionally drop outcome variable
-    merged_data |>
+    merged_data <- merged_data |>
         filter(under_yo5_pplE>=tested,
                tested>0) |> 
         select(-all_of(drop))
-        # drop if NA in any of offset_var, features or outcomes
-        # get presence of outcomes by substr BLL_geq_*
+        
+    # get presence of outcomes by substr BLL_geq_*
     outcome_vars <- merged_data |> names() |> str_subset("BLL_geq_") |> str_remove("_suppressed") |> unique()
-
+    
+    # drop if NA in any of offset_var, features or outcomes
     merged_data |> drop_na(any_of(c(features, offset_var, outcome_vars)))
 }
 
