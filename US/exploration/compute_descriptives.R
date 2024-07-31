@@ -215,7 +215,7 @@ test_count_model_summary <- function(state_name, year = 2010, plot=TRUE){
     # return summary
     fit_summary <- fit$summary() |> 
       # rename all of the beta[j] by their feature names
-      mutate(variable = ifelse(str_detect(varigable, "beta"), paste0(features[as.numeric(str_extract(variable, "[0-9]+"))]), variable)) |>
+      mutate(variable = ifelse(str_detect(variable, "beta"), paste0(features[as.numeric(str_extract(variable, "[0-9]+"))]), variable)) |>
       # unselect all variables that contain tilde
       filter(!str_detect(variable, "tilde") & !str_detect(variable, "thinned") & !str_detect(variable, "star"))
     
