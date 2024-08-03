@@ -7,20 +7,20 @@ library(naniar)
 
 
          
-file_path <- 'BLL_NH_Raw.xlsx'
-nh2_path <- 'BLL_NH2_Raw.xlsx'
-nh3_path <- 'NH_COUNTY.xlsx'
+file_paths <- c('BLL_NH_Raw.xlsx', 'BLL_NH2_Raw.xlsx', 'NH_COUNTY.xlsx')
 
-
-if (exists("drop_get_from_root")) {
-    drop_get_from_root(paste0("../../raw_data/", file_path))
-    drop_get_from_root(nh2_path)
-    drop_get_from_root(nh3_path)
-} else {
-    source("../00_drop_box_access.R")
-    drop_get_from_root(paste0("../../raw_data/", file_path))
-    drop_get_from_root(nh2_path)
-    drop_get_from_root(nh3_path)
+# Loop through each file path to check if it exists in raw_data, if not, download it from Gdrive
+for (file_path in file_paths) {
+  if (!file.exists(paste0("../../raw_data/", file_path))) {
+    print(paste0("Downloading ", file_path, " from Google Drive..."))
+    drive_download(
+      file = paste0("Lead_Map_Project/US/lead_data/raw_data/", file_path),
+      path = paste0("../../raw_data/", file_path),
+      overwrite = TRUE
+    )
+  } else {
+    print(paste0("File ", file_path, " already in local folder."))
+  }
 }
 
 # read in data

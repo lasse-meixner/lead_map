@@ -53,7 +53,8 @@ nj <- nj %>%
   mutate(year = factor(year)) %>% 
   mutate(n=nchar(zip)) %>% 
   mutate(zip=ifelse(n==2,paste0("000",zip),ifelse(n==3,paste0("00",zip),ifelse(n==4,paste0("0",zip),zip)))) %>% # add leading zeros
-  filter(nchar(zip) == 5) # remove "missing" and illegal zips
+  filter(nchar(zip) == 5) |> # remove "missing" and illegal zips
+  select(-n) # remove n column
 
 
 # remove unnecessary variables

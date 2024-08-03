@@ -57,6 +57,7 @@ mn <- rbind(mn2005to2010,mn2011to2015) |>
   select(-is_sup, -BLL_geq_5_num, start_year, end_year) |>
   mutate(state = "MN") |>
   rename(tract = tract_id) |> 
+  mutate(tract = as.character(tract)) |>
   relocate(state)
 
 # remove unnecessary objects

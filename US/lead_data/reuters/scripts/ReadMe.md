@@ -5,9 +5,9 @@ This directory contains scripts for processing and merging the reuters data (BLL
 ## Source files
 This folder contains the code for reading in and cleaning the raw files we received from reuters. Raw files are stored in the project's associated Google Drive directory. For more info see ReadMe.md in the raw_data directory.
 
-Each script pertains to one state, and can be run from scratch (i.e. each state file can be run independently, only requiring DropBox authentication).
+Each script pertains to one state, and can be run from scratch (i.e. each state file can be run independently, only requiring GDrive authentication). To authenticate, run `source("00_gdrive_utils.R)` in `scripts` and follow the instructions.
 
-When run, they load the processed data as a tibble into the environment, as well as store a csv file in the processed_data directory (we may want to version control those, in case we make changes to the cleaning scripts).
+When run, they load the processed data as a tibble into the environment, as well as store a csv file in the processed_data directory.
 
 All source files compute the following variables for each state: 
 - state
@@ -15,7 +15,7 @@ All source files compute the following variables for each state:
 - zip (/or tract)
 - tested
 - BLL_geq_5
-- BLL_geq_10
+- BLL_geq_10 (if present)
 
 Suppression for tested, BLL_geq_5, and BLL_geq_10 varies from state to state, and is encoded differently in the raw files. We do not want to get rid of the information contained in suppressed counts, even though they are a bit harder to handle.
 The source scripts take care of this, by representing suppression consistently as follows: 
@@ -33,10 +33,10 @@ This file contains a range of low-level wrapper functions that help clean, proce
 It also contains two HIGH-level wrappers that call the entire cleaning and merging pipeline.
 
 ## Running source files:
-Make sure to set the working directory to the source directory.
+Make sure to set the working directory to the `source_files` directory.
 Call any script from there, e.g. `source("clean-IL.R")`
 
-If you wish to run all states at once, you can use the *run_all_states()* function after `source("../scripts/merging_functions.R")`.
+If you wish to run all states at once (though this should not ever be required, all data loading functions for analysis will automatically source the cleaning scripts if the processed file is not present), you can use the *run_all_states()* function after `source("../scripts/merging_functions.R")`.
 
 
 ## mergingstates.R

@@ -56,6 +56,10 @@
         "build_year_median",
         "build_year_mean",
         "avg_siblingsE",
+        "under_yo5_pplE",
+        "yo5to9_pplE",
+        "yo10to14_pplE",
+        "yo15to17_pplE",
         // roads
         "ALAND",
         "TYPE_I",

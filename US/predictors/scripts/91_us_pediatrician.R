@@ -11,6 +11,7 @@ require(readxl)
 library(purrr)
 library(usmap)
 library(httr)
+library(jsonlite)
 
 
 # try download file from gdrive into raw_data
@@ -64,7 +65,7 @@ crosswalk_zip_to_county  <- function(state_abbr, zip_data){
     url <- "https://www.huduser.gov/hudapi/public/usps"
 
     # get type = 2: COUNTY-ZIP (for ratio)
-    response <- httr::GET(url, query = list(type = 2, query = "RI"), add_headers(Authorization = paste("Bearer", key)))
+    response <- httr::GET(url, query = list(type = 2, query = state_abbr), add_headers(Authorization = paste("Bearer", key)))
     # check if reponse has error:
     if (httr::http_error(response)) {
         stop("Error: ", httr::content(response, "text"))
