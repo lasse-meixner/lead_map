@@ -20,8 +20,8 @@ if (!exists("tract_data") || !exists("zip_data")) {
 ### data preprocessing functions
 zip_info_vars <- c("zip","STATE_ABBR")
 tract_info_vars <- c("TRACT","STATE_NAME","COUNTY") 
-offset_var <- c("under_yo5_pplE","ped_per_100k")
-features <- c("median_annual_incomeE","house_price_medianE","poor_fam_propE","black_ppl_propE", "bp_pre_1959E_prop", "svi_socioeconomic_pctile")
+offset_var <- c("under_yo5_pplE")
+features <- c("median_annual_incomeE","house_price_medianE","poor_fam_propE","black_ppl_propE", "bp_pre_1959E_prop", "svi_socioeconomic_pctile", "ped_per_100k")
 
 
 # HIGH LEVEL loader for tracts
