@@ -22,12 +22,21 @@ source("compute_descriptives.R")
 
 In particular, I want to focus on two tract states, Ohio and Massachusetts, as well as two ZIP states, New Jersey and Illinois.
 
+## Ohio
+
 ```{r}
 data_summary("OH", year = 2010)
 ```
 
 
-For now, I take no additional preprocessing steps on the predictors passed to the logit side, income, building period, and SVI.
+I take one additional preprocessing steps on the predictors passed to the logit side (income, building period, and SVI), I also standardise the pediatrician rate.
+
+```{r}
+# standardise pediatrician rate
+oh_merged <- oh_merged |>
+  mutate(ped_per_100k = (ped_per_100k - mean(ped_per_100k)) / sd(ped_per_100k))
+```
+
 
 ```{r}
 # load STAN model
@@ -72,13 +81,11 @@ oh_stan <- stan_data(oh_merged)
 
 ppc_samples <- ppc_stan$sample(
   data = oh_stan,
-  iter_sampling = 100,
+  iter_sampling = 500,
+  refresh = NULL,
   fixed_param = TRUE) # required for RNG?
 ```
-```{r}
-# want to extract the samples
-ppc_samples$summary() |> filter(str_detect(variable, "y_thinned")) |> knitr::kable(digits = 3)
-```
+
 
 ```{r}
 # add y_thinned from $summary to oh_merged
@@ -99,7 +106,51 @@ ppc_samples$draws(format = "draws_df") |>
   select(sample(1:4000, 10)) |>
   mcmc_areas(prob = 0.9, alpha = 0.1) +
   ggtitle("Prior predictive checks for Ohio") +
-  xlim(0,100)
+  xlim(0,50)
 
 ```
+
+## Massachusetts
+
+```{r}
+data_summary("MA", year = 2010)
+```
+
+```{r}
+# standardise pediatrician rate
+ma_merged <- ma_merged |>
+  mutate(ped_per_100k = (ped_per_100k - mean(ped_per_100k)) / sd(ped_per_100k))
+```
+
+```{r}
+# sample from prior predictive distribution
+ma_stan <- stan_data(ma_merged)
+
+ppc_samples <- ppc_stan$sample(
+  data = ma_stan,
+  iter_sampling = 500,
+  refresh = NULL,
+  fixed_param = TRUE)
+```
+
+```{r}
+# add y_thinned from $summary to ma_merged
+ma_merged_ppc <- ma_merged |> 
+  bind_cols(ppc_samples$summary() |> 
+              filter(str_detect(variable, "y_thinned")) |>
+              select(c(mean, median, q5, q95)))
+```
+
+```{r}
+# extract and plot draws
+ppc_samples$draws(format = "draws_df") |> 
+  # select columns that contain "y_thinned"
+  select(starts_with("y_thinned")) |>
+  # randomly select 100 columns of those (for speed)
+  select(sample(1:nrow(ma_merged_ppc), 10)) |>
+  mcmc_areas(prob = 0.9, alpha = 0.1) +
+  ggtitle("Prior predictive checks for Massachusetts") +
+  xlim(0,20)
+```
+
 
