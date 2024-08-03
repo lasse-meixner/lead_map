@@ -114,15 +114,18 @@ lead_count_model_summary <- function(state_name, year = 2010, outcome = "BLL_geq
     find_and_set_directory("lead_map/models")
     stan_model <- cmdstan_model("poisson_many_X_suppression.stan")
 
+    # create sub-features
+    fit_features <- features |> select(-ped_per_100k)
+
     # create stan data with all features based on outcome variable
     if (outcome == "BLL_geq_5") {
       stan_data_many_X <- list(
         N_obs = state_data |> filter(!BLL_geq_5_suppressed) |> count() |> pull(n),
         N_cens = state_data |> filter(BLL_geq_5_suppressed) |> count() |> pull(n),
-        K = length(features),
+        K = length(fit_features),
         y_obs = state_data |> filter(!BLL_geq_5_suppressed) |> pull(BLL_geq_5) |> as.numeric(),
-        x_obs = state_data |> filter(!BLL_geq_5_suppressed) |> select(all_of(features)),
-        x_cens = state_data |> filter(BLL_geq_5_suppressed) |> select(all_of(features)),
+        x_obs = state_data |> filter(!BLL_geq_5_suppressed) |> select(all_of(fit_features)),
+        x_cens = state_data |> filter(BLL_geq_5_suppressed) |> select(all_of(fit_features)),
         kids_obs = state_data |> filter(!BLL_geq_5_suppressed) |> pull(under_yo5_pplE),
         kids_cens = state_data |> filter(BLL_geq_5_suppressed) |> pull(under_yo5_pplE),
         ell = max(state_data$ell_5, na.rm = TRUE) |> as.integer(),
@@ -132,10 +135,10 @@ lead_count_model_summary <- function(state_name, year = 2010, outcome = "BLL_geq
       stan_data_many_X <- list(
         N_obs = state_data |> filter(!BLL_geq_10_suppressed) |> count() |> pull(n),
         N_cens = state_data |> filter(BLL_geq_10_suppressed) |> count() |> pull(n),
-        K = length(features),
+        K = length(fit_features),
         y_obs = state_data |> filter(!BLL_geq_10_suppressed) |> pull(BLL_geq_10) |> as.numeric(),
-        x_obs = state_data |> filter(!BLL_geq_10_suppressed) |> select(all_of(features)),
-        x_cens = state_data |> filter(BLL_geq_10_suppressed) |> select(all_of(features)),
+        x_obs = state_data |> filter(!BLL_geq_10_suppressed) |> select(all_of(fit_features)),
+        x_cens = state_data |> filter(BLL_geq_10_suppressed) |> select(all_of(fit_features)),
         kids_obs = state_data |> filter(!BLL_geq_10_suppressed) |> pull(under_yo5_pplE),
         kids_cens = state_data |> filter(BLL_geq_10_suppressed) |> pull(under_yo5_pplE),
         ell = max(state_data$ell_10, na.rm = TRUE) |> as.integer(),
@@ -158,14 +161,14 @@ lead_count_model_summary <- function(state_name, year = 2010, outcome = "BLL_geq
     # return summary
     fit_summary <- fit$summary() |> 
     # rename all of the beta[j] by their feature names
-    mutate(variable = ifelse(str_detect(variable, "beta"), paste0(features[as.numeric(str_extract(variable, "[0-9]+"))]), variable)) |>
+    mutate(variable = ifelse(str_detect(variable, "beta"), paste0(fit_features[as.numeric(str_extract(variable, "[0-9]+"))]), variable)) |>
     # unselect all variables that contain tilde
     filter(!str_detect(variable, "tilde") & !str_detect(variable, "thinned") & !str_detect(variable, "star"))
 
     if (plot){
       coef_plot <- fit$draws(format = "draws_df") |>
-        rename_with(~features[as.numeric(str_extract(., "[0-9]+"))], starts_with("beta")) |>
-        select(features) |>
+        rename_with(~fit_features[as.numeric(str_extract(., "[0-9]+"))], starts_with("beta")) |>
+        select(fit_features) |>
         mcmc_areas(prob = 0.8) +
         theme_minimal()
     }
