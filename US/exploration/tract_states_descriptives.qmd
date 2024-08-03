@@ -541,3 +541,122 @@ wi_test_model$table |> knitr::kable() |> kable_styling(latex_options = "scale_do
 wi_test_model$plot
 ```
 
+# Model summaries
+## Lead counts
+For all (available) tract states, we plot the coefficients of the lead count model.
+
+```{r, error=TRUE}
+# List of lead model names
+lead_model_names <- c("oh_lead_model", "pa_lead_model", "co_lead_model", "md_lead_model", "ma_lead_model", "mn_lead_model", "nc_lead_model", "in_lead_model", "or_lead_model", "nh_lead_model", "wi_lead_model")
+
+# Safely retrieve the fitted lead models
+lead_models <- mget(lead_model_names, envir = .GlobalEnv, ifnotfound = list(NULL))
+
+# Filter out any NULL values in models and their names
+lead_model_names <- lead_model_names[!sapply(lead_models, is.null)]
+lead_models <- lead_models[!sapply(lead_models, is.null)]
+
+# Function to safely extract and filter data
+safe_extract <- possibly(function(model, variable) {
+  model$plot |> 
+    pluck(1) |> 
+    filter(parameter == variable)
+}, otherwise = data.frame())
+
+# Extract and combine the density data
+get_variable_densities <- function(variable){
+    map2_dfr(lead_models, lead_model_names, ~ {
+    data <- safe_extract(.x, variable)
+    if (nrow(data) > 0) {
+      data$state <- .y
+    }
+    data
+    })
+}
+```
+
+### Median annual income
+```{r, fig.height = 12, fig.width = 8}
+# Get the density data for median annual income
+density_data_income <- get_variable_densities("median_annual_incomeE")
+
+# Create the plot
+ggplot(density_data_income, aes(x = x, y = density, fill = state)) + 
+  geom_area(alpha = 0.6, position = "identity") + 
+  facet_wrap(~ state, scales = "free_y", ncol = 1) + 
+  theme_minimal() + 
+  labs(title = "Density of Median Annual Income by State",
+       x = "Income",
+       y = "Density")
+```
+
+### House price median
+
+```{r, fig.height = 12, fig.width = 8}
+# Get the density data for house price median
+density_data_house_price <- get_variable_densities("house_price_medianE")
+
+# Create the plot
+ggplot(density_data_house_price, aes(x = x, y = density, fill = state)) + 
+  geom_area(alpha = 0.6, position = "identity") + 
+  facet_wrap(~ state, scales = "free_y", ncol = 1) + 
+  theme_minimal() + 
+  labs(title = "Density of House Price Median by State",
+       x = "House Price",
+       y = "Density")
+```
+
+### Building period
+
+```{r, fig.height = 12, fig.width = 8}
+# Get the density data for building period
+density_data_building_period <- get_variable_densities("bp_pre_1959E_prop")
+
+# Create the plot
+ggplot(density_data_building_period, aes(x = x, y = density, fill = state)) + 
+  geom_area(alpha = 0.6, position = "identity") + 
+  facet_wrap(~ state, scales = "free_y", ncol = 1) + 
+  theme_minimal() + 
+  labs(title = "Density of Building Period Pre-1959 by State",
+       x = "Building Period Pre-1959",
+       y = "Density")
+```
+
+
+## Test counts
+
+For all (available) tract states, we plot the coefficients of the test count model.
+
+```{r}
+test_model_names <- c("oh_test_model", "pa_test_model", "co_test_model", "md_test_model", "ma_test_model", "mn_test_model", "nc_test_model", "in_test_model", "or_test_model", "nh_test_model", "wi_test_model")
+
+test_models <- mget(test_model_names, envir = .GlobalEnv, ifnotfound = list(NULL))
+
+test_model_names <- test_model_names[!sapply(test_models, is.null)]
+test_models <- test_models[!sapply(test_models, is.null)]
+
+get_variable_densities_test <- function(variable){
+    map2_dfr(test_models, test_model_names, ~ {
+    data <- safe_extract(.x, variable) # can use same extraction function
+    if (nrow(data) > 0) {
+      data$state <- .y
+    }
+    data
+    })
+}
+```
+
+### Pediatricians
+
+```{r, fig.height = 12, fig.width = 8}
+density_data_pediatricians_test <- get_variable_densities_test("ped_per_100k")
+
+ggplot(density_data_pediatricians_test, aes(x = x, y = density, fill = state)) + 
+  geom_area(alpha = 0.6, position = "identity") + 
+  facet_wrap(~ state, scales = "free_y", ncol = 1) + 
+  theme_minimal() + 
+  labs(title = "Density of Pediatricians per 100k by State",
+       x = "Pediatricians per 100k",
+       y = "Density")
+```
+
