@@ -7,13 +7,28 @@ file_path <- 'BLL_IN_Raw.xlsx'
 file_path2 <- 'INDIANA_COUNTY.xlsx'
 
 
-if (exists("drop_get_from_root")) {
-    drop_get_from_root(paste0("../../raw_data/", file_path))
-    drop_get_from_root(paste0("../../raw_data/", file_path2))
+# check if file 1 exists in raw_data, if not, download it from Gdrive
+if (!file.exists(paste0("../../raw_data/",file_path))){
+       print("Downloading file from Google Drive...")
+       drive_download(
+              file = paste0("Lead_Map_Project/US/lead_data/raw_data/", file_path),
+              path = paste0("../../raw_data/", file_path),
+              overwrite = TRUE
+       )
 } else {
-    source("../00_drop_box_access.R")
-    drop_get_from_root(paste0("../../raw_data/", file_path))
-    drop_get_from_root(paste0("../../raw_data/", file_path2))
+   print(paste0("File ", file_path ," already in local folder."))
+}
+
+# check if file 2  exists in raw_data, if not, download it from Gdrive
+if (!file.exists(paste0("../../raw_data/",file_path2))){
+       print("Downloading file from Google Drive...")
+       drive_download(
+              file = paste0("Lead_Map_Project/US/lead_data/raw_data/", file_pat2h),
+              path = paste0("../../raw_data/", file_path2),
+              overwrite = TRUE
+       )
+} else {
+   print(paste0("File ", file_path2 ," already in local folder."))
 }
 
 ind <- read_excel(paste0("../../raw_data/", file_path)) 

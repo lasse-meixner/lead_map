@@ -42,12 +42,13 @@ load_state <- function(state_str, from_raw = FALSE) {
     } else {
       print(paste0("Loading ", state_str, " from processed_data"))
       # check if the corresponding CSV file exists
-      file_path <- paste0("../../processed_data/", str_to_lower(state_str), ".csv")
+      tryCatch(find_and_set_directory("US/lead_data/reuters/processed_data"), error = function(e) e$message)
+      file_path <- paste0(str_to_lower(state_str), ".csv")
       if (file.exists(file_path)) {
         # read the CSV file and assign it to the global environment, and do not return anything
         data <- read_csv(file_path)
         assign(str_to_lower(state_str), data, envir = .GlobalEnv)
-      } else { # if the from_disk option fails, try to source anyway:
+      } else { # if the from_disk option fails, try to source anyway: #TODO: can simplify this by calling function again with from_raw = TRUE
         print(paste0("No processed file for ", toupper(state_str), " found, loading from source files"))
         # try to set wd to ../source files/ and then source the file script, otherwise catch error
         tryCatch(find_and_set_directory("US/lead_data/reuters/scripts/source files"), error = function(e) e$message)
