@@ -115,7 +115,7 @@ lead_count_model_summary <- function(state_name, year = 2010, outcome = "BLL_geq
     stan_model <- cmdstan_model("poisson_many_X_suppression.stan")
 
     # create sub-features
-    fit_features <- features |> select(-ped_per_100k)
+    fit_features <- setdiff(features, "ped_per_100k")
 
     # create stan data with all features based on outcome variable
     if (outcome == "BLL_geq_5") {
@@ -186,19 +186,14 @@ test_count_model_summary <- function(state_name, year = 2010, plot=TRUE){
     find_and_set_directory("lead_map/models")
     stan_model <- cmdstan_model("poisson_many_X_suppression.stan")
 
-    # standardize pediatricians per 100k and add to features
-    state_data <- state_data |>
-        mutate(ped_per_100k = (ped_per_100k - mean(ped_per_100k))/sd(ped_per_100k))
-    features_for_testing = c(features, c("ped_per_100k"))
-
     # create stan data for logistic regression
     stan_data_many_X <- list(
       N_obs = state_data |> filter(!tested_suppressed) |> count() |> pull(n),
       N_cens = state_data |> filter(tested_suppressed) |> count() |> pull(n),
-      K = length(features_for_testing),
+      K = length(features),
       y_obs = state_data |> filter(!tested_suppressed) |> pull(tested),
-      x_obs = state_data |> filter(!tested_suppressed) |> select(all_of(features_for_testing)),
-      x_cens = state_data |> filter(tested_suppressed) |> select(all_of(features_for_testing)),
+      x_obs = state_data |> filter(!tested_suppressed) |> select(all_of(features)),
+      x_cens = state_data |> filter(tested_suppressed) |> select(all_of(features)),
       kids_obs = state_data |> filter(!tested_suppressed) |> pull(under_yo5_pplE),
       kids_cens = state_data |> filter(tested_suppressed) |> pull(under_yo5_pplE),
       ell = max(state_data$tested_ell, na.rm = TRUE) |> as.integer(),
@@ -224,8 +219,8 @@ test_count_model_summary <- function(state_name, year = 2010, plot=TRUE){
     
     if (plot){
       coef_plot <- fit$draws(format = "draws_df") |>
-        rename_with(~features_for_testing[as.numeric(str_extract(., "[0-9]+"))], starts_with("beta")) |>
-        select(features_for_testing) |>
+        rename_with(~features[as.numeric(str_extract(., "[0-9]+"))], starts_with("beta")) |>
+        select(features) |>
         mcmc_areas(prob = 0.8) +
         theme_minimal()
     }
