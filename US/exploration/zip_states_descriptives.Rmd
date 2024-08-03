@@ -1,0 +1,93 @@
+---
+ title: "Descriptives of zip states"
+ format:
+     html:
+       code-fold: true
+---
+
+```{r}
+library(tidyverse)
+library(jsonlite)
+source("../../init.R")
+source("load_and_preprocess.R")
+```
+Getting metadata
+```{r}
+# get metadata from ~US root
+metadata  <- fromJSON("../metadata.json")
+# extract required metadata (lists)
+zip_states <- metadata$zip_states
+tract_states <- metadata$tract_states
+id_variables <- metadata$id_variables
+ratio_variables <- metadata$proportion_variables
+count_variables <- metadata$count_variables
+```
+
+```{r}
+source("compute_descriptives.R")
+```
+
+### ZIP states
+```{r}
+print(zip_states)
+```
+
+```{r}
+data_summary("AL", year = NULL)
+```
+
+Data looks great.
+
+```{r}
+data_summary("AZ", year = NULL)
+```
+The problem with Arizona is the idiosyncratically difficult way their data is reported, the testing and lead counts are interval strings and the final check cannot compare testing numbers to kids. This is a problem that will need to be addressed in the future if we want to use AZ data.
+
+```{r}
+data_summary("IL", year = NULL)
+```
+Illinois looks great.
+
+```{r}
+data_summary("NY", year = NULL)
+```
+New York looks good, too.
+
+```{r}
+data_summary("RI", year = NULL)
+```
+
+```{r}
+data_summary("LA", year = NULL)
+```
+```{r}
+data_summary("NJ", year = NULL)
+```
+
+```{r}
+data_summary("VT", year = NULL)
+```
+
+```{r}
+data_summary("CA", year = NULL)
+```
+Only one year in CA data, but it looks good.
+
+```{r}
+data_summary("FL", year = NULL)
+```
+Only ≤10 in Florida.
+
+```{r}
+data_summary("IO", year = NULL)
+```
+Iowa has a lot of suppression, but the lead data looks good. Its unclear to me why the merge is failing. Perhaps again because of final checks?
+
+```{r}
+data_summary("CT", year = NULL)
+```
+Also here there is a massive loss of observations after the merge (which is technically a left join).
+
+The only possible reason for this loss of observations after the merging are the final checks which assert that the number of kids must be weakly greater than the number of tested (cf. load_and_preprocess.R: function -> "final_checks()"). Either the testing numbers are too high, or our ZIP estimate of the number of kids is too low, or the population of kids has fallen by more than the "untested" margin in most ZIPs in the period of a few years (which is very unlikely).
+
+Could it have to do with cross walking, or is it a raw data issue?

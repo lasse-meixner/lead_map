@@ -29,37 +29,26 @@ load_states <- function(state_str_list, from_raw = FALSE) {
 
 # auxiliary method for loading single state
 load_state <- function(state_str, from_raw = FALSE) {
-  # check first if data exists in environment
-  if (exists(str_to_lower(state_str)) == FALSE) {
-    if (from_raw) {
-      print(paste0("Building ", state_str, " from raw_data"))
-      # try to set wd to ../source files/ and then source the file script, otherwise catch error
-        tryCatch(find_and_set_directory("US/lead_data/reuters/scripts/source files"), error = function(e) e$message)
-        tryCatch(source(paste0("clean-", toupper(state_str), ".R")),
-                  error = function(e) {
-                    print(paste0("Error loading ", state_str, " file: ", e$message))
-                  })
-    } else {
-      print(paste0("Loading ", state_str, " from processed_data"))
-      # check if the corresponding CSV file exists
-      tryCatch(find_and_set_directory("US/lead_data/reuters/processed_data"), error = function(e) e$message)
-      file_path <- paste0(str_to_lower(state_str), ".csv")
-      if (file.exists(file_path)) {
-        # read the CSV file and assign it to the global environment, and do not return anything
-        data <- read_csv(file_path)
-        assign(str_to_lower(state_str), data, envir = .GlobalEnv)
-      } else { # if the from_disk option fails, try to source anyway: #TODO: can simplify this by calling function again with from_raw = TRUE
-        print(paste0("No processed file for ", toupper(state_str), " found, loading from source files"))
-        # try to set wd to ../source files/ and then source the file script, otherwise catch error
-        tryCatch(find_and_set_directory("US/lead_data/reuters/scripts/source files"), error = function(e) e$message)
-        tryCatch(source(paste0("clean-", state_str, ".R")),
-                  error = function(e) {
-                    print(paste0("Error loading ", state_str, " file: ", e$message))
-                  })
-      }
-    }
+  if (from_raw) {
+    print(paste0("Building ", state_str, " from raw_data"))
+    # try to set wd to ../source files/ and then source the file script, otherwise catch error
+      find_and_set_directory("US/lead_data/reuters/scripts/source files")
+      tryCatch(source(paste0("clean-", toupper(state_str), ".R")),
+                error = function(e) {
+                  print(paste0("Error loading ", state_str, " file: ", e$message))
+                }
+              )
   } else {
-    print(paste0(state_str, " already loaded"))
+    print(paste0("Loading ", state_str, " from processed_data"))
+    # try to set wd to /processed_data/ and load file, otherwise catch error and rerun with from_raw = TRUE
+    file_name <- paste0(str_to_lower(state_str), ".csv")
+    find_and_set_directory("US/lead_data/reuters/processed_data")
+    tryCatch(assign(str_to_lower(state_str), read_csv(file_name), envir = .GlobalEnv),
+              error = function(e) {
+                print(paste0("Error loading ", state_str, " file: ", e$message))
+                load_state(state_str, from_raw = TRUE)
+              }
+            )
   }
 }
 
