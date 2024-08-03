@@ -33,7 +33,7 @@ def compute_risk_score(df, predictors):
         df_copy[p + "_decile"] = pd.qcut(df_copy[p], 10, labels=False)
     # compute risk score
     df_copy["risk_score"] = df_copy[[p + "_decile" for p in predictors]].sum(axis=1)
-    df_copy["risk_score"] = pd.qcut(df_copy["risk_score"], 10, labels=False) + 1 # risk score from 1-10
+    df_copy["risk_score"] = pd.qcut(df_copy["risk_score"], 10, labels=False, duplicates="drop") + 1 # risk score from 1-10
     return df_copy
 
 # load merged file from england_msoa_2011.shp and combined_msoa.csv
