@@ -74,6 +74,14 @@ stan_data <- function(state_final){
   )
 }
 ```
+Setting the priors as follows:
+
+In the logit:
+- intercept of N(0, 1.2) for "uniform" log-odds
+- slopes of N(0,1) for all 4 predictors (income, building period, SVI, and pediatrician rate)
+In the poisson:
+- intercept of N(-1.58,2) based on the NHANES national average of 2.6%
+- slopes of N(0,0.6) for all intercepts - for higher variances some observations go beyond the rate tolerance - except income and the building period, which I center -0.1 and 0.1 respectively.
 
 ```{r}
 # sample from prior predictive distribution
@@ -85,30 +93,49 @@ ppc_samples <- ppc_stan$sample(
   refresh = NULL,
   fixed_param = TRUE) # required for RNG?
 ```
+```{r}
+ppc_samples$summary(variables = c("y_thinned"))
+```
 
 
 ```{r}
 # add y_thinned from $summary to oh_merged
 oh_merged_ppc <- oh_merged |> 
-  bind_cols(ppc_samples$summary() |> 
+  bind_cols(ppc_samples$summary(variables = c("y_thinned")) |> 
               filter(str_detect(variable, "y_thinned")) |>
               select(c(mean, median, q5, q95)))
 ```
+
+Plot the thinning rates
+
+```{r}
+library(bayesplot)
+
+ppc_samples$draws(format = "draws_df") |> 
+  # select columns that contain "pi"
+  select(starts_with("pi")) |>
+  # randomly select 100 columns of those (for speed)
+  select(sample(1:nrow(oh_merged_ppc), 10)) |>
+  mcmc_areas(prob = 0.9, alpha = 0.1) +
+  ggtitle("Prior thinning rates for Ohio")
+```
+
+
 
 ```{r}
 library(bayesplot)
 
 # extract and plot draws
-ppc_samples$draws(format = "draws_df") |> 
+ppc_samples$draws(format = "draws_df", variables = c("y_thinned")) |> 
   # select columns that contain "y_thinned"
   select(starts_with("y_thinned")) |>
   # randomly select 100 columns of those (for speed)
-  select(sample(1:4000, 10)) |>
-  mcmc_areas(prob = 0.9, alpha = 0.1) +
+  select(sample(1:4000, 5)) |>
+  mcmc_areas(prob = 0.8, alpha = 0.1) +
   ggtitle("Prior predictive checks for Ohio") +
-  xlim(0,50)
-
+  xlim(0,30)
 ```
+
 
 ## Massachusetts
 
@@ -136,14 +163,14 @@ ppc_samples <- ppc_stan$sample(
 ```{r}
 # add y_thinned from $summary to ma_merged
 ma_merged_ppc <- ma_merged |> 
-  bind_cols(ppc_samples$summary() |> 
+  bind_cols(ppc_samples$summary(variables = c("y_thinned")) |> 
               filter(str_detect(variable, "y_thinned")) |>
               select(c(mean, median, q5, q95)))
 ```
 
 ```{r}
 # extract and plot draws
-ppc_samples$draws(format = "draws_df") |> 
+ppc_samples$draws(format = "draws_df", variables = c("y_thinned")) |> 
   # select columns that contain "y_thinned"
   select(starts_with("y_thinned")) |>
   # randomly select 100 columns of those (for speed)
@@ -153,4 +180,4 @@ ppc_samples$draws(format = "draws_df") |>
   xlim(0,20)
 ```
 
-
+- 

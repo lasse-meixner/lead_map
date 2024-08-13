@@ -63,13 +63,13 @@ data {
 
 generated quantities {
     // poisson priors (Note: It's quite "easy" to hit the upper bound on the rate...)
-    real alpha = normal_rng(-1.69, 4);
-    real beta_inc = normal_rng(0, 0.1);
-    real beta_hp = normal_rng(0, 0.1);
-    real beta_poverty = normal_rng(0, 0.1);
-    real beta_black = normal_rng(0, 0.1);
-    real beta_bp = normal_rng(0, 0.1);
-    real beta_svi = normal_rng(0, 0.1);
+    real alpha = normal_rng(-1.58, 2);
+    real beta_inc = normal_rng(-0.1, 0.6);
+    real beta_hp = normal_rng(0, 0.6);
+    real beta_poverty = normal_rng(0, 0.6);
+    real beta_black = normal_rng(0, 0.6);
+    real beta_bp = normal_rng(0.1, 0.6);
+    real beta_svi = normal_rng(0, 0.6);
 
     // logit priors
     real gamma = normal_rng(0, 1.2); // for logit intercept - from "Rethinking" playlist suggestion
