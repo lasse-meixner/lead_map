@@ -1,13 +1,13 @@
 ---
- title: "Some prior predictive checks"
- format:
-     html:
-       code-fold: true
+title: "Some prior predictive checks"
+format:
+  html:
+    code-fold: true
+output: pdf_document
 ---
 
-```{r}
+```{r, message=FALSE}
 library(tidyverse)
-library(jsonlite)
 source("../../init.R")
 ```
 
@@ -78,10 +78,16 @@ Setting the priors as follows:
 
 In the logit:
 - intercept of N(0, 1.2) for "uniform" log-odds
-- slopes of N(0,1) for all 4 predictors (income, building period, SVI, and pediatrician rate)
+- slopes of N(0,0.5) for all 4 predictors (income, building period, SVI, and pediatrician rate)
 In the poisson:
 - intercept of N(-1.58,2) based on the NHANES national average of 2.6%
-- slopes of N(0,0.6) for all intercepts - for higher variances some observations go beyond the rate tolerance - except income and the building period, which I center -0.1 and 0.1 respectively.
+- slopes of N(0,0.5) for all intercepts - for higher variances some observations go beyond the rate tolerance - except income and the building period, which I center -0.1 and 0.1 respectively.
+
+```{r}
+# plot N(0, 0.6)
+plot(density(rnorm(500,0,0.4)))
+```
+
 
 ```{r}
 # sample from prior predictive distribution
@@ -116,7 +122,7 @@ ppc_samples$draws(format = "draws_df") |>
   select(starts_with("pi")) |>
   # randomly select 100 columns of those (for speed)
   select(sample(1:nrow(oh_merged_ppc), 10)) |>
-  mcmc_areas(prob = 0.9, alpha = 0.1) +
+  mcmc_areas(prob = 0.9) +
   ggtitle("Prior thinning rates for Ohio")
 ```
 
@@ -130,7 +136,7 @@ ppc_samples$draws(format = "draws_df", variables = c("y_thinned")) |>
   # select columns that contain "y_thinned"
   select(starts_with("y_thinned")) |>
   # randomly select 100 columns of those (for speed)
-  select(sample(1:4000, 5)) |>
+  select(sample(1:length(oh_merged), 10)) |>
   mcmc_areas(prob = 0.8, alpha = 0.1) +
   ggtitle("Prior predictive checks for Ohio") +
   xlim(0,30)
@@ -167,6 +173,18 @@ ma_merged_ppc <- ma_merged |>
               filter(str_detect(variable, "y_thinned")) |>
               select(c(mean, median, q5, q95)))
 ```
+
+```{r}
+# extract prior thinning rates
+ppc_samples$draws(format = "draws_df") |> 
+  # select columns that contain "pi"
+  select(starts_with("pi")) |>
+  # randomly select 100 columns of those (for speed)
+  select(sample(1:nrow(ma_merged), 10)) |>
+  mcmc_areas(prob = 0.9) +
+  ggtitle("Prior thinning rates for Massachusetts")
+```
+
 
 ```{r}
 # extract and plot draws

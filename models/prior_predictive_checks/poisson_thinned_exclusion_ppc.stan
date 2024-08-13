@@ -64,19 +64,19 @@ data {
 generated quantities {
     // poisson priors (Note: It's quite "easy" to hit the upper bound on the rate...)
     real alpha = normal_rng(-1.58, 2);
-    real beta_inc = normal_rng(-0.1, 0.6);
-    real beta_hp = normal_rng(0, 0.6);
-    real beta_poverty = normal_rng(0, 0.6);
-    real beta_black = normal_rng(0, 0.6);
-    real beta_bp = normal_rng(0.1, 0.6);
-    real beta_svi = normal_rng(0, 0.6);
+    real beta_inc = normal_rng(-0.1, 0.4);
+    real beta_hp = normal_rng(0, 0.4);
+    real beta_poverty = normal_rng(0, 0.4);
+    real beta_black = normal_rng(0, 0.4);
+    real beta_bp = normal_rng(0.1, 0.4);
+    real beta_svi = normal_rng(0, 0.4);
 
     // logit priors
     real gamma = normal_rng(0, 1.2); // for logit intercept - from "Rethinking" playlist suggestion
-    real delta = normal_rng(0, 1); // for pediatricians
-    real kappa_inc = normal_rng(0, 1);
-    real kappa_bp = normal_rng(0, 1); //lognormal_rng(0, 0.4);
-    real kappa_svi = normal_rng(0, 1);
+    real delta = normal_rng(0, 0.5); // for pediatricians
+    real kappa_inc = normal_rng(0, 0.5);
+    real kappa_bp = normal_rng(0, 0.5); //lognormal_rng(0, 0.4);
+    real kappa_svi = normal_rng(0, 0.5);
 
     // simulate quantities
     vector[N] mu = exp(alpha + beta_inc * median_income + beta_hp * house_price + beta_poverty * poverty + beta_black * black_prop + beta_bp * building_period + beta_svi * svi);
