@@ -24,16 +24,17 @@ def get_msoa_merged_shapefile():
 
     return merged, cols
 
-# auxiliary function to compute deciles of selected predictor vars and a risk score
+# auxiliary function to compute empirical quantile in [0,1] and average for risk score
 def compute_risk_score(df, predictors):
     # get copy of df
     df_copy = df.copy()
-    # compute deciles
+    # compute empirical quantiles by passing through ECDF
     for p in predictors:
-        df_copy[p + "_decile"] = pd.qcut(df_copy[p], 10, labels=False)
-    # compute risk score
-    df_copy["risk_score"] = df_copy[[p + "_decile" for p in predictors]].sum(axis=1)
-    df_copy["risk_score"] = pd.qcut(df_copy["risk_score"], 10, labels=False, duplicates="drop") + 1 # risk score from 1-10
+        df_copy[p + "_decile"] = df_copy[p].rank(pct=True)
+    # compute risk score by taking equal weighting
+    df_copy["risk_score"] = df_copy[[p + "_decile" for p in predictors]].mean(axis=1)
+    # pass through its own ECDF again
+    df_copy["risk_score"] = df_copy["risk_score"].rank(pct=True)
     return df_copy
 
 # load merged file from england_msoa_2011.shp and combined_msoa.csv
