@@ -2,12 +2,14 @@
 
 # Import packages
 import pandas as pd
+import numpy as np
 import geopandas as gpd
 import plotly.express as px
 import pyproj
 
 import dash
 from dash import Input, Output
+import dash_daq as daq
 
 
 def get_msoa_merged_shapefile():
@@ -63,13 +65,28 @@ app.layout = dash.html.Div([
             dash.dcc.Tab(label = "MSOA predictor map", children=[
                 dash.html.Div([
                 dash.html.H3("Select Predictor"),
-                dash.dcc.Dropdown(
-                    id="predictor",
-                    options=[{"label": x, "value": x} for x in cols],
-                    value=cols[0],
-                    clearable=True,
-                    searchable=True
-                    ),
+                dash.html.Div([
+                    dash.dcc.Dropdown(
+                        id="predictor",
+                        options=[{"label": x, "value": x} for x in cols],
+                        value=cols[0],
+                        clearable=True,
+                        searchable=True,
+                        style = {"width": "400px"}
+                        ),
+                    dash.html.Label("Log Scale:", style={'marginLeft': '20px', 'marginRight': '10px'}),
+                    daq.BooleanSwitch(
+                        id='log_switch', 
+                        on=False)
+                ], style={ # add style to put toggle and predictor selection in same Row (without bootstrap components)
+                    'display': 'flex', 
+                    'flexDirection': 'row', 
+                    'alignItems': 'center', 
+                    'gap': '50px', 
+                    'width': '100%', 
+                    'justifyContent': 'center',
+                    'padding': '10px'
+                }),
                 ]),
                 dash.html.Div([
                     # loading spinner
@@ -106,15 +123,19 @@ app.layout = dash.html.Div([
 @app.callback(
     Output("choropleth", "figure"),
     Input("predictor", "value"),
-    Input("search", "value")
+    Input("search", "value"),
+    Input("log_switch", "on")
 )
-def update_choropleth(predictor, search):
+def update_choropleth(predictor, search, log_scale_on):
     # subset data based on whether substring is in name IF search is not empty
     if len(search) == 0:
         merged_sub = merged
     else:
         merged_sub = merged[merged["msoa_name_x"].str.contains(search)]
     # plot
+    if log_scale_on:
+        merged_sub[predictor] = merged_sub[predictor].apply(lambda x: np.log(x))
+
     fig = px.choropleth_mapbox(
         merged_sub,
         hover_data=["msoa_name_x", predictor],
