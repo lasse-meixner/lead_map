@@ -5,6 +5,8 @@ import pandas as pd
 import numpy as np
 import geopandas as gpd
 import plotly.express as px
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 import pyproj
 
 import dash
@@ -110,7 +112,12 @@ app.layout = dash.html.Div([
                 dash.html.Div([
                     # loading spinner
                     dash.dcc.Loading(
-                    dash.dcc.Graph(id="choropleth_risk")
+                        dash.dcc.Graph(id="choropleth_risk")
+                    )
+                ]),
+                dash.html.Div([
+                    dash.dcc.Loading(
+                        dash.dcc.Graph(id="pairsplot")
                     )
                 ])
             ])
@@ -190,6 +197,74 @@ def update_choropleth_risk(predictors, search):
     )
     fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
     return fig
+
+@app.callback(
+    Output("pairsplot", "figure"),
+    Input("predictors", "value"),
+    Input("search", "value")
+)
+def update_pairsplot(predictors, search):
+    # subselect relevant area
+    if len(search) == 0:
+        merged_sub = merged
+    else:
+        merged_sub = merged[merged["msoa_name_x"].str.contains(search)]
+    
+    # create pairsplot
+    n = len(predictors)
+    
+    fig = make_subplots(
+        rows=n, cols=n,
+        shared_xaxes=False,
+        shared_yaxes=False,
+        vertical_spacing=0.1,
+        horizontal_spacing=0.1
+    )
+    
+    for i in range(n):
+        for j in range(n):
+            if i == j:
+                # Diagonal: Density plot
+                fig.add_trace(
+                    go.Histogram(x=merged_sub[predictors[i]], nbinsx=20, histnorm='probability density'),
+                    row=i+1, col=j+1
+                )
+            elif i > j:
+                # Lower diagonal: Scatter plot
+                fig.add_trace(
+                    go.Scatter(x=merged_sub[predictors[j]], y=merged_sub[predictors[i]], mode='markers'),
+                    row=i+1, col=j+1
+                )
+            else:
+                # Upper diagonal: Correlation coefficient
+                corr_value = merged_sub[predictors[i]].corr(merged_sub[predictors[j]])
+                fig.add_trace(
+                    go.Scatter(
+                        x=[0.5], y=[0.5],
+                        text=[f'Corr:{corr_value:.2f}'],
+                        mode='text',
+                        textfont=dict(
+                            size=20  # Increase the font size
+                            )
+                    ),
+                    row=i+1, col=j+1
+                )
+
+            # Update axes
+            if i == n-1:
+                fig.update_xaxes(title_text=predictors[j], row=i+1, col=j+1)
+            if j == 0:
+                fig.update_yaxes(title_text=predictors[i], row=i+1, col=j+1)
+
+    fig.update_layout(
+        width=900, height=900,
+        showlegend=False,
+        plot_bgcolor='white',
+        hovermode="closest"
+    )
+    
+    return fig
+
 
 # Run app
 if __name__ == "__main__":
