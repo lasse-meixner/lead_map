@@ -226,7 +226,7 @@ def update_pairsplot(predictors, search):
             if i == j:
                 # Diagonal: Density plot
                 fig.add_trace(
-                    go.Histogram(x=merged_sub[predictors[i]], nbinsx=20, histnorm='probability density'),
+                    go.Histogram(x=merged_sub[predictors[i]], nbinsx=20, histnorm='probability'),
                     row=i+1, col=j+1
                 )
             elif i > j:
