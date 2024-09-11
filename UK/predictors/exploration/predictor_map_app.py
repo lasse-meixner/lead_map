@@ -81,40 +81,40 @@ app.layout = dash.html.Div([
             dash.dcc.Tab(label = "MSOA predictor map", children=[
                 dash.html.Div([
                 dash.html.H3("Select Predictor"),
-                dash.html.Div([
+                             dash.html.Div([
                     dash.dcc.Dropdown(
                         id="predictor",
                         options=[{"label": x, "value": x} for x in cols],
                         value=cols[0],
                         clearable=True,
                         searchable=True,
-                        style = {"width": "400px"}
-                        ),
+                        style={"width": "400px"}
+                    ),
                     dash.html.Label("Log Scale:", style={'marginLeft': '20px', 'marginRight': '10px'}),
                     daq.BooleanSwitch(
-                        id='log_switch', 
-                        on=False)
-                ], style={ # add style to put toggle and predictor selection in same Row (without bootstrap components)
-                    'display': 'flex', 
-                    'flexDirection': 'row', 
-                    'alignItems': 'center', 
-                    'gap': '50px', 
-                    'width': '100%', 
+                        id='log_switch',
+                        on=False
+                    ),
+                    dash.html.Div([
+                        # dash.html.H4("Predictor Metadata"),
+                        dash.html.Div([
+                            dash.html.Label("Data source:", style={'paddingRight': '10px'}),
+                            dash.html.Label(id="source_name_single"),
+                            dash.html.Br(),  # Line break
+                            dash.html.Label("Preprocessing file:", style={'paddingRight': '10px'}),
+                            dash.html.Label(id="file_link_single"),
+                        ]),
+                    ], style={'marginLeft': '20px'})  # Add some margin to separate metadata from dropdown and button
+                ], style={  # Add style to put toggle, predictor selection, and metadata in the same row
+                    'display': 'flex',
+                    'flexDirection': 'row',
+                    'alignItems': 'center',
+                    'gap': '50px',
+                    'width': '100%',
                     'justifyContent': 'center',
                     'padding': '10px'
                 }),
                 ]),
-                # add text in div displaying metadata information
-                dash.html.Div([
-                    dash.html.H4("Predictor Metadata"),
-                    dash.html.Div([
-                        dash.html.Label("Source Name:", style={'paddingRight': '10px'}),
-                        dash.html.Label(id="source_name_single"),
-                        dash.html.Br(),  # Line break
-                        dash.html.Label("File Link:", style={'paddingRight': '10px'}),
-                        dash.html.Label(id="file_link_single"), 
-                    ]),
-                ], style={'marginBottom': '20px'}),    
                 dash.html.Div([
                     # loading spinner
                     dash.dcc.Loading(
@@ -123,16 +123,22 @@ app.layout = dash.html.Div([
                 ])
             ]),
             dash.dcc.Tab(label = "Decile Risk Score Map", children=[
-                dash.html.Div([
-                dash.html.H3("Select Predictors"),
-                dash.dcc.Dropdown(
-                    id="predictors",
-                    options=[{"label": x, "value": x} for x in cols],
-                    value=[cols[0]],
-                    multi=True,
-                    clearable=True,
-                    searchable=True
-                    ),
+                    dash.html.Div([
+                    dash.html.H3("Select Predictors"),
+                    dash.html.Div([
+                        dash.dcc.Dropdown(
+                            id="predictors",
+                            options=[{"label": x, "value": x} for x in cols],
+                            value=[cols[0]],
+                            multi=True,
+                            clearable=True,
+                            searchable=True
+                        ),
+                    ], style={
+                        'display': 'flex',
+                        'flexDirection': 'row',
+                        'alignItems': 'center'
+                    })
                 ]),
                 dash.html.Div([
                     # loading spinner
@@ -157,10 +163,10 @@ app.layout = dash.html.Div([
      Output('file_link_single', 'children')],
     [Input('predictor', 'value')]
 )
-def update_metadata_info(some_value):
+def update_metadata_info_tab1(var_name):
     # Fetch or compute the source name and file link based on the input value
-    source_name = find_metadata_info(some_value, key = "source_name")
-    file_link = find_metadata_info(some_value, key = "file_link")
+    source_name = find_metadata_info(var_name, key = "source_name")
+    file_link = find_metadata_info(var_name, key = "file_link")
     # if file link is a list, join them with a "&"
     if isinstance(file_link, list):
         file_link = " & ".join(file_link)
@@ -174,7 +180,7 @@ def update_metadata_info(some_value):
     Input("search", "value"),
     Input("log_switch", "on")
 )
-def update_choropleth(predictor, search, log_scale_on):
+def update_choropleth_tab1(predictor, search, log_scale_on):
     # subset data based on whether substring is in name IF search is not empty
     if len(search) == 0:
         merged_sub = merged
@@ -209,7 +215,7 @@ def update_choropleth(predictor, search, log_scale_on):
     Input("predictors", "value"),
     Input("search", "value")
 )
-def update_choropleth_risk(predictors, search):
+def update_choropleth_risk_tab2(predictors, search):
     # subset data based on whether substring is in name IF search is not empty
     if len(search) == 0:
         merged_sub = merged
@@ -244,7 +250,7 @@ def update_choropleth_risk(predictors, search):
     Input("predictors", "value"),
     Input("search", "value")
 )
-def update_pairsplot(predictors, search):
+def update_pairsplot_tab2(predictors, search):
     # subselect relevant area
     if len(search) == 0:
         merged_sub = merged
