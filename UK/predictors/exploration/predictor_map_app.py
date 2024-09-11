@@ -3,6 +3,8 @@
 # Import packages
 import pandas as pd
 import numpy as np
+import json
+
 import geopandas as gpd
 import plotly.express as px
 import plotly.graph_objects as go
@@ -43,6 +45,18 @@ def compute_risk_score(df, predictors):
 
 # load merged file from england_msoa_2011.shp and combined_msoa.csv
 merged, cols = get_msoa_merged_shapefile()
+
+# load metadata.json
+with open("../metadata.json", "r") as f:
+    metadata = json.load(f)
+
+# auxiliary function to look up information from metadata.json
+def find_metadata_info(var_name, key = "source_name"):
+    assert key in ["source_name", "source_type", "file_link"]
+    for source in metadata.get("sources", []):
+        if var_name in source.get("variables", []):
+            return source.get(key)
+    return None
 
 # Create app
 app = dash.Dash(__name__)
@@ -90,6 +104,17 @@ app.layout = dash.html.Div([
                     'padding': '10px'
                 }),
                 ]),
+                # add text in div displaying metadata information
+                dash.html.Div([
+                    dash.html.H4("Predictor Metadata"),
+                    dash.html.Div([
+                        dash.html.Label("Source Name:", style={'paddingRight': '10px'}),
+                        dash.html.Label(id="source_name_single"),
+                        dash.html.Br(),  # Line break
+                        dash.html.Label("File Link:", style={'paddingRight': '10px'}),
+                        dash.html.Label(id="file_link_single"), 
+                    ]),
+                ], style={'marginBottom': '20px'}),    
                 dash.html.Div([
                     # loading spinner
                     dash.dcc.Loading(
@@ -125,7 +150,23 @@ app.layout = dash.html.Div([
     ])
 ])
 
-# Create app callback
+# Create app callbacks
+
+@app.callback(
+    [Output('source_name_single', 'children'),
+     Output('file_link_single', 'children')],
+    [Input('predictor', 'value')]
+)
+def update_metadata_info(some_value):
+    # Fetch or compute the source name and file link based on the input value
+    source_name = find_metadata_info(some_value, key = "source_name")
+    file_link = find_metadata_info(some_value, key = "file_link")
+    # if file link is a list, join them with a "&"
+    if isinstance(file_link, list):
+        file_link = " & ".join(file_link)
+    return source_name, file_link
+
+
 # NOTE: Plotting the whole of England is too slow, so subset the data by string matching of the name
 @app.callback(
     Output("choropleth", "figure"),

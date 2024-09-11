@@ -1,10 +1,8 @@
-// metadata on UK data
-
 {
-    "metadata": [
+    "sources": [
       {
-        "source_name": "ACS",
-        "source_type": "naniar API call",
+        "source_name": "UK Census data",
+        "source_type": "nomisR API call",
         "file_link": [
             "scripts/00_UK_census_APIs.R",
             "scripts/02_england_census_2011.R"
@@ -113,6 +111,7 @@
             "oth_born_ppl_prop_2011",
             "urban_ppl_prop_2011",
             "urban_majority_2011",
+            "total_ppl_census_1991",
             "total_ppl_census_2011",
             "total_fam_w_kids_2011",
             "total_16to24_male_ppl_2011",
