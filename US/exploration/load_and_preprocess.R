@@ -20,7 +20,7 @@ if (!exists("tract_data") || !exists("zip_data")) {
 ### data preprocessing functions
 zip_info_vars <- c("zip","STATE_ABBR")
 tract_info_vars <- c("TRACT","STATE_NAME","COUNTY") 
-offset_var <- c("under_yo5_pplE")
+offset_var <- c("under_yo5_ppl") # Note: this was changed from under_yo5_pplE from the ACS to under_yo5_ppl from the decennial census
 features <- c("median_annual_incomeE","house_price_medianE","poor_fam_propE","black_ppl_propE", "bp_pre_1959E_prop", "svi_socioeconomic_pctile", "ped_per_100k")
 
 
@@ -154,7 +154,7 @@ preprocess_lead_data <- function(lead_data){
 final_checks <- function(merged_data, drop="BLL_geq_10", drop_if_multiple_testing=FALSE){
     #' implements final data checks and optionally drop outcome variable
     merged_data <- merged_data |>
-        mutate(tests_p_kid = tested/under_yo5_pplE) |>
+        mutate(tests_p_kid = tested/under_yo5_ppl) |> # Note: before, this was under_yo5_pplE from the ACS 
         select(-all_of(drop))
     
     if (drop_if_multiple_testing) {
