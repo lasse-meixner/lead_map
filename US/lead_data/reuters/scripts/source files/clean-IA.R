@@ -1,8 +1,8 @@
 library(tidyverse)
 library(readxl)
 
+# Some raw file use "IO" instead of "IA" for Iowa
 
-         
 file_path <- 'BLL_IO_Raw.xlsx'
 
 
@@ -40,4 +40,4 @@ io <- paste0("../../raw_data/", file_path) %>%
   mutate(year = factor(year))
 
 # save to csv
-write_csv(io, file = "../../processed_data/io.csv")
+write_csv(io, file = "../../processed_data/ia.csv")
