@@ -1,1 +1,6 @@
 *_files/
+poisson_thinned_exclusion
+poisson_thinned_exclusion_x_logit
+poisson_thinned_exclusion_x_logit_subset
+.Rhistory
+*.RData

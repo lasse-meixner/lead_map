@@ -1,0 +1,464 @@
+---
+title: "Thinned poisson regression with exclusion restriction on ZIP states"
+format:
+    html:
+      code-fold: true
+---
+
+This notebook replicates model runs found in `poisson_thinned_exclusion.qmd` but for ZIP states. If the results look as good, this will be moved into a reproducible model pipeline.
+
+```{r}
+library(tidyverse)
+# run init file
+source("../init.R")
+```
+
+# Data preprocessing function
+
+```{r}
+info_vars <- c("zip","STATE_ABBR")
+offset_var <- c("under_yo5_pplE","ped_per_100k")
+features <- c("median_annual_incomeE","house_price_medianE","poor_fam_propE","black_ppl_propE", "bp_pre_1959E_prop", "svi_socioeconomic_pctile")
+
+preprocess_pred_data <- function(zip_data){
+    #' selects relevant PREDICTOR variables, drops NAs and scales data
+    #' 
+    zip_data |> select(all_of(c(features, offset_var, info_vars))) |>
+    distinct() |>
+    # drop NAs
+    drop_na() |>
+    # drop if poor_fam_propE==0 (missing value in census API)
+    filter(poor_fam_propE!=0) |>
+    # standardize all features
+    mutate(across(all_of(features), ~(. - mean(.))/sd(.)))
+}
+
+preprocess_lead_data <- function(lead_data){
+    #' preprocesses lead data
+    lead_data |> 
+        # create indicator if starts with "<" (supressed value) for both tested and BLL_geq_5
+        mutate(tested_suppressed = str_detect(tested, "<"),
+               BLL_geq_5_suppressed = str_detect(BLL_geq_5, "<")) |>
+        # remove "<" from tested and BLL_geq_5
+        mutate(tested = str_remove(tested, "<"),
+               BLL_geq_5 = str_remove(BLL_geq_5, "<")) |>
+        # convert to numeric
+        mutate(tested = as.numeric(tested),
+               BLL_geq_5 = as.numeric(BLL_geq_5)) |>
+        # add state level censoring threshold
+        group_by(state) |>
+        # get minimum of BLL_geq_5 that is greater than 0
+        mutate(ell = min(BLL_geq_5[BLL_geq_5>0], na.rm = TRUE) - 1) |> #Note: I take -1 here, so "<6" will be a 5
+        ungroup()
+}
+
+final_checks  <- function(merged_data, drop="BLL_geq_10"){
+    #' implements final data checks and drops unused outcome column
+    # get outcome of interest based on drop (pick the other respectively)
+    outcome_of_interest <- ifelse(drop == "BLL_geq_10", "BLL_geq_5", "BLL_geq_10")
+    merged_data |>
+        filter(under_yo5_pplE>=tested,
+               tested>0) |> 
+        select(-all_of(drop)) |>
+        # drop if NA in any of offset_var, features or drop
+        drop_na(any_of(c(features, offset_var, outcome_of_interest)))
+}
+```
+
+# Loading all ZIP data
+
+```{r}
+# import predictor ZIP data
+find_and_set_directory("US/predictors/processed_data")
+zip_data <- read_csv("final_zip.csv") # includes pediatrician data
+
+# import lead data resources for ZIP states
+find_and_set_directory("US/lead_data/reuters/scripts")
+source("00_merging_functions.R")
+```
+
+Loading a single state (I look exclusively at 2010 data here):
+
+```{r}
+single_state_data <- function(state_name, drop_outcome = c()){
+    # load and assign the state data
+    load_state(state_name, from_raw = TRUE) # from 00_merging_functions.R 
+    state_data <- get(str_to_lower(state_name))
+    # preprocess lead data
+    state_lead <- state_data |>
+        filter(year == 2010) |> #NOTE: 2010 is in the middle of our period and has max testing in many states
+        # ensure zip is chr
+       mutate(zip = as.character(zip)) |>
+        # preprocess lead data
+        preprocess_lead_data()
+      
+    state_pred <- zip_data |> filter(STATE_ABBR == state_name) |> preprocess_pred_data()
+
+    # merge
+    state_merged <- state_pred |> 
+        left_join(state_lead, by = "zip") |> 
+        final_checks(drop=drop_outcome)
+}
+```
+
+Try Rhode Island (no suppression):
+
+### Rhode Island (no suppression)
+
+```{r}
+rhode_island <- single_state_data("RI")
+```
+
+Function to build STAN vector (copied)
+
+```{r}
+build_stan_vector  <-  function(merged_data){
+    list(
+        N_obs = merged_data |> filter(!BLL_geq_5_suppressed) |> count() |> pull(n),
+        N_cens = merged_data |> filter(BLL_geq_5_suppressed) |> count() |> pull(n),
+        K = length(features),
+        y_obs = merged_data |> filter(!BLL_geq_5_suppressed) |> pull(BLL_geq_5),
+        x_obs = merged_data |> filter(!BLL_geq_5_suppressed) |> select(all_of(features)) |> as.matrix(),
+        x_cens = merged_data |> filter(BLL_geq_5_suppressed) |> select(all_of(features)) |> as.matrix(),
+        z_obs = merged_data |> filter(!BLL_geq_5_suppressed) |> pull(ped_per_100k),
+        z_cens = merged_data |> filter(BLL_geq_5_suppressed) |> pull(ped_per_100k),
+        kids_obs = merged_data |> filter(!BLL_geq_5_suppressed) |> pull(under_yo5_pplE),
+        kids_cens = merged_data |> filter(BLL_geq_5_suppressed) |> pull(under_yo5_pplE),
+        # get suppression bound 
+        ell = merged_data |> filter(BLL_geq_5_suppressed) |> pull(ell)
+    )
+}
+```
+
+Import model
+
+```{r}
+library(cmdstanr)
+
+stan_model_wo_priors <- cmdstan_model("poisson_thinned_exclusion.stan")
+```
+
+Build the input matrix
+
+```{r}
+stan_data <- build_stan_vector(rhode_island)
+```
+
+run the model
+
+```{r}
+fit <- stan_model_wo_priors$sample(
+  data = stan_data,seed = 1234,
+  chains = 4, 
+  parallel_chains = 4,
+  refresh = 500)
+```
+
+Some auxiliary functions for model evaluation
+
+```{r}
+library(bayesplot)
+
+get_coefficients <- function(fit){
+  fit$summary() |> 
+  # rename all of the beta[j] by their feature names
+  mutate(variable = ifelse(str_detect(variable, "beta"), paste0(features[as.numeric(str_extract(variable, "[0-9]+"))]), variable)) |>
+  # unselect all variables that contain pi_
+  filter(!str_detect(variable, "pi_"))
+}
+
+plot_betas <- function(fit, title = "Posterior distributions") {
+    draws <- fit$draws(format = "draws_df") |>
+        # rename column names beta[j] by their feature names
+        rename_with(~ (features[as.numeric(str_extract(., "[0-9]+"))]), starts_with("beta"))
+
+    mcmc_areas(draws %>% select(features), prob = 0.8) +
+        ggtitle(title)
+}
+```
+
+Let's look at the coefficients
+
+```{r}
+fit |> get_coefficients() |> knitr::kable(digits = 3)
+```
+
+Plotting the posterior distributions
+
+```{r}
+fit |> plot_betas(title = "Posterior distribution for Rhode Island")
+```
+
+The Rhat values are not perfect but not too bad for the coefficients on the Poisson side, from the plot of posteriors we can see that they are nicely shaped. As expected the intercepts alpha and gamma are not identified at all.
+
+What happens if we nail down the prior on alpha?
+
+```{r}
+stan_model_w_priors <- cmdstan_model("poisson_thinned_exclusion_w_priors.stan")
+
+# append nhanes_prior_var to the data
+stan_data <- stan_data |>
+    append(list(nhanes_prior_var = 1))
+
+fit_w_priors <- stan_model_w_priors$sample(
+  data = stan_data,seed = 1234,
+  chains = 4, 
+  parallel_chains = 4,
+  refresh = 500)
+
+fit_w_priors |> get_coefficients() |> knitr::kable(digits = 3)
+```
+
+Setting the variance of alpha to 1 helps! This looks much better. But if you narrow down the prior even further, things actually look worse:
+
+```{r}
+# set prior variance to 0.01
+stan_data[["nhanes_prior_var"]] <- 0.01
+
+# sample again
+fit_w_priors_2 <- stan_model_w_priors$sample(
+  data = stan_data,seed = 1234,
+  chains = 4, 
+  parallel_chains = 4,
+  refresh = 500)
+
+fit_w_priors_2 |> get_coefficients() |> knitr::kable(digits = 3)
+```
+
+This is worse than before... Why?
+
+Let us now look at including some features in the logit side.
+
+```{r}
+stan_model_x_logit <- cmdstan_model("poisson_thinned_exclusion_x_logit.stan")
+
+fit_x_logit <- stan_model_x_logit$sample(
+  data = stan_data,seed = 1234,
+  chains = 4, 
+  parallel_chains = 4,
+  refresh = 500)
+```
+
+```{r}
+fit_x_logit |> get_coefficients() |> knitr::kable(digits = 3)
+```
+
+```{r}
+fit_x_logit |> plot_betas(title = "Posterior distribution for Rhode Island with all x in logit")
+```
+
+Unsurprisingly, throwing all of the x's into the logit side, this does not look good at all. Inspecting the intercorrelation of these features:
+
+```{r}
+library(reshape2)
+get_corplot <- function(state_data, features = c("median_annual_incomeE","house_price_medianE","poor_fam_propE","black_ppl_propE", "bp_pre_1959E_prop", "svi_socioeconomic_pctile")){
+  # use geomtile to plot correlation matrix
+  state_data |> 
+    select(all_of(features)) |> 
+    cor() |> 
+    melt() |>
+    ggplot(aes(Var1, Var2, fill = value)) +
+    geom_tile() +
+    geom_text(aes(label = sprintf("%.2f", value)), color = "black", size = 3) +
+    scale_fill_gradient2(low = "blue", high = "red", mid = "white", midpoint = 0, limit = c(-1, 1)) +
+    theme_minimal() + 
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    coord_fixed()
+}
+
+rhode_island |> get_corplot()
+```
+
+Evidently there is a lot of multicollinearity that messes up identification on the logit side which spills over. I now try to only include the median annual income and the proportion of poor families.
+
+```{r}
+# I need to modify the data transformation as STAN now takes additional inputs.
+build_stan_vector_logit_2 <-  function(merged_data, pr_var = 1, logit_features = c("median_annual_incomeE", "poor_fam_propE")){
+    list(
+        N_obs = merged_data |> filter(!BLL_geq_5_suppressed) |> count() |> pull(n),
+        N_cens = merged_data |> filter(BLL_geq_5_suppressed) |> count() |> pull(n),
+        K = length(features),
+        L = 2, # number of features in logit
+        y_obs = merged_data |> filter(!BLL_geq_5_suppressed) |> pull(BLL_geq_5),
+        x_obs = merged_data |> filter(!BLL_geq_5_suppressed) |> select(all_of(features)) |> as.matrix(),
+        x_cens = merged_data |> filter(BLL_geq_5_suppressed) |> select(all_of(features)) |> as.matrix(),
+        w_obs = merged_data |> filter(!BLL_geq_5_suppressed) |> select(logit_features) |> as.matrix(),
+        w_cens = merged_data |> filter(BLL_geq_5_suppressed) |> select(logit_features) |> as.matrix(),
+        z_obs = merged_data |> filter(!BLL_geq_5_suppressed) |> pull(ped_per_100k),
+        z_cens = merged_data |> filter(BLL_geq_5_suppressed) |> pull(ped_per_100k),
+        kids_obs = merged_data |> filter(!BLL_geq_5_suppressed) |> pull(under_yo5_pplE),
+        kids_cens = merged_data |> filter(BLL_geq_5_suppressed) |> pull(under_yo5_pplE),
+        # get suppression bound 
+        ell = merged_data |> filter(BLL_geq_5_suppressed) |> pull(ell),
+        nhanes_prior_var = pr_var
+    )
+}
+
+# get new data
+stan_data_ri_2 <- build_stan_vector_logit_2(rhode_island, pr_var = 0.01)
+```
+
+```{r}
+# load new model
+stan_model_x_logit_2 <- cmdstan_model("poisson_thinned_exclusion_x_logit_subset.stan")
+```
+
+If we fit this
+
+```{r}
+fit_x_logit_2 <- stan_model_x_logit_2$sample(
+  data = stan_data_ri_2,
+  seed = 1234,
+  chains = 4, 
+  parallel_chains = 4,
+  refresh = 500)
+```
+
+```{r}
+fit_x_logit_2 |> get_coefficients() |> knitr::kable(digits = 3)
+```
+
+```{r}
+fit_x_logit_2 |> plot_betas(title = "Posterior distribution for Rhode Island with median income and poor families in logit")
+```
+
+The logit coefficients are spread flat, so not located at all. Interestingly, it seems to be especially the variables included in the logit that are badly identified. **(I checked and this pattern also appeared when including two X's on the logit side for tract data...)** I retry the same with including the house price and the svi_socioeconomic_pctile.
+
+```{r}
+stan_data_ri_3 <- build_stan_vector_logit_2(rhode_island, logit_features = c("house_price_medianE", "svi_socioeconomic_pctile"))
+
+fit_x_logit_3 <- stan_model_x_logit_2$sample(
+  data = stan_data_ri_3,
+  seed = 1234,
+  chains = 4, 
+  parallel_chains = 4,
+  refresh = 500)
+
+fit_x_logit_3 |> get_coefficients() |> knitr::kable(digits = 3)
+```
+
+```{r}
+fit_x_logit_3 |> plot_betas(title = "Posterior distribution for Rhode Island with median house price and SVI in logit")
+```
+
+This looks slightly better... But convergence statistics are still pretty bad.
+
+```{r}
+cor(rhode_island |> select(all_of(c("median_annual_incomeE", "poor_fam_propE"))))
+cor(rhode_island |> select(all_of(c("house_price_medianE", "svi_socioeconomic_pctile"))))
+```
+
+This pattern did not appear in the simple simulation where our data is nicely spread and normal. So I suspect this pattern has to do with particularities of our DGP. Looking at the distribution of the pi's from the generated quantities
+
+```{r}
+# get posterior means for each pi
+pi_posterior_means <- fit_x_logit_3$draws(format = "draws_df") |>
+    select(starts_with("pi_"), all_of(".chain")) |>
+    group_by(.chain) |>
+    summarise_all(mean) |>
+    pivot_longer(cols = -c(.chain), names_to = "pi", values_to = "mean") |> 
+    ungroup()
+
+# plot
+pi_posterior_means |> 
+    mutate(.chain = as.factor(.chain)) |>
+    ggplot(aes(x = mean)) +
+    geom_histogram(aes(fill = .chain), bins = 30, alpha = 0.5) +
+    # flip to horizontal
+    coord_flip()
+```
+
+It looks like most of these values are stuck to 1.
+
+What if I crank up the chain length?
+
+```{r}
+fit_x_logit_3_long <- stan_model_x_logit_2$sample(
+  data = stan_data_ri_3,
+  seed = 1234,
+  chains = 4, 
+  parallel_chains = 4,
+  refresh = 500,
+  iter_warmup = 1000,
+  iter_sampling = 2000)
+
+fit_x_logit_3_long |> plot_betas(title = "Posterior distribution for Rhode Island with median house price and SVI in logit for longer chain")
+```
+
+This kind of helps, if I make the prior very small...?
+
+The small number of observations makes this worse...What if I artifically boost the number of observations?
+
+```{r}
+# bootstrap 3x the number of observations of rhode island
+rhode_island_bs <- rhode_island %>%
+  sample_n(500, replace = TRUE)
+
+# get new data
+stan_data_ri_4 <- build_stan_vector_logit_2(rhode_island_bs, logit_features = c("house_price_medianE", "svi_socioeconomic_pctile"))
+
+fit_x_logit_4 <- stan_model_x_logit_2$sample(
+  data = stan_data_ri_4,
+  seed = 1234,
+  chains = 4, 
+  parallel_chains = 4,
+  refresh = 500)
+
+fit_x_logit_4 |> plot_betas(title = "Posterior distribution for Rhode Island with median house price and SVI in logit for boosted data")
+```
+
+#### Summary
+
+The issue here does not appear to be multicollinearity on the logit side... Some observations:
+
+-   Narrowing down the prior on alpha too much, even without having any x's in the logit can make things worse!
+
+-   Including even uncorrelated x's on the logit side messes up efficient sampling of posteriors. It is unclear, especially because RI is so small, if this is an issue with the model or just too little information in the small RI dataset.
+
+-   Interestingly, it is especially the variables included in the logit that are badly identified on the poisson side. I couldnt yet replicate this pattern in the simulations in the identification branch.
+
+-   Most of the draws for the pi's are stuck at 1. So log-odds are estimated to be high, and the logistic is practically **flat** und approximately **linear** on this set.
+
+I try to get some better understanding of all of these observations back in the simulation setting in 'models/identification/identification_ch2.qmd'.
+
+### Michigan (higher ell threshold)
+
+Michigan has more complicated data, it has suppression in BLLs and tested. However, the body of data is much larger. Let's have a look.
+
+```{r}
+load_state("MI")
+```
+
+```{r}
+# prep data
+mi_data <- single_state_data("MI")
+
+# manually dropping MI duplicates
+print(length(mi_data))
+mi_data <- mi_data |> distinct()
+print(length(mi_data))
+```
+
+```{r}
+# build STAN vector
+stan_data_mi <- build_stan_vector(mi_data)
+```
+
+```{r}
+# append nhanes_prior_var to the data
+stan_data_mi <- stan_data_mi |>
+    append(list(nhanes_prior_var = 1))
+
+fit_mi_w_priors <- stan_model_w_priors$sample(
+  data = stan_data_mi,
+  seed = 1234,
+  chains = 4, 
+  parallel_chains = 4,
+  refresh = 500)
+```
+
+```{r}
+fit_w_priors |> get_coefficients() |> knitr::kable(digits = 3)
+```
+
+Even without including x's on the logit side, poisson coefficients are not efficiently sampled...

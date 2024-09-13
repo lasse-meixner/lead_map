@@ -1,0 +1,1317 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.2.335">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>More thinned poisson regression with exclusion restrictions</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1.6em;
+  vertical-align: middle;
+}
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { color: #008000; } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { color: #008000; font-weight: bold; } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+</style>
+
+
+<script src="poisson_thinned_exclusion_v2_files/libs/clipboard/clipboard.min.js"></script>
+<script src="poisson_thinned_exclusion_v2_files/libs/quarto-html/quarto.js"></script>
+<script src="poisson_thinned_exclusion_v2_files/libs/quarto-html/popper.min.js"></script>
+<script src="poisson_thinned_exclusion_v2_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="poisson_thinned_exclusion_v2_files/libs/quarto-html/anchor.min.js"></script>
+<link href="poisson_thinned_exclusion_v2_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="poisson_thinned_exclusion_v2_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="poisson_thinned_exclusion_v2_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="poisson_thinned_exclusion_v2_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="poisson_thinned_exclusion_v2_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+</head>
+
+<body class="fullcontent">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">More thinned poisson regression with exclusion restrictions</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+</header>
+
+<ul>
+<li>results from simulation showed that insufficient spread support of X’s added to logit could be a source of identification problems.</li>
+<li>here I will assess the X spread and potentially see if pooling more data or adding fake data points could help.</li>
+</ul>
+<div class="cell">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stderr">
+<pre><code>── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
+✔ dplyr     1.1.2     ✔ readr     2.1.4
+✔ forcats   1.0.0     ✔ stringr   1.5.0
+✔ ggplot2   3.4.1     ✔ tibble    3.2.1
+✔ lubridate 1.9.2     ✔ tidyr     1.3.0
+✔ purrr     1.0.1     
+── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+✖ dplyr::filter() masks stats::filter()
+✖ dplyr::lag()    masks stats::lag()
+ℹ Use the ]8;;http://conflicted.r-lib.org/conflicted package]8;; to force all conflicts to become errors</code></pre>
+</div>
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># run init file</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="fu">source</span>(<span class="st">"../init.R"</span>)</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="fu">source</span>(<span class="st">"model_analytics.R"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: bayesplot
+This is bayesplot version 1.10.0
+- Online documentation and vignettes at mc-stan.org/bayesplot
+- bayesplot theme set to bayesplot::theme_default()
+   * Does _not_ affect other ggplot2 plots
+   * See ?bayesplot_theme_set for details on theme setting
+
+Attaching package: 'reshape2'
+
+The following object is masked from 'package:tidyr':
+
+    smiths</code></pre>
+</div>
+</div>
+<p>Let’s first go back to Massachusettes</p>
+<div class="cell">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># import tract data</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="fu">find_and_set_directory</span>(<span class="st">"US/predictors/processed_data"</span>)</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>tract_data  <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"final_tract.csv"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stderr">
+<pre><code>Rows: 19311 Columns: 139
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+chr  (14): TRACT, NAME, ST, STATE_FIPS, CNTY_FIPS, STCOFIPS, STATE_ABBR, STA...
+dbl (125): total_ppl_acs20E, median_annual_incomeE, house_price_medianE, ren...
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
+</div>
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># import lead data</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="fu">find_and_set_directory</span>(<span class="st">"US/lead_data/reuters/scripts"</span>)</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="fu">source</span>(<span class="st">"00_merging_functions.R"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Attaching package: 'jsonlite'
+
+The following object is masked from 'package:purrr':
+
+    flatten</code></pre>
+</div>
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>single_state_data <span class="ot">&lt;-</span> <span class="cf">function</span>(state_name, <span class="at">drop_outcome =</span> <span class="fu">c</span>(), <span class="at">pred_preprocess_func =</span> <span class="cn">NULL</span>){</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    <span class="co"># load and assign the state data</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">load_state</span>(state_name, <span class="at">from_raw =</span> <span class="cn">TRUE</span>) <span class="co"># from 00_merging_functions.R </span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>    state_data <span class="ot">&lt;-</span> <span class="fu">get</span>(<span class="fu">str_to_lower</span>(state_name))</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>    <span class="co"># preprocess lead data</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>    state_lead <span class="ot">&lt;-</span> state_data <span class="sc">|&gt;</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>        <span class="fu">filter</span>(year <span class="sc">==</span> <span class="dv">2010</span>) <span class="sc">|&gt;</span> <span class="co">#NOTE: 2010 is in the middle of our period and has max testing in many states</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>        <span class="co"># preprocess lead data</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>        <span class="fu">preprocess_lead_data</span>()</span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>      </span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>    state_pred <span class="ot">&lt;-</span> tract_data <span class="sc">|&gt;</span> <span class="fu">filter</span>(STATE_ABBR <span class="sc">==</span> state_name) <span class="sc">|&gt;</span> <span class="fu">preprocess_pred_data</span>(<span class="at">info_vars =</span> tract_info_vars, <span class="at">additional_preprocess =</span> pred_preprocess_func)</span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>    <span class="co"># merge</span></span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>    state_merged <span class="ot">&lt;-</span> state_pred <span class="sc">|&gt;</span> </span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>        <span class="fu">left_join</span>(state_lead, <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"TRACT"</span> <span class="ot">=</span> <span class="st">"tract"</span>)) <span class="sc">|&gt;</span> </span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>        <span class="fu">final_checks</span>(<span class="at">drop=</span>drop_outcome)</span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<div class="cell">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>ma_final <span class="ot">&lt;-</span> <span class="fu">single_state_data</span>(<span class="st">"MA"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Building MA from raw_data"
+[1] "File BLL_MA_Raw.xlsx already in local folder."
+[1] "Additional features added: "</code></pre>
+</div>
+</div>
+<section id="assess-spread-of-xs" class="level2">
+<h2 class="anchored" data-anchor-id="assess-spread-of-xs">Assess spread of X’s</h2>
+<div class="cell">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co"># assess spread of X's</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="fu">get_spread_plot</span>(ma_final, features)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<p><img src="poisson_thinned_exclusion_v2_files/figure-html/unnamed-chunk-4-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<p>Some of those variables are very skewed, like the poor family proportion, black people proportion and median house prices.</p>
+</section>
+<section id="rerunning-ma-with-median-house-prices" class="level2">
+<h2 class="anchored" data-anchor-id="rerunning-ma-with-median-house-prices">Rerunning MA with median house prices</h2>
+<p>Rerunning MA with only the house price also in the logit:</p>
+<div class="cell">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(cmdstanr)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stderr">
+<pre><code>This is cmdstanr version 0.6.1</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>- CmdStanR documentation and vignettes: mc-stan.org/cmdstanr</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>- CmdStan path: /Users/lasse/.cmdstan/cmdstan-2.33.0</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>- CmdStan version: 2.33.0</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+A newer version of CmdStan is available. See ?install_cmdstan() to install it.
+To disable this check set option or environment variable CMDSTANR_NO_VER_CHECK=TRUE.</code></pre>
+</div>
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co"># load model</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>model <span class="ot">&lt;-</span> <span class="fu">cmdstan_model</span>(<span class="st">"poisson_thinned_exclusion_x_logit_subset.stan"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in readLines(stan_file): incomplete final line found on
+'poisson_thinned_exclusion_x_logit_subset.stan'</code></pre>
+</div>
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="co"># prepare data</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>ma_final <span class="ot">&lt;-</span> <span class="fu">single_state_data</span>(<span class="st">"MA"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "MA already loaded"
+[1] "Additional features added: "</code></pre>
+</div>
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>ma_list <span class="ot">&lt;-</span> <span class="fu">build_stan_vector_logit_2</span>(ma_final, <span class="at">pr_var =</span> <span class="dv">1</span>, <span class="at">logit_features =</span> <span class="fu">c</span>(<span class="st">"house_price_medianE"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Using an external vector in selections was deprecated in tidyselect 1.1.0.
+ℹ Please use `all_of()` or `any_of()` instead.
+  # Was:
+  data %&gt;% select(logit_features)
+
+  # Now:
+  data %&gt;% select(all_of(logit_features))
+
+See &lt;https://tidyselect.r-lib.org/reference/faq-external-vector.html&gt;.</code></pre>
+</div>
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="co"># fit</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>fit <span class="ot">&lt;-</span> model<span class="sc">$</span><span class="fu">sample</span>(<span class="at">data =</span> ma_list, <span class="at">chains =</span> <span class="dv">4</span>, <span class="at">iter_warmup =</span> <span class="dv">1000</span>, <span class="at">iter_sampling =</span> <span class="dv">1000</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>Running MCMC with 4 sequential chains...
+
+Chain 1 Iteration:    1 / 2000 [  0%]  (Warmup) 
+Chain 1 Iteration:  100 / 2000 [  5%]  (Warmup) 
+Chain 1 Iteration:  200 / 2000 [ 10%]  (Warmup) 
+Chain 1 Iteration:  300 / 2000 [ 15%]  (Warmup) 
+Chain 1 Iteration:  400 / 2000 [ 20%]  (Warmup) 
+Chain 1 Iteration:  500 / 2000 [ 25%]  (Warmup) 
+Chain 1 Iteration:  600 / 2000 [ 30%]  (Warmup) 
+Chain 1 Iteration:  700 / 2000 [ 35%]  (Warmup) 
+Chain 1 Iteration:  800 / 2000 [ 40%]  (Warmup) 
+Chain 1 Iteration:  900 / 2000 [ 45%]  (Warmup) 
+Chain 1 Iteration: 1000 / 2000 [ 50%]  (Warmup) 
+Chain 1 Iteration: 1001 / 2000 [ 50%]  (Sampling) 
+Chain 1 Iteration: 1100 / 2000 [ 55%]  (Sampling) 
+Chain 1 Iteration: 1200 / 2000 [ 60%]  (Sampling) 
+Chain 1 Iteration: 1300 / 2000 [ 65%]  (Sampling) 
+Chain 1 Iteration: 1400 / 2000 [ 70%]  (Sampling) 
+Chain 1 Iteration: 1500 / 2000 [ 75%]  (Sampling) 
+Chain 1 Iteration: 1600 / 2000 [ 80%]  (Sampling) 
+Chain 1 Iteration: 1700 / 2000 [ 85%]  (Sampling) 
+Chain 1 Iteration: 1800 / 2000 [ 90%]  (Sampling) 
+Chain 1 Iteration: 1900 / 2000 [ 95%]  (Sampling) 
+Chain 1 Iteration: 2000 / 2000 [100%]  (Sampling) 
+Chain 1 finished in 104.1 seconds.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 2 Rejecting initial value:</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 2   Log probability evaluates to log(0), i.e. negative infinity.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 2   Stan can't start sampling from this initial value.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 2 Rejecting initial value:</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 2   Log probability evaluates to log(0), i.e. negative infinity.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 2   Stan can't start sampling from this initial value.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 2 Rejecting initial value:</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 2   Log probability evaluates to log(0), i.e. negative infinity.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 2   Stan can't start sampling from this initial value.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 2 Rejecting initial value:</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 2   Log probability evaluates to log(0), i.e. negative infinity.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 2   Stan can't start sampling from this initial value.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 2 Rejecting initial value:</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 2   Log probability evaluates to log(0), i.e. negative infinity.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 2   Stan can't start sampling from this initial value.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 2 Rejecting initial value:</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 2   Log probability evaluates to log(0), i.e. negative infinity.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 2   Stan can't start sampling from this initial value.</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Chain 2 Iteration:    1 / 2000 [  0%]  (Warmup) 
+Chain 2 Iteration:  100 / 2000 [  5%]  (Warmup) 
+Chain 2 Iteration:  200 / 2000 [ 10%]  (Warmup) 
+Chain 2 Iteration:  300 / 2000 [ 15%]  (Warmup) 
+Chain 2 Iteration:  400 / 2000 [ 20%]  (Warmup) 
+Chain 2 Iteration:  500 / 2000 [ 25%]  (Warmup) 
+Chain 2 Iteration:  600 / 2000 [ 30%]  (Warmup) 
+Chain 2 Iteration:  700 / 2000 [ 35%]  (Warmup) 
+Chain 2 Iteration:  800 / 2000 [ 40%]  (Warmup) 
+Chain 2 Iteration:  900 / 2000 [ 45%]  (Warmup) 
+Chain 2 Iteration: 1000 / 2000 [ 50%]  (Warmup) 
+Chain 2 Iteration: 1001 / 2000 [ 50%]  (Sampling) 
+Chain 2 Iteration: 1100 / 2000 [ 55%]  (Sampling) 
+Chain 2 Iteration: 1200 / 2000 [ 60%]  (Sampling) 
+Chain 2 Iteration: 1300 / 2000 [ 65%]  (Sampling) 
+Chain 2 Iteration: 1400 / 2000 [ 70%]  (Sampling) 
+Chain 2 Iteration: 1500 / 2000 [ 75%]  (Sampling) 
+Chain 2 Iteration: 1600 / 2000 [ 80%]  (Sampling) 
+Chain 2 Iteration: 1700 / 2000 [ 85%]  (Sampling) 
+Chain 2 Iteration: 1800 / 2000 [ 90%]  (Sampling) 
+Chain 2 Iteration: 1900 / 2000 [ 95%]  (Sampling) 
+Chain 2 Iteration: 2000 / 2000 [100%]  (Sampling) 
+Chain 2 finished in 93.9 seconds.
+Chain 3 Iteration:    1 / 2000 [  0%]  (Warmup) </code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 3 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 3 Exception: poisson_lpmf: Rate parameter[1] is nan, but must be nonnegative! (in '/var/folders/yx/_8fch6cj6w5cfvy2xlfjrsyw0000gn/T/RtmpkmQcJm/model-1319a18158e1a.stan', line 41, column 3 to column 31)</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 3 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 3 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 3 </code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 3 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 3 Exception: poisson_lpmf: Rate parameter[1] is nan, but must be nonnegative! (in '/var/folders/yx/_8fch6cj6w5cfvy2xlfjrsyw0000gn/T/RtmpkmQcJm/model-1319a18158e1a.stan', line 41, column 3 to column 31)</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 3 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 3 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 3 </code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 3 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 3 Exception: poisson_lpmf: Rate parameter[1] is nan, but must be nonnegative! (in '/var/folders/yx/_8fch6cj6w5cfvy2xlfjrsyw0000gn/T/RtmpkmQcJm/model-1319a18158e1a.stan', line 41, column 3 to column 31)</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 3 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 3 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 3 </code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 3 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 3 Exception: poisson_lpmf: Rate parameter[1] is nan, but must be nonnegative! (in '/var/folders/yx/_8fch6cj6w5cfvy2xlfjrsyw0000gn/T/RtmpkmQcJm/model-1319a18158e1a.stan', line 41, column 3 to column 31)</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 3 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 3 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 3 </code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 3 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 3 Exception: poisson_lpmf: Rate parameter[1] is nan, but must be nonnegative! (in '/var/folders/yx/_8fch6cj6w5cfvy2xlfjrsyw0000gn/T/RtmpkmQcJm/model-1319a18158e1a.stan', line 41, column 3 to column 31)</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 3 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 3 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 3 </code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 3 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 3 Exception: poisson_lpmf: Rate parameter[1] is nan, but must be nonnegative! (in '/var/folders/yx/_8fch6cj6w5cfvy2xlfjrsyw0000gn/T/RtmpkmQcJm/model-1319a18158e1a.stan', line 41, column 3 to column 31)</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 3 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 3 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 3 </code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 3 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 3 Exception: poisson_lpmf: Rate parameter[3] is nan, but must be nonnegative! (in '/var/folders/yx/_8fch6cj6w5cfvy2xlfjrsyw0000gn/T/RtmpkmQcJm/model-1319a18158e1a.stan', line 41, column 3 to column 31)</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 3 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 3 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 3 </code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 3 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 3 Exception: poisson_lpmf: Rate parameter[1] is nan, but must be nonnegative! (in '/var/folders/yx/_8fch6cj6w5cfvy2xlfjrsyw0000gn/T/RtmpkmQcJm/model-1319a18158e1a.stan', line 41, column 3 to column 31)</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 3 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 3 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 3 </code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 3 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 3 Exception: poisson_lpmf: Rate parameter[1] is nan, but must be nonnegative! (in '/var/folders/yx/_8fch6cj6w5cfvy2xlfjrsyw0000gn/T/RtmpkmQcJm/model-1319a18158e1a.stan', line 41, column 3 to column 31)</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 3 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 3 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 3 </code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 3 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 3 Exception: poisson_lpmf: Rate parameter[1] is nan, but must be nonnegative! (in '/var/folders/yx/_8fch6cj6w5cfvy2xlfjrsyw0000gn/T/RtmpkmQcJm/model-1319a18158e1a.stan', line 41, column 3 to column 31)</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 3 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 3 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 3 </code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Chain 3 Iteration:  100 / 2000 [  5%]  (Warmup) 
+Chain 3 Iteration:  200 / 2000 [ 10%]  (Warmup) 
+Chain 3 Iteration:  300 / 2000 [ 15%]  (Warmup) 
+Chain 3 Iteration:  400 / 2000 [ 20%]  (Warmup) 
+Chain 3 Iteration:  500 / 2000 [ 25%]  (Warmup) 
+Chain 3 Iteration:  600 / 2000 [ 30%]  (Warmup) 
+Chain 3 Iteration:  700 / 2000 [ 35%]  (Warmup) 
+Chain 3 Iteration:  800 / 2000 [ 40%]  (Warmup) 
+Chain 3 Iteration:  900 / 2000 [ 45%]  (Warmup) 
+Chain 3 Iteration: 1000 / 2000 [ 50%]  (Warmup) 
+Chain 3 Iteration: 1001 / 2000 [ 50%]  (Sampling) 
+Chain 3 Iteration: 1100 / 2000 [ 55%]  (Sampling) 
+Chain 3 Iteration: 1200 / 2000 [ 60%]  (Sampling) 
+Chain 3 Iteration: 1300 / 2000 [ 65%]  (Sampling) 
+Chain 3 Iteration: 1400 / 2000 [ 70%]  (Sampling) 
+Chain 3 Iteration: 1500 / 2000 [ 75%]  (Sampling) 
+Chain 3 Iteration: 1600 / 2000 [ 80%]  (Sampling) 
+Chain 3 Iteration: 1700 / 2000 [ 85%]  (Sampling) 
+Chain 3 Iteration: 1800 / 2000 [ 90%]  (Sampling) 
+Chain 3 Iteration: 1900 / 2000 [ 95%]  (Sampling) 
+Chain 3 Iteration: 2000 / 2000 [100%]  (Sampling) 
+Chain 3 finished in 24.9 seconds.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 4 Rejecting initial value:</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 4   Log probability evaluates to log(0), i.e. negative infinity.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 4   Stan can't start sampling from this initial value.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 4 Rejecting initial value:</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 4   Log probability evaluates to log(0), i.e. negative infinity.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 4   Stan can't start sampling from this initial value.</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Chain 4 Iteration:    1 / 2000 [  0%]  (Warmup) 
+Chain 4 Iteration:  100 / 2000 [  5%]  (Warmup) 
+Chain 4 Iteration:  200 / 2000 [ 10%]  (Warmup) 
+Chain 4 Iteration:  300 / 2000 [ 15%]  (Warmup) 
+Chain 4 Iteration:  400 / 2000 [ 20%]  (Warmup) 
+Chain 4 Iteration:  500 / 2000 [ 25%]  (Warmup) 
+Chain 4 Iteration:  600 / 2000 [ 30%]  (Warmup) 
+Chain 4 Iteration:  700 / 2000 [ 35%]  (Warmup) 
+Chain 4 Iteration:  800 / 2000 [ 40%]  (Warmup) 
+Chain 4 Iteration:  900 / 2000 [ 45%]  (Warmup) 
+Chain 4 Iteration: 1000 / 2000 [ 50%]  (Warmup) 
+Chain 4 Iteration: 1001 / 2000 [ 50%]  (Sampling) 
+Chain 4 Iteration: 1100 / 2000 [ 55%]  (Sampling) 
+Chain 4 Iteration: 1200 / 2000 [ 60%]  (Sampling) 
+Chain 4 Iteration: 1300 / 2000 [ 65%]  (Sampling) 
+Chain 4 Iteration: 1400 / 2000 [ 70%]  (Sampling) 
+Chain 4 Iteration: 1500 / 2000 [ 75%]  (Sampling) 
+Chain 4 Iteration: 1600 / 2000 [ 80%]  (Sampling) 
+Chain 4 Iteration: 1700 / 2000 [ 85%]  (Sampling) 
+Chain 4 Iteration: 1800 / 2000 [ 90%]  (Sampling) 
+Chain 4 Iteration: 1900 / 2000 [ 95%]  (Sampling) 
+Chain 4 Iteration: 2000 / 2000 [100%]  (Sampling) 
+Chain 4 finished in 102.1 seconds.
+
+All 4 chains finished successfully.
+Mean chain execution time: 81.2 seconds.
+Total execution time: 325.3 seconds.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: 170 of 4000 (4.0%) transitions ended with a divergence.
+See https://mc-stan.org/misc/warnings for details.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: 625 of 4000 (16.0%) transitions hit the maximum treedepth limit of 10.
+See https://mc-stan.org/misc/warnings for details.</code></pre>
+</div>
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb106"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb106-1"><a href="#cb106-1" aria-hidden="true" tabindex="-1"></a>fit <span class="sc">|&gt;</span> <span class="fu">get_coefficients</span>() <span class="sc">|&gt;</span> knitr<span class="sc">::</span><span class="fu">kable</span>(<span class="at">digits =</span> <span class="dv">3</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<table class="table table-sm table-striped">
+<colgroup>
+<col style="width: 20%">
+<col style="width: 11%">
+<col style="width: 10%">
+<col style="width: 10%">
+<col style="width: 10%">
+<col style="width: 7%">
+<col style="width: 11%">
+<col style="width: 4%">
+<col style="width: 7%">
+<col style="width: 7%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">variable</th>
+<th style="text-align: right;">mean</th>
+<th style="text-align: right;">median</th>
+<th style="text-align: right;">sd</th>
+<th style="text-align: right;">mad</th>
+<th style="text-align: right;">q5</th>
+<th style="text-align: right;">q95</th>
+<th style="text-align: right;">rhat</th>
+<th style="text-align: right;">ess_bulk</th>
+<th style="text-align: right;">ess_tail</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">lp__</td>
+<td style="text-align: right;">1.735325e+03</td>
+<td style="text-align: right;">1734.040</td>
+<td style="text-align: right;">4.579000e+00</td>
+<td style="text-align: right;">2.639</td>
+<td style="text-align: right;">1729.679</td>
+<td style="text-align: right;">1.744310e+03</td>
+<td style="text-align: right;">1.519</td>
+<td style="text-align: right;">7.305</td>
+<td style="text-align: right;">29.142</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">alpha</td>
+<td style="text-align: right;">-4.754000e+00</td>
+<td style="text-align: right;">-4.755</td>
+<td style="text-align: right;">3.100000e-02</td>
+<td style="text-align: right;">0.031</td>
+<td style="text-align: right;">-4.803</td>
+<td style="text-align: right;">-4.701000e+00</td>
+<td style="text-align: right;">1.131</td>
+<td style="text-align: right;">20.441</td>
+<td style="text-align: right;">73.258</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">median_annual_incomeE</td>
+<td style="text-align: right;">-1.500000e-01</td>
+<td style="text-align: right;">-0.149</td>
+<td style="text-align: right;">5.100000e-02</td>
+<td style="text-align: right;">0.053</td>
+<td style="text-align: right;">-0.235</td>
+<td style="text-align: right;">-6.900000e-02</td>
+<td style="text-align: right;">1.000</td>
+<td style="text-align: right;">3375.369</td>
+<td style="text-align: right;">2880.445</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">house_price_medianE</td>
+<td style="text-align: right;">-9.400000e-02</td>
+<td style="text-align: right;">-0.093</td>
+<td style="text-align: right;">3.800000e-02</td>
+<td style="text-align: right;">0.039</td>
+<td style="text-align: right;">-0.157</td>
+<td style="text-align: right;">-3.200000e-02</td>
+<td style="text-align: right;">1.016</td>
+<td style="text-align: right;">1856.601</td>
+<td style="text-align: right;">2975.263</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">poor_fam_propE</td>
+<td style="text-align: right;">6.000000e-03</td>
+<td style="text-align: right;">0.006</td>
+<td style="text-align: right;">2.400000e-02</td>
+<td style="text-align: right;">0.024</td>
+<td style="text-align: right;">-0.035</td>
+<td style="text-align: right;">4.400000e-02</td>
+<td style="text-align: right;">1.021</td>
+<td style="text-align: right;">257.247</td>
+<td style="text-align: right;">2859.942</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">black_ppl_propE</td>
+<td style="text-align: right;">1.250000e-01</td>
+<td style="text-align: right;">0.126</td>
+<td style="text-align: right;">1.600000e-02</td>
+<td style="text-align: right;">0.016</td>
+<td style="text-align: right;">0.099</td>
+<td style="text-align: right;">1.510000e-01</td>
+<td style="text-align: right;">1.128</td>
+<td style="text-align: right;">21.078</td>
+<td style="text-align: right;">63.695</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">bp_pre_1959E_prop</td>
+<td style="text-align: right;">3.860000e-01</td>
+<td style="text-align: right;">0.386</td>
+<td style="text-align: right;">2.900000e-02</td>
+<td style="text-align: right;">0.029</td>
+<td style="text-align: right;">0.339</td>
+<td style="text-align: right;">4.330000e-01</td>
+<td style="text-align: right;">1.004</td>
+<td style="text-align: right;">3760.676</td>
+<td style="text-align: right;">2870.802</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">svi_socioeconomic_pctile</td>
+<td style="text-align: right;">3.210000e-01</td>
+<td style="text-align: right;">0.321</td>
+<td style="text-align: right;">4.700000e-02</td>
+<td style="text-align: right;">0.048</td>
+<td style="text-align: right;">0.243</td>
+<td style="text-align: right;">3.970000e-01</td>
+<td style="text-align: right;">1.093</td>
+<td style="text-align: right;">28.633</td>
+<td style="text-align: right;">182.944</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">kappa[1]</td>
+<td style="text-align: right;">6.342276e+09</td>
+<td style="text-align: right;">46904550.000</td>
+<td style="text-align: right;">1.417995e+10</td>
+<td style="text-align: right;">69540686.309</td>
+<td style="text-align: right;">0.550</td>
+<td style="text-align: right;">4.240464e+10</td>
+<td style="text-align: right;">2.939</td>
+<td style="text-align: right;">4.620</td>
+<td style="text-align: right;">13.131</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">gamma</td>
+<td style="text-align: right;">-1.061000e+00</td>
+<td style="text-align: right;">-0.618</td>
+<td style="text-align: right;">2.353000e+00</td>
+<td style="text-align: right;">2.191</td>
+<td style="text-align: right;">-5.408</td>
+<td style="text-align: right;">2.287000e+00</td>
+<td style="text-align: right;">1.460</td>
+<td style="text-align: right;">7.765</td>
+<td style="text-align: right;">34.553</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">delta</td>
+<td style="text-align: right;">2.134004e+09</td>
+<td style="text-align: right;">23601970.000</td>
+<td style="text-align: right;">2.849720e+09</td>
+<td style="text-align: right;">34992280.637</td>
+<td style="text-align: right;">0.094</td>
+<td style="text-align: right;">7.458570e+09</td>
+<td style="text-align: right;">3.346</td>
+<td style="text-align: right;">4.570</td>
+<td style="text-align: right;">12.109</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>This takes ages to fit. The logit slopes are unindentified. The poisson slopes look okay.</p>
+<div class="cell">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb107"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb107-1"><a href="#cb107-1" aria-hidden="true" tabindex="-1"></a>fit <span class="sc">|&gt;</span> <span class="fu">plot_betas</span>(<span class="at">title=</span><span class="st">"MA with only house price in logit"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Using an external vector in selections was deprecated in tidyselect 1.1.0.
+ℹ Please use `all_of()` or `any_of()` instead.
+  # Was:
+  data %&gt;% select(features)
+
+  # Now:
+  data %&gt;% select(all_of(features))
+
+See &lt;https://tidyselect.r-lib.org/reference/faq-external-vector.html&gt;.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Dropping 'draws_df' class as required metadata was removed.</code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="poisson_thinned_exclusion_v2_files/figure-html/unnamed-chunk-6-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<p>Looking at the implied thinning probabilities:</p>
+<div class="cell">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb110"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb110-1"><a href="#cb110-1" aria-hidden="true" tabindex="-1"></a>fit <span class="sc">|&gt;</span> <span class="fu">plot_pi_posterior_means</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Dropping 'draws_df' class as required metadata was removed.</code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="poisson_thinned_exclusion_v2_files/figure-html/unnamed-chunk-7-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<p>So the model is essentially not thinning at all, it is “free” to shoot the log odds up to very high values through arbitrarily high coefficients on pediatricians and median house prices.</p>
+</section>
+<section id="rerunning-ma-with-log-median-house-prices" class="level2">
+<h2 class="anchored" data-anchor-id="rerunning-ma-with-log-median-house-prices">Rerunning MA with <strong>log</strong> median house prices</h2>
+<p>Let’s see if having more spread in the median house prices helps. To do this, I add the log instead of the level in the logit side.</p>
+<p>We need to take the log before scaling:</p>
+<div class="cell">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb112"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb112-1"><a href="#cb112-1" aria-hidden="true" tabindex="-1"></a>log_transform_house_price <span class="ot">&lt;-</span> <span class="cf">function</span>(df) {</span>
+<span id="cb112-2"><a href="#cb112-2" aria-hidden="true" tabindex="-1"></a>    df <span class="sc">|&gt;</span> <span class="fu">mutate</span>(<span class="at">log_house_price_medianE =</span> <span class="fu">log</span>(house_price_medianE))</span>
+<span id="cb112-3"><a href="#cb112-3" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb112-4"><a href="#cb112-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb112-5"><a href="#cb112-5" aria-hidden="true" tabindex="-1"></a>ma_final_2 <span class="ot">&lt;-</span> <span class="fu">single_state_data</span>(<span class="st">"MA"</span>, <span class="at">pred_preprocess_func =</span> log_transform_house_price)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "MA already loaded"
+[1] "Additional features added: log_house_price_medianE"</code></pre>
+</div>
+</div>
+<p>Plotting the scaled log house prices:</p>
+<div class="cell">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb114"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb114-1"><a href="#cb114-1" aria-hidden="true" tabindex="-1"></a><span class="co"># plot log</span></span>
+<span id="cb114-2"><a href="#cb114-2" aria-hidden="true" tabindex="-1"></a>ma_final_2 <span class="sc">|&gt;</span> <span class="fu">ggplot</span>(<span class="fu">aes</span>(log_house_price_medianE)) <span class="sc">+</span> <span class="fu">geom_histogram</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stderr">
+<pre><code>`stat_bin()` using `bins = 30`. Pick better value with `binwidth`.</code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="poisson_thinned_exclusion_v2_files/figure-html/unnamed-chunk-9-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<div class="cell">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb116"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb116-1"><a href="#cb116-1" aria-hidden="true" tabindex="-1"></a><span class="co"># prepare data</span></span>
+<span id="cb116-2"><a href="#cb116-2" aria-hidden="true" tabindex="-1"></a>ma_list_2 <span class="ot">&lt;-</span> <span class="fu">build_stan_vector_logit_2</span>(ma_final_2, <span class="at">pr_var =</span> <span class="dv">1</span>, <span class="at">logit_features =</span> <span class="fu">c</span>(<span class="st">"log_house_price_medianE"</span>))</span>
+<span id="cb116-3"><a href="#cb116-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb116-4"><a href="#cb116-4" aria-hidden="true" tabindex="-1"></a><span class="co"># fit</span></span>
+<span id="cb116-5"><a href="#cb116-5" aria-hidden="true" tabindex="-1"></a>fit_2 <span class="ot">&lt;-</span> model<span class="sc">$</span><span class="fu">sample</span>(<span class="at">data =</span> ma_list_2, <span class="at">chains =</span> <span class="dv">4</span>, <span class="at">iter_warmup =</span> <span class="dv">1000</span>, <span class="at">iter_sampling =</span> <span class="dv">1000</span>, <span class="at">refresh =</span> <span class="dv">500</span>) <span class="co">#note that in poisson I still add the level</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>Running MCMC with 4 sequential chains...
+
+Chain 1 Iteration:    1 / 2000 [  0%]  (Warmup) 
+Chain 1 Iteration:  500 / 2000 [ 25%]  (Warmup) 
+Chain 1 Iteration: 1000 / 2000 [ 50%]  (Warmup) 
+Chain 1 Iteration: 1001 / 2000 [ 50%]  (Sampling) 
+Chain 1 Iteration: 1500 / 2000 [ 75%]  (Sampling) 
+Chain 1 Iteration: 2000 / 2000 [100%]  (Sampling) 
+Chain 1 finished in 100.0 seconds.
+Chain 2 Iteration:    1 / 2000 [  0%]  (Warmup) 
+Chain 2 Iteration:  500 / 2000 [ 25%]  (Warmup) 
+Chain 2 Iteration: 1000 / 2000 [ 50%]  (Warmup) 
+Chain 2 Iteration: 1001 / 2000 [ 50%]  (Sampling) 
+Chain 2 Iteration: 1500 / 2000 [ 75%]  (Sampling) 
+Chain 2 Iteration: 2000 / 2000 [100%]  (Sampling) 
+Chain 2 finished in 106.9 seconds.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 3 Rejecting initial value:</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 3   Log probability evaluates to log(0), i.e. negative infinity.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 3   Stan can't start sampling from this initial value.</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Chain 3 Iteration:    1 / 2000 [  0%]  (Warmup) 
+Chain 3 Iteration:  500 / 2000 [ 25%]  (Warmup) 
+Chain 3 Iteration: 1000 / 2000 [ 50%]  (Warmup) 
+Chain 3 Iteration: 1001 / 2000 [ 50%]  (Sampling) 
+Chain 3 Iteration: 1500 / 2000 [ 75%]  (Sampling) 
+Chain 3 Iteration: 2000 / 2000 [100%]  (Sampling) 
+Chain 3 finished in 23.9 seconds.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 4 Rejecting initial value:</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 4   Log probability evaluates to log(0), i.e. negative infinity.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 4   Stan can't start sampling from this initial value.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 4 Rejecting initial value:</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 4   Log probability evaluates to log(0), i.e. negative infinity.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 4   Stan can't start sampling from this initial value.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 4 Rejecting initial value:</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 4   Log probability evaluates to log(0), i.e. negative infinity.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Chain 4   Stan can't start sampling from this initial value.</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Chain 4 Iteration:    1 / 2000 [  0%]  (Warmup) 
+Chain 4 Iteration:  500 / 2000 [ 25%]  (Warmup) 
+Chain 4 Iteration: 1000 / 2000 [ 50%]  (Warmup) 
+Chain 4 Iteration: 1001 / 2000 [ 50%]  (Sampling) 
+Chain 4 Iteration: 1500 / 2000 [ 75%]  (Sampling) 
+Chain 4 Iteration: 2000 / 2000 [100%]  (Sampling) 
+Chain 4 finished in 107.7 seconds.
+
+All 4 chains finished successfully.
+Mean chain execution time: 84.6 seconds.
+Total execution time: 338.9 seconds.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: 116 of 4000 (3.0%) transitions ended with a divergence.
+See https://mc-stan.org/misc/warnings for details.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: 709 of 4000 (18.0%) transitions hit the maximum treedepth limit of 10.
+See https://mc-stan.org/misc/warnings for details.</code></pre>
+</div>
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb134"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb134-1"><a href="#cb134-1" aria-hidden="true" tabindex="-1"></a>fit_2 <span class="sc">|&gt;</span> <span class="fu">get_coefficients</span>() <span class="sc">|&gt;</span> knitr<span class="sc">::</span><span class="fu">kable</span>(<span class="at">digits =</span> <span class="dv">3</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<table class="table table-sm table-striped">
+<colgroup>
+<col style="width: 19%">
+<col style="width: 11%">
+<col style="width: 11%">
+<col style="width: 10%">
+<col style="width: 10%">
+<col style="width: 7%">
+<col style="width: 11%">
+<col style="width: 4%">
+<col style="width: 7%">
+<col style="width: 7%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">variable</th>
+<th style="text-align: right;">mean</th>
+<th style="text-align: right;">median</th>
+<th style="text-align: right;">sd</th>
+<th style="text-align: right;">mad</th>
+<th style="text-align: right;">q5</th>
+<th style="text-align: right;">q95</th>
+<th style="text-align: right;">rhat</th>
+<th style="text-align: right;">ess_bulk</th>
+<th style="text-align: right;">ess_tail</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">lp__</td>
+<td style="text-align: right;">1.735116e+03</td>
+<td style="text-align: right;">1734.060</td>
+<td style="text-align: right;">4.243000e+00</td>
+<td style="text-align: right;">2.609000e+00</td>
+<td style="text-align: right;">1729.759</td>
+<td style="text-align: right;">1.743440e+03</td>
+<td style="text-align: right;">1.506</td>
+<td style="text-align: right;">7.438</td>
+<td style="text-align: right;">31.008</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">alpha</td>
+<td style="text-align: right;">-4.752000e+00</td>
+<td style="text-align: right;">-4.753</td>
+<td style="text-align: right;">3.300000e-02</td>
+<td style="text-align: right;">3.200000e-02</td>
+<td style="text-align: right;">-4.804</td>
+<td style="text-align: right;">-4.694000e+00</td>
+<td style="text-align: right;">1.167</td>
+<td style="text-align: right;">16.145</td>
+<td style="text-align: right;">41.024</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">median_annual_incomeE</td>
+<td style="text-align: right;">-1.490000e-01</td>
+<td style="text-align: right;">-0.149</td>
+<td style="text-align: right;">5.000000e-02</td>
+<td style="text-align: right;">5.000000e-02</td>
+<td style="text-align: right;">-0.229</td>
+<td style="text-align: right;">-6.700000e-02</td>
+<td style="text-align: right;">1.001</td>
+<td style="text-align: right;">3800.435</td>
+<td style="text-align: right;">3354.928</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">house_price_medianE</td>
+<td style="text-align: right;">-9.200000e-02</td>
+<td style="text-align: right;">-0.093</td>
+<td style="text-align: right;">3.700000e-02</td>
+<td style="text-align: right;">3.800000e-02</td>
+<td style="text-align: right;">-0.153</td>
+<td style="text-align: right;">-3.000000e-02</td>
+<td style="text-align: right;">1.016</td>
+<td style="text-align: right;">1177.357</td>
+<td style="text-align: right;">2769.923</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">poor_fam_propE</td>
+<td style="text-align: right;">5.000000e-03</td>
+<td style="text-align: right;">0.006</td>
+<td style="text-align: right;">2.400000e-02</td>
+<td style="text-align: right;">2.400000e-02</td>
+<td style="text-align: right;">-0.035</td>
+<td style="text-align: right;">4.400000e-02</td>
+<td style="text-align: right;">1.022</td>
+<td style="text-align: right;">173.012</td>
+<td style="text-align: right;">3153.043</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">black_ppl_propE</td>
+<td style="text-align: right;">1.250000e-01</td>
+<td style="text-align: right;">0.126</td>
+<td style="text-align: right;">1.600000e-02</td>
+<td style="text-align: right;">1.600000e-02</td>
+<td style="text-align: right;">0.098</td>
+<td style="text-align: right;">1.510000e-01</td>
+<td style="text-align: right;">1.125</td>
+<td style="text-align: right;">21.155</td>
+<td style="text-align: right;">77.962</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">bp_pre_1959E_prop</td>
+<td style="text-align: right;">3.840000e-01</td>
+<td style="text-align: right;">0.384</td>
+<td style="text-align: right;">2.800000e-02</td>
+<td style="text-align: right;">2.800000e-02</td>
+<td style="text-align: right;">0.339</td>
+<td style="text-align: right;">4.300000e-01</td>
+<td style="text-align: right;">1.002</td>
+<td style="text-align: right;">4278.975</td>
+<td style="text-align: right;">3355.682</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">svi_socioeconomic_pctile</td>
+<td style="text-align: right;">3.220000e-01</td>
+<td style="text-align: right;">0.321</td>
+<td style="text-align: right;">4.500000e-02</td>
+<td style="text-align: right;">4.500000e-02</td>
+<td style="text-align: right;">0.248</td>
+<td style="text-align: right;">3.970000e-01</td>
+<td style="text-align: right;">1.087</td>
+<td style="text-align: right;">31.059</td>
+<td style="text-align: right;">147.161</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">kappa[1]</td>
+<td style="text-align: right;">1.404738e+10</td>
+<td style="text-align: right;">462623000.000</td>
+<td style="text-align: right;">2.645530e+10</td>
+<td style="text-align: right;">6.858849e+08</td>
+<td style="text-align: right;">-0.007</td>
+<td style="text-align: right;">7.910759e+10</td>
+<td style="text-align: right;">2.699</td>
+<td style="text-align: right;">4.698</td>
+<td style="text-align: right;">14.225</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">gamma</td>
+<td style="text-align: right;">-1.158000e+00</td>
+<td style="text-align: right;">-0.699</td>
+<td style="text-align: right;">2.458000e+00</td>
+<td style="text-align: right;">2.223000e+00</td>
+<td style="text-align: right;">-5.795</td>
+<td style="text-align: right;">2.217000e+00</td>
+<td style="text-align: right;">1.462</td>
+<td style="text-align: right;">7.716</td>
+<td style="text-align: right;">32.237</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">delta</td>
+<td style="text-align: right;">4.610221e+09</td>
+<td style="text-align: right;">104117500.000</td>
+<td style="text-align: right;">9.780975e+09</td>
+<td style="text-align: right;">1.543646e+08</td>
+<td style="text-align: right;">0.088</td>
+<td style="text-align: right;">3.129308e+10</td>
+<td style="text-align: right;">3.373</td>
+<td style="text-align: right;">4.435</td>
+<td style="text-align: right;">11.343</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>This looks slightly better in terms of convergence values. Plotting:</p>
+<div class="cell">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb135"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb135-1"><a href="#cb135-1" aria-hidden="true" tabindex="-1"></a>fit_2 <span class="sc">|&gt;</span> <span class="fu">plot_betas</span>(<span class="at">title=</span><span class="st">"MA with log house price in logit"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Dropping 'draws_df' class as required metadata was removed.</code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="poisson_thinned_exclusion_v2_files/figure-html/unnamed-chunk-11-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<p>How about the posteriors means of <span class="math inline">\(\pi\)</span>?</p>
+<div class="cell">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb137"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb137-1"><a href="#cb137-1" aria-hidden="true" tabindex="-1"></a>fit_2 <span class="sc">|&gt;</span> <span class="fu">plot_pi_posterior_means</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Dropping 'draws_df' class as required metadata was removed.</code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="poisson_thinned_exclusion_v2_files/figure-html/unnamed-chunk-12-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<p>We can see a little more activity here. But this still seems “too high”…</p>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    target: function(trigger) {
+      return trigger.previousElementSibling;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>
