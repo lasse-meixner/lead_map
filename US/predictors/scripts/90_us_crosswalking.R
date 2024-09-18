@@ -5,13 +5,16 @@ library(httr)
 library(jsonlite)
 library(purrr)
 
-# get metadata from ~US root
-metadata  <- fromJSON("../../metadata.json")
-# extract required metadata (lists)
-zip_states <- metadata$zip_states
-id_variables <- metadata$id_variables
-ratio_variables <- metadata$proportion_variables
-count_variables <- metadata$count_variables
+# Load the metadata from the JSON file
+metadata <- fromJSON("../../metadata.json")
+
+# Extract required metadata from the new structure
+zip_states <- names(metadata$states)[sapply(metadata$states, function(x) x$geography == "zip")]
+tract_states <- names(metadata$states)[sapply(metadata$states, function(x) x$geography == "tract")]
+id_variables <- metadata$variables$id
+ratio_variables <- metadata$variables$ratio
+count_variables <- metadata$variables$count
+
 
 
 # first, load the combined tract file (otherwise take the latest one from drive)
