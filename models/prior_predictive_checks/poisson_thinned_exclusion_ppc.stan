@@ -63,6 +63,7 @@ data {
 
 generated quantities {
     // poisson priors (Note: It's quite "easy" to hit the upper bound on the rate...)
+    //todo: the tails are super heavy, maybe use something more skewed?
     real alpha = normal_rng(-1.58, 2);
     real beta_inc = normal_rng(-0.1, 0.4);
     real beta_hp = normal_rng(0, 0.4);
