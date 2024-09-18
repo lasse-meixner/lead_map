@@ -118,7 +118,8 @@
     "OH": {
       "geography": "tract",
       "year_range": "2005-2015",
-      "best_year": 2011
+      "best_year": 2011,
+      "issues": null
     },
     "PA": {
       "geography": "tract",
@@ -135,12 +136,14 @@
     "MD": {
       "geography": "tract",
       "year_range": "2005-2015",
-      "best_year": 2011
+      "best_year": 2011,
+      "issues": null
     },
     "MA": {
       "geography": "tract",
       "year_range": "2005-2015",
-      "best_year": 2012
+      "best_year": 2012,
+      "issues": null
     },
     "MN": {
       "geography": "tract",
@@ -157,12 +160,14 @@
     "NC": {
       "geography": "tract",
       "year_range": "2005-2015",
-      "best_year": 2012
+      "best_year": 2012,
+      "issues": null
     },
     "IN": {
       "geography": "tract",
       "year_range": "2005-2015",
-      "best_year": 2011
+      "best_year": 2011,
+      "issues": null
     },
     "OR": {
       "geography": "tract",
@@ -173,12 +178,14 @@
     "NH": {
       "geography": "tract",
       "year_range": "2005-2015",
-      "best_year": 2011
+      "best_year": 2011,
+      "issues": null
     },
     "WI": {
       "geography": "tract",
       "year_range": "1998-2021",
-      "best_year": 2011
+      "best_year": 2011,
+      "issues": null
     }
   },
   "variables": {
