@@ -117,63 +117,68 @@
     },
     "OH": {
       "geography": "tract",
-      "year_range": null,
-      "best_year": null
+      "year_range": "2005-2015",
+      "best_year": 2011
     },
     "PA": {
       "geography": "tract",
-      "year_range": null,
-      "best_year": null
+      "year_range": "2005-2015",
+      "best_year": 2008,
+      "issues": "strange jump in censoring in 2009"
     },
     "CO": {
       "geography": "tract",
-      "year_range": null,
-      "best_year": null
+      "year_range": "2010-2014",
+      "best_year": 2010,
+      "issues": "avg. vs sum"
     },
     "MD": {
       "geography": "tract",
-      "year_range": null,
-      "best_year": null
+      "year_range": "2005-2015",
+      "best_year": 2011
     },
     "MA": {
       "geography": "tract",
-      "year_range": null,
-      "best_year": null
+      "year_range": "2005-2015",
+      "best_year": 2012
     },
     "MN": {
       "geography": "tract",
-      "year_range": null,
-      "best_year": null
+      "year_range": "2011-2015",
+      "best_year": 2011,
+      "issues": "avg. vs sum"
     },
     "NYC": {
-      "geography": "Neighborhood Tabulation Area",
+      "geography": null,
       "year_range": null,
-      "best_year": null
+      "best_year": null,
+      "issues": "lead data availabilty neighbourhood tabulation areas"
     },
     "NC": {
       "geography": "tract",
-      "year_range": null,
-      "best_year": null
+      "year_range": "2005-2015",
+      "best_year": 2012
     },
     "IN": {
       "geography": "tract",
-      "year_range": null,
-      "best_year": null
+      "year_range": "2005-2015",
+      "best_year": 2011
     },
     "OR": {
       "geography": "tract",
       "year_range": null,
-      "best_year": null
+      "best_year": null,
+      "issues": "only censored values, no outcome variation"
     },
     "NH": {
       "geography": "tract",
-      "year_range": null,
-      "best_year": null
+      "year_range": "2005-2015",
+      "best_year": 2011
     },
     "WI": {
       "geography": "tract",
-      "year_range": null,
-      "best_year": null
+      "year_range": "1998-2021",
+      "best_year": 2011
     }
   },
   "variables": {
