@@ -1,0 +1,109 @@
+---
+output:
+  html_document: default
+  pdf_document: default
+---
+
+This notebook investigates the data loss from enforcing that the nr. of tests in a given geographical units does not exceed the number of kids.
+
+```{r, message=FALSE, warning=FALSE}
+source("../../init.R")
+source("load_and_preprocess.R")
+library(tidyverse)
+```
+
+Load a state and inspect tested/kids ratio.
+
+```{r}
+plot_tests_p_kid_tract <- function(state_abbr) {
+  oh_merged <- single_state_tract(state_abbr, drop_if_multiple_testing_bool = FALSE)
+  
+  # Calculate total number and proportion of cases with tests_p_kid > 1
+  total_cases <- sum(oh_merged$tests_p_kid > 1, na.rm = TRUE)
+  proportion_cases <- total_cases / nrow(oh_merged)
+  
+  # Plot tests_p_kid for values above 1 and add total number and proportion of cases in title
+  oh_merged |> 
+    filter(tests_p_kid > 1) |>
+    ggplot(aes(x = tests_p_kid)) +
+    geom_histogram() +
+    ggtitle(paste(state_abbr, " - Total cases: ", total_cases, " (", round(proportion_cases * 100, 2), "%)", sep = ""))
+}
+
+```
+
+Iterate for all tract states:
+
+```{r, cache = TRUE}
+for (state_abbr in tract_states) {
+  p <- plot_tests_p_kid_tract(state_abbr)
+  print(p)
+}
+```
+
+Same for ZIP states:
+
+```{r}
+plot_tests_p_kid_zip <- function(state_abbr) {
+  oh_merged <- single_state_zip(state_abbr, drop_if_multiple_testing_bool = FALSE)
+  
+  # Calculate total number and proportion of cases with tests_p_kid > 1
+  total_cases <- sum(oh_merged$tests_p_kid > 1, na.rm = TRUE)
+  proportion_cases <- total_cases / nrow(oh_merged)
+  
+  # Plot tests_p_kid for values above 1 and add total number and proportion of cases in title
+  oh_merged |> 
+    filter(tests_p_kid > 1) |>
+    ggplot(aes(x = tests_p_kid)) +
+    geom_histogram() +
+    ggtitle(paste(state_abbr, " - Total cases: ", total_cases, " (", round(proportion_cases * 100, 2), "%)", sep = ""))
+}
+```
+
+Iterate for all ZIP states:
+
+```{r, cache = TRUE}
+for (state_abbr in zip_states) {
+  tryCatch({
+    p <- plot_tests_p_kid_zip(state_abbr)
+    print(p)
+  }, error = function(e) {
+    message(paste("Error processing state:", state_abbr))
+  })
+}
+```
+
+Some of the ZIP states still have a lot of loss. Let's investigate the number of cases by year. 
+
+```{r}
+get_yearly_barplot_zip <- function(state_abbr) {
+  oh_merged <- single_state_zip(state_abbr, drop_if_multiple_testing_bool = FALSE)
+  
+  p <- oh_merged |>
+    group_by(year) |>
+    summarise(n_cases = n(), n_cases_tests_p_kid_gt_1 = sum(tests_p_kid > 1, na.rm = TRUE), n_cases_tests_p_kid_gt_1_prop = n_cases_tests_p_kid_gt_1 / n_cases) |>
+    ggplot(aes(x = year, y = n_cases_tests_p_kid_gt_1_prop)) +
+    geom_bar(stat = "identity") +
+    # add vertical line at 2011
+    geom_vline(xintercept = 2011, linetype = "dashed", color = "green") +
+    ggtitle(state_abbr) +
+    theme_minimal()
+}
+```
+
+Iterate for all ZIP states:
+
+```{r, cache = TRUE}
+for (state_abbr in zip_states) {
+  tryCatch({
+    p <- get_yearly_barplot_zip(state_abbr)
+    print(p)
+  }, error = function(e) {
+    message(paste("Error processing state:", state_abbr))
+  })
+}
+```
+
+The situation is worst in KS, VA, and TN. These are the states where lead and test counts are only reported in 4 year windows and are therefore slumped together, the preprocessing just distributes it equally which is most certainly wrong. The loss is slightly less bad but still significant in OK and TX. Two potential channels of explanation are:
+- the crosswalking of tracts to ZIPs of the kid count is not perfect, in the sense that the used weights underestimate the kid counts in the computed ZIPs.
+- Some states test more, and potentially more than once per kid. But this is certainly not correlated with our tract/ZIP categories, so there is no evidence of this being a driver here.

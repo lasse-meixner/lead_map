@@ -1,0 +1,295 @@
+---
+title: "BLL poisson regression demonstration"
+format:
+    html:
+      code-fold: true
+---
+
+## Estimating Poisson for Rhode Island
+
+This notebook fits a STAN poisson regression with offset for RI. It also demonstrates how to get posterior predictive distribution for our counts (based on [this](https://mc-stan.org/docs/2_23/stan-users-guide/posterior-prediction-for-regressions.html)).
+
+```{r}
+library(tidyverse)
+library(broom)
+source("find_and_set_directory.R")
+```
+
+### Loading lead and predictor data
+
+```{r}
+# loading lead
+find_and_set_directory("source files")
+source("../00_merging_functions.R")
+load_state("RI")
+```
+
+```{r}
+# for each ZIP, get the year with the max "tested", then count the number of times that year appears
+ri |> group_by(zip) |> filter(tested == max(tested)) |> ungroup() |> group_by(year) |> count()
+```
+
+We can see that most ZIPS had their max testing in 2005, so we will use that year.
+
+```{r}
+ri_y <- ri |> 
+  filter(year == 2005) |> 
+  # for each ZIP, keep the one with the highest tested (issue in file generation)
+  group_by(zip) |>
+  filter(tested == max(tested)) |> 
+  ungroup()
+```
+
+```{r}
+# loading crosswalked predictor data
+find_and_set_directory("US/predictors/processed_data")
+ri_x <- read_csv("crosswalked_zip.csv") |> filter(STATE_ABBR == "RI")
+```
+
+```{r}
+# merging
+ri_data <- ri_y |> 
+  left_join(ri_x, by="zip") |> 
+  drop_na()
+
+ri_data <- ri_data |> 
+  # drop all rows where US API is 0
+  filter(rowSums(select(ri_data, total_ppl_acs20E, bp_pre_1959E_prop)) > 0) |> 
+  select(-year)
+  
+  
+```
+
+### Modelling Poisson with offset
+
+```{r}
+# offset_var: under_yo5_pplE
+# feature: bp_pre_1959E_prop
+
+reg_data <- ri_data |> select(zip, under_yo5_pplE, bp_pre_1959E_prop, BLL_geq_5)
+```
+
+```{r}
+glm(BLL_geq_5 ~ scale(bp_pre_1959E_prop) + offset(log(under_yo5_pplE)), data = reg_data, family = "poisson") |>
+  tidy() |>
+  knitr::kable(digits=2)
+```
+
+### STAN
+
+```{r}
+stan_data <- list(
+  N = reg_data |> count() |> pull(n),
+  y = reg_data |> pull(BLL_geq_5),
+  # standardize x and pull out as vector
+  x = reg_data |> pull(bp_pre_1959E_prop) |> scale() |> as.vector(),
+  kids = reg_data |> pull(under_yo5_pplE)
+)
+```
+
+```{r}
+library(cmdstanr)
+
+ri_model <- cmdstan_model("poisson_single_X.stan")
+ri_model$print()
+```
+
+```{r}
+fit <- ri_model$sample(
+  data = stan_data,
+  seed = 1234,
+  chains = 4, 
+  parallel_chains = 4,
+  refresh = 500
+)
+```
+
+```{r}
+fit$summary(variables = c("lp__","alpha","beta")) |> 
+  knitr::kable(digits=3)
+```
+
+```{r}
+fit$diagnostic_summary()
+```
+
+```{r}
+# plot draws from posterior for beta using bayesplot
+library(bayesplot)
+mcmc_areas(fit$draws(variables = "beta"))
+```
+
+### Predictions
+
+Looking at in-sample predictions:
+
+```{r}
+# extract all y_tilde variables from fit$summary()
+preds <- fit$summary() |> 
+  filter(str_detect(variable, "y_tilde")) |> 
+  select(median, q5, q95)
+
+```
+
+```{r}
+# plot posterior predictive intervals for each y_tilde
+preds |> 
+  bind_cols(reg_data) |>
+  mutate(observation = 1:n()) |> 
+  ggplot(aes(x = observation)) +
+  # plot vertical line for q5 and q95
+  geom_linerange(aes(ymin = q5, ymax = q95)) +
+  geom_point(aes(y = median)) +
+  geom_point(aes(y = BLL_geq_5), color = "red") +
+  labs(x = "observation", y = "y_tilde posterior prediction")
+```
+
+## Simulating censoring
+
+### Preparing the data
+
+```{r}
+# looking at the left end of the distribution
+
+ri_y |> 
+  filter(BLL_geq_5 <= 100)|> 
+  ggplot(aes(x = BLL_geq_5)) +
+  geom_histogram()
+```
+
+We no simulate the suppression of values that are \>0 but \<=3.
+
+```{r}
+ri_data_suppressed <- ri_data |> 
+  mutate(BLL_geq_5 = if_else(BLL_geq_5 > 0 & BLL_geq_5 <= 3, NA, BLL_geq_5),
+         suppressed = if_else(is.na(BLL_geq_5), 1, 0))
+```
+
+```{r}
+ri_data_suppressed |> 
+  filter(suppressed == 1) |> 
+  select(zip, tested, bp_pre_1959E_prop) |> 
+  knitr::kable(digits = 2)
+```
+
+So here we censor 5 out of 76 outcome observations.
+
+### STAN
+
+```{r}
+ri_model_suppressed <- cmdstan_model("poisson_single_X_suppression.stan")
+ri_model_suppressed$print()
+```
+
+```{r}
+# prepare STAN data
+
+stan_data_suppressed <- list(
+  N_obs = ri_data_suppressed |> filter(suppressed == 0) |> count() |> pull(n),
+  N_cens = ri_data_suppressed |> filter(suppressed == 1) |> count() |> pull(n),
+  y_obs = ri_data_suppressed |> filter(suppressed == 0) |> pull(BLL_geq_5),
+  x_obs = ri_data_suppressed |> filter(suppressed == 0) |> pull(bp_pre_1959E_prop) |> scale() |> as.vector(),
+  x_cens = ri_data_suppressed |> filter(suppressed == 1) |> pull(bp_pre_1959E_prop) |> scale() |> as.vector(),
+  kids_obs = ri_data_suppressed |> filter(suppressed == 0) |> pull(under_yo5_pplE),
+  kids_cens = ri_data_suppressed |> filter(suppressed == 1) |> pull(under_yo5_pplE),
+  ell = 3
+)
+```
+
+```{r}
+# sample
+fit_suppressed <- ri_model_suppressed$sample(
+  data = stan_data_suppressed,
+  seed = 1234,
+  chains = 4, 
+  parallel_chains = 4,
+  refresh = 500
+)
+```
+
+```{r}
+fit_suppressed$summary(variables = c("lp__","alpha","beta")) |> 
+  knitr::kable(digits=3)
+```
+
+The estimates are very similar, alpha is more spread, and beta slightly higher.
+
+```{r}
+# what if he had suppressed all BLL_geq_5 <= 10?
+ri_data_suppressed2 <- ri_data |> 
+  mutate(BLL_geq_5 = if_else(BLL_geq_5 > 0 & BLL_geq_5 <= 10, NA, BLL_geq_5),
+         suppressed = if_else(is.na(BLL_geq_5), 1, 0))
+
+stan_data_suppressed2 <- list(
+  N_obs = ri_data_suppressed2 |> filter(suppressed == 0) |> count() |> pull(n),
+  N_cens = ri_data_suppressed2 |> filter(suppressed == 1) |> count() |> pull(n),
+  y_obs = ri_data_suppressed2 |> filter(suppressed == 0) |> pull(BLL_geq_5),
+  x_obs = ri_data_suppressed2 |> filter(suppressed == 0) |> pull(bp_pre_1959E_prop) |> scale() |> as.vector(),
+  x_cens = ri_data_suppressed2 |> filter(suppressed == 1) |> pull(bp_pre_1959E_prop) |> scale() |> as.vector(),
+  kids_obs = ri_data_suppressed2 |> filter(suppressed == 0) |> pull(under_yo5_pplE),
+  kids_cens = ri_data_suppressed2 |> filter(suppressed == 1) |> pull(under_yo5_pplE),
+  ell = 10
+)
+
+# this removes the following ZIPs:
+ri_data_suppressed2|> 
+  filter(suppressed == 1) |> 
+  select(zip, tested, bp_pre_1959E_prop) |> 
+  knitr::kable(digits = 2)
+```
+
+```{r}
+# sampling
+fit_suppressed2 <- ri_model_suppressed$sample(
+  data = stan_data_suppressed2,
+  seed = 1234,
+  chains = 4, 
+  parallel_chains = 4,
+  refresh = 500
+)
+```
+
+```{r}
+fit_suppressed2$summary(variables = c("lp__","alpha","beta")) |> 
+  knitr::kable(digits=3)
+```
+
+## Comparison Plot
+
+```{r}
+# Extract the draws from the fitted models
+draws1 <- fit$draws(format="draws_df")
+draws2 <- fit_suppressed$draws(format="draws_df")
+draws3 <- fit_suppressed2$draws(format="draws_df")
+
+
+# Create a combined tbl for posterior samples from all models
+all_draws  <- bind_rows(
+  draws1 %>% mutate(Model = "No Suppression"),
+  draws2 %>% mutate(Model = "Suppression 3"),
+  draws3 %>% mutate(Model = "Suppression 10")
+) |>
+  select(Model, alpha, beta)
+
+# Create an overlapping density plot for alpha
+ggplot(all_draws, aes(x = alpha, fill = Model)) +
+  geom_density(alpha = 0.5) +
+  labs(title = "Posterior Density Plot of Alpha",
+       x = "Alpha",
+       y = "Density") +
+  theme_minimal()
+
+```
+
+```{r}
+
+# Create an overlapping density plot for beta
+ggplot(all_draws, aes(x = beta, fill = Model)) +
+  geom_density(alpha = 0.5) +
+  labs(title = "Posterior Density Plot of Beta",
+       x = "Beta",
+       y = "Density") +
+  theme_minimal()
+```
+
+Note that the shift in alpha here is due to scaling based on different (uncensored) data.

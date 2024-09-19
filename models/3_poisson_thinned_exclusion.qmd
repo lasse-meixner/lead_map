@@ -1,0 +1,513 @@
+---
+title: "Thinned poisson regression with exclusion restriction"
+format:
+    html:
+      code-fold: true
+---
+
+## Single state analysis
+
+```{r}
+library(tidyverse)
+# run init file
+source("../init.R")
+
+info_vars <- c("TRACT","STATE_NAME","COUNTY") 
+offset_var <- c("under_yo5_pplE","ped_per_100k")
+features <- c("median_annual_incomeE","house_price_medianE","poor_fam_propE","black_ppl_propE", "bp_pre_1959E_prop", "svi_socioeconomic_pctile")
+
+preprocess_pred_data <- function(tract_data){
+    #' selects relevant PREDICTOR variables, drops NAs and scales data
+    #' 
+    tract_data |> select(all_of(c(features, offset_var, info_vars))) |>
+    distinct() |>
+    # drop NAs
+    drop_na() |>
+    # drop if poor_fam_propE==0 (missing value in census API)
+    filter(poor_fam_propE!=0) |>
+    # standardize all features
+    mutate(across(all_of(features), ~(. - mean(.))/sd(.)))
+}
+
+preprocess_lead_data <- function(lead_data){
+    #' preprocesses lead data
+    lead_data |> 
+        # create indicator if starts with "<" (supressed value) for both tested and BLL_geq_5
+        mutate(tested_suppressed = str_detect(tested, "<"),
+               BLL_geq_5_suppressed = str_detect(BLL_geq_5, "<")) |>
+        # remove "<" from tested and BLL_geq_5
+        mutate(tested = str_remove(tested, "<"),
+               BLL_geq_5 = str_remove(BLL_geq_5, "<")) |>
+        # convert to numeric
+        mutate(tested = as.numeric(tested),
+               BLL_geq_5 = as.numeric(BLL_geq_5)) |>
+        # add state level censoring threshold
+        group_by(state) |>
+        # get minimum of BLL_geq_5 that is greater than 0
+        mutate(ell = min(BLL_geq_5[BLL_geq_5>0])) |> #TODO: check if this is correct, otherwise map manually through metadata
+        ungroup()
+}
+
+final_checks  <- function(merged_data, drop="BLL_geq_10"){
+    #' implements final data checks and drops unused outcome column
+    merged_data |>
+        filter(under_yo5_pplE>=tested) |>
+        select(-all_of(drop)) |>
+        drop_na()
+}
+```
+
+In a first step, I run the model on a single state (MA).
+
+```{r}
+# import tract data
+find_and_set_directory("US/predictors/processed_data")
+tract_data  <- read_csv("final_tract.csv")
+
+# import lead data
+find_and_set_directory("US/lead_data/reuters/scripts")
+source("00_merging_functions.R")
+
+# get lead data for single state and merge
+
+single_state_data <- function(state_name, drop_outcome = c()){
+    # load and assign the state data
+    load_state(state_name, from_raw = TRUE) # from 00_merging_functions.R 
+    state_data <- get(str_to_lower(state_name))
+    # preprocess lead data
+    state_lead <- state_data |>
+        filter(year == 2010) |> #NOTE: 2010 is in the middle of our period and has max testing in many states
+        # preprocess lead data
+        preprocess_lead_data()
+      
+    state_pred <- tract_data |> filter(STATE_ABBR == state_name) |> preprocess_pred_data()
+
+    # merge
+    state_merged <- state_pred |> 
+        left_join(state_lead, by = c("TRACT" = "tract")) |> 
+        final_checks(drop=drop_outcome)
+}
+```
+
+### MA (50% suppression)
+
+```{r}
+ma_final <- single_state_data("MA")
+```
+
+```{r}
+# build vector to pass to stan
+
+build_stan_vector  <-  function(merged_data){
+    list(
+        N_obs = merged_data |> filter(!BLL_geq_5_suppressed) |> count() |> pull(n),
+        N_cens = merged_data |> filter(BLL_geq_5_suppressed) |> count() |> pull(n),
+        K = length(features),
+        y_obs = merged_data |> filter(!BLL_geq_5_suppressed) |> pull(BLL_geq_5),
+        x_obs = merged_data |> filter(!BLL_geq_5_suppressed) |> select(all_of(features)) |> as.matrix(),
+        x_cens = merged_data |> filter(BLL_geq_5_suppressed) |> select(all_of(features)) |> as.matrix(),
+        z_obs = merged_data |> filter(!BLL_geq_5_suppressed) |> pull(ped_per_100k),
+        z_cens = merged_data |> filter(BLL_geq_5_suppressed) |> pull(ped_per_100k),
+        kids_obs = merged_data |> filter(!BLL_geq_5_suppressed) |> pull(under_yo5_pplE),
+        kids_cens = merged_data |> filter(BLL_geq_5_suppressed) |> pull(under_yo5_pplE),
+        # get suppression bound 
+        ell = merged_data |> filter(BLL_geq_5_suppressed) |> pull(ell)
+    )
+}
+```
+
+```{r}
+# import stan model
+library(cmdstanr)
+
+stan_model <- cmdstan_model("poisson_thinned_exclusion.stan")
+stan_model$print()
+```
+
+```{r}
+# build stan vector
+stan_vector <- build_stan_vector(ma_final)
+```
+
+```{r}
+# run stan model
+# sample 
+fit <- stan_model$sample(
+  data = stan_vector,
+  seed = 1234,
+  chains = 4, 
+  parallel_chains = 4,
+  refresh = 500
+)
+```
+
+Running 4 chains on thist takes a couple of minutes...
+
+Let's look at the results for the coefficients:
+
+```{r}
+get_coefficients <- function(fit){
+  fit$summary() |> 
+  # rename all of the beta[j] by their feature names
+  mutate(variable = ifelse(str_detect(variable, "beta"), paste0(features[as.numeric(str_extract(variable, "[0-9]+"))]), variable)) |>
+  filter(variable %in% c(features, "alpha"))
+}
+```
+
+```{r}
+fit_summary <- get_coefficients(fit)
+
+fit_summary |> 
+  knitr::kable(digits=3)
+```
+
+Only for the old building proportion do we get a coefficient whose quantile range does not cross zero, and is positive, as expected!
+
+```{r}
+library(bayesplot)
+
+
+plot_betas <- function(fit, title = "Posterior distributions") {
+    draws <- fit$draws(format = "draws_df") |>
+        # rename column names beta[j] by their feature names
+        rename_with(~ (features[as.numeric(str_extract(., "[0-9]+"))]), starts_with("beta"))
+
+    mcmc_areas(draws %>% select(features), prob = 0.8) +
+        ggtitle(title)
+}
+
+plot_betas(fit, title = "Posterior distributions for MA")
+```
+
+There is some strange stuff going on leading to bimodal peaks in all of the posterior distributions. Where is this coming from...?
+
+```{r}
+fit <- stan_model_prior$sample(
+  data = stan_vector,
+  seed = 1234,
+  chains = 4, 
+  parallel_chains = 4,
+  refresh = 500
+)
+```
+
+### MD (zero suppression)
+
+```{r}
+md_final <- single_state_data("MD")
+
+# build stan vector
+stan_vector_md <- build_stan_vector(md_final)
+
+# sample
+fit_md <- stan_model$sample(
+  data = stan_vector_md,
+  seed = 1234,
+  chains = 4, 
+  parallel_chains = 4,
+  refresh = 500
+)
+```
+
+```{r}
+get_coefficients(fit_md) |> 
+  knitr::kable(digits=3)
+```
+
+```{r}
+plot_betas(fit_md, title = "Posterior distributions for MD")
+```
+
+### NH (zero suppression)
+
+```{r}
+nh_final <- single_state_data("NH")
+
+# build stan vector
+stan_vector_nh <- build_stan_vector(nh_final)
+
+# sample
+fit_nh <- stan_model$sample(
+  data = stan_vector_nh,
+  seed = 1234,
+  chains = 4, 
+  parallel_chains = 4,
+  refresh = 500
+)
+```
+
+```{r}
+get_coefficients(fit_nh) |> 
+  knitr::kable(digits=3)
+```
+
+```{r}
+plot_betas(fit_nh, title = "Posterior distributions for NH")
+```
+
+### NC (bit of testing suppression and mostly 0 or \<5 BLL)
+
+```{r}
+nc_final <- single_state_data("NC", drop_outcome="BLL_geq_10")
+
+# build stan vector
+stan_vector_nc <- build_stan_vector(nc_final)
+
+# sample
+fit_nc <- stan_model$sample(
+  data = stan_vector_nc,
+  seed = 1234,
+  chains = 4, 
+  parallel_chains = 4,
+  refresh = 500
+)
+```
+
+```{r}
+get_coefficients(fit_nc) |> 
+  knitr::kable(digits=3)
+```
+
+```{r}
+plot_betas(fit_nc, title = "Posterior distributions for NC")
+```
+
+## All (tract) states analysis
+
+We will proceed in 3 steps with decreasing order of restrictiveness: - treat all states equally, as if tracts had no state information - state fixed effects - normal priors over state coefficients
+
+### Treat all states equally
+
+Tract states are already in memory through 00_merging_functions.R
+
+```{r}
+# get all tract states using wrapper from 00_merging_functions.R
+load_states(tract_states)
+
+tract_lead <- merge_loaded_data(states_list = str_to_lower(tract_states), level="tract")  |>
+  # filter for 2010
+  filter(year == 2010) |>
+  # preprocess lead data
+  preprocess_lead_data()
+
+# prep tract data
+tract_pred <- tract_data |> preprocess_pred_data()
+
+# merge
+tract_merged <- tract_pred |> 
+  left_join(tract_lead, by = c("TRACT" = "tract")) |> 
+  final_checks()
+```
+
+### Inspecting the data
+
+Let's look at the distribution of ELL cutoffs:
+
+```{r}
+tract_merged |>
+  group_by(state) |>
+  summarise(ell = min(ell)) |>
+  ggplot(aes(x=state, y=ell)) +
+  geom_bar(stat="identity")
+```
+
+Let's look at suppression rates:
+
+```{r}
+# get ratio of observation that is either suppressed or zero
+tract_merged |> 
+  group_by(state) |>
+  summarise(suppression_rate = sum(BLL_geq_5_suppressed | BLL_geq_5 == 0)/n()) |>
+  ggplot(aes(x=state, y=suppression_rate)) +
+  geom_bar(stat="identity")
+```
+
+Let's look at the distribution of all features in a column plot:
+
+```{r}
+# plot features
+
+plot_density_by_state <- function(df, feature_name = "median_annual_incomeE") {
+  df |>
+    ggplot(aes_string(x = feature_name, fill = "state")) +
+    geom_density(alpha = 0.2)
+}
+```
+
+```{r}
+plot_density_by_state(tract_merged, "median_annual_incomeE")
+```
+
+```{r}
+plot_density_by_state(tract_merged, "house_price_medianE")
+```
+
+```{r}
+plot_density_by_state(tract_merged, "poor_fam_propE")
+```
+
+```{r}
+plot_density_by_state(tract_merged, "black_ppl_propE")
+```
+
+```{r}
+plot_density_by_state(tract_merged, "bp_pre_1959E_prop")
+```
+
+```{r}
+plot_density_by_state(tract_merged, "svi_socioeconomic_pctile")
+```
+
+```{r}
+plot_density_by_state(tract_merged, "ped_per_100k")
+```
+
+There seem to be some extreme values in pediatricians per kids. I suspect that this might be at the root of the problem with initialisation. Lets look at some quantiles of this variable:
+
+```{r}
+# get 90th, 95th, 99th quantile of pediatricians per kids
+tract_merged |> 
+  group_by(state) |>
+  summarise(ped_per_100k_90 = quantile(ped_per_100k, 0.9),
+            ped_per_100k_95 = quantile(ped_per_100k, 0.95),
+            ped_per_100k_99 = quantile(ped_per_100k, 0.99)) |>
+  knitr::kable(digits=3)
+```
+
+What are the top unique 10 values?
+
+```{r}
+tract_merged |> 
+  select(state, ped_per_100k) |>
+  distinct() |> # effectively gets counties
+  top_n(10, ped_per_100k) |>
+  arrange(desc(ped_per_100k)) |>
+  knitr::kable(digits=3)
+```
+
+I will get rid of the top two counties.
+
+```{r}
+tract_merged <- tract_merged |>
+  filter(ped_per_100k < 400)
+```
+
+```{r}
+# build stan vector
+stan_vector2 <- build_stan_vector(tract_merged)
+```
+
+```{r}
+# import stan model
+library(cmdstanr)
+
+stan_model <- cmdstan_model("poisson_thinned_exclusion.stan")
+stan_model$print()
+```
+
+Sample from the model with all 15k observations:
+
+```{r}
+# sample
+
+fit <- stan_model$sample(
+  data = stan_vector2,
+  seed = 1234,
+  chains = 4, 
+  parallel_chains = 4,
+  refresh = 500,
+  init = \() list(
+    alpha = fit_summary$median[1],
+    beta = fit_summary$median[c(2:7)]) 
+)
+```
+
+This does not sample...
+
+### Getting rid of most suppressed states
+
+CO and OR are basically completely suppressed. Let's see if sampling kickstarts if we get rid of these information scarse states:
+
+```{r}
+# get rid of CO and OR
+tract_merged_slim <- tract_merged |> 
+  filter(state != "CO" & state != "OR")
+```
+
+Retry sampling:
+
+```{r}
+# build stan vector
+stan_vector3 <- build_stan_vector(tract_merged_slim)
+
+# sample
+fit <- stan_model$sample(
+  data = stan_vector3,
+  seed = 1234,
+  chains = 4, 
+  parallel_chains = 4,
+  refresh = 500,
+  init = \() list(
+    alpha = fit_summary$median[1],
+    beta = fit_summary$median[c(2:7)]) 
+)
+```
+
+Still doesnt...
+
+### Trying only MA, MD and NH
+
+```{r}
+tract_merged_slim <- tract_merged |> 
+  filter(state == "MA" | state == "MD" | state == "NH")
+```
+
+```{r}
+# build stan vector
+stan_vector4 <- build_stan_vector(tract_merged_slim)
+
+# sample
+fit_3 <- stan_model$sample(
+  data = stan_vector4,
+  seed = 1234,
+  chains = 4, 
+  parallel_chains = 4,
+  refresh = 500
+)
+```
+
+```{r}
+get_coefficients(fit_3) |> 
+  knitr::kable(digits=3)
+```
+
+```{r}
+plot_betas(fit_3, title = "Distributions of coefficients for MA, MD and NH")
+```
+
+## Add priors to intercept
+
+```{r}
+# import stan model with prior
+stan_model_prior <- cmdstan_model("poisson_thinned_exclusion_w_priors.stan")
+
+# sample
+fit_prior <- stan_model_prior$sample(
+  data = stan_vector4,
+  seed = 1234,
+  chains = 4, 
+  parallel_chains = 4,
+  refresh = 500
+)
+```
+
+```{r}
+get_coefficients(fit_prior) |> 
+  knitr::kable(digits=3)
+```
+
+```{r}
+plot_betas(fit_prior, title = "Distributions of coefficients for MA, MD and NH with prior")
+```
+
+
