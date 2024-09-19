@@ -78,7 +78,7 @@ build_stan_data <- function(data, poisson_features, logit_features){
   )
 }
 
-stan_data <- build_stan_data(pooled_data)
+stan_data <- build_stan_data(pooled_data, poisson_features, logit_features)
 ```
 
 Load the model and fit
@@ -182,6 +182,7 @@ fit_pca <- pooled_model$sample(
   refresh = 500
 )
 ```
+
 ```{r}
 fit_pca$summary() |> 
   # replace betas by poisson features names
@@ -191,3 +192,18 @@ fit_pca$summary() |>
   knitr::kable(digits = 3)
 ```
 
+```{r}
+draws <- fit_pca$draws(format = "draws_df") |>
+   select(-lp__) |> 
+   # rename betas by poisson features names
+   rename_with(~poisson_features[as.numeric(gsub("\\D", "", .))] %>% as.character(), starts_with("beta")) |>
+   # rename deltas by logit features names with _logit suffix
+   rename_with(~logit_features_pca[as.numeric(gsub("\\D", "", .))] %>% paste0("_logit"), starts_with("delta"))
+
+fig1 <- mcmc_areas(draws, prob = 0.9) + ggtitle("Posterior draws") +
+   theme_minimal()
+fig2 <- mcmc_trace(draws) + ggtitle("Trace plots") + theme_minimal()
+
+print(fig1)
+print(fig2)
+```
