@@ -41,6 +41,7 @@ tract_data <- lapply(tract_states, function(state) {
   single_state_tract(state, filter_year = best_year)
 })
 ```
+
 ## Pooled state model
 
 I append all tract states' data and create the STAN data object.
@@ -54,6 +55,7 @@ find_and_set_directory("US/exploration")
 source("compute_descriptives.R")
 get_corplot(pooled_data)
 ```
+
 I will use the building period and the SVI as logit predictors in combination with the pediatrician data.
 
 ```{r}
@@ -166,6 +168,7 @@ pooled_data_logged <- pooled_data_logged |>
 ```{r}
 get_spread_plot(pooled_data_logged, c("pca1", "pca2"))
 ```
+
 ```{r, cache=TRUE}
 # set new logit features
 logit_features_pca <- c("pca1", "pca2")
@@ -193,7 +196,49 @@ fit_pca$summary() |>
 ```
 
 ```{r}
+library(bayesplot)
 draws <- fit_pca$draws(format = "draws_df") |>
+   select(-lp__) |> 
+   # rename betas by poisson features names
+   rename_with(~poisson_features[as.numeric(gsub("\\D", "", .))] %>% as.character(), starts_with("beta")) |>
+   # rename deltas by logit features names with _logit suffix
+   rename_with(~logit_features_pca[as.numeric(gsub("\\D", "", .))] %>% paste0("_logit"), starts_with("delta"))
+
+fig1 <- mcmc_areas(draws, prob = 0.9) + ggtitle("Posterior draws") +
+   theme_minimal()
+fig2 <- mcmc_trace(draws) + ggtitle("Trace plots") + theme_minimal()
+
+print(fig1)
+print(fig2)
+```
+
+## More precise prior on 𝜶
+
+```{r}
+# load the new model
+pooled_model_2 <- cmdstan_model("poisson_thinned_exclusion_priors2.stan")
+
+# refit the same data
+fit_pca_2 <- pooled_model_2$sample(
+  data = stan_data_pca, 
+  chains = 4,
+  seed = 1999,
+  parallel_chains = 4,
+  refresh = 500
+)
+```
+
+```{r}
+fit_pca_2$summary() |> 
+  # replace betas by poisson features names
+  mutate(variable = ifelse(grepl("beta", variable), poisson_features[as.numeric(gsub("\\D", "", variable))], variable)) |>
+  # replace deltas by logit features names with _logit suffix
+  mutate(variable = ifelse(grepl("delta", variable), logit_features_pca[as.numeric(gsub("\\D", "", variable))] %>% paste0("_logit"), variable)) |> 
+  knitr::kable(digits = 3)
+```
+
+```{r}
+draws <- fit_pca_2$draws(format = "draws_df") |>
    select(-lp__) |> 
    # rename betas by poisson features names
    rename_with(~poisson_features[as.numeric(gsub("\\D", "", .))] %>% as.character(), starts_with("beta")) |>
