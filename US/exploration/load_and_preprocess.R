@@ -20,12 +20,12 @@ if (!exists("tract_data") || !exists("zip_data")) {
 ### data preprocessing functions
 zip_info_vars <- c("zip","STATE_ABBR")
 tract_info_vars <- c("TRACT","STATE_NAME","COUNTY") 
-offset_var <- c("under_yo5_pplE")
+offset_var <- c("under_yo5_ppl") # Note: this was changed from under_yo5_pplE from the ACS to under_yo5_ppl from the decennial census
 features <- c("median_annual_incomeE","house_price_medianE","poor_fam_propE","black_ppl_propE", "bp_pre_1959E_prop", "svi_socioeconomic_pctile", "ped_per_100k")
 
 
 # HIGH LEVEL loader for tracts
-single_state_tract <- function(state_name, drop_outcome = c(), pred_preprocess_func = NULL, filter_year = NULL){
+single_state_tract <- function(state_name, drop_outcome = c(), pred_preprocess_func = NULL, filter_year = NULL, drop_if_multiple_testing_bool = FALSE){
     # load and assign the state data
     load_state(state_name, from_raw = FALSE) # from 00_merging_functions.R 
     state_data <- get(str_to_lower(state_name)) # (overwritten after merge)
@@ -48,7 +48,7 @@ single_state_tract <- function(state_name, drop_outcome = c(), pred_preprocess_f
     # merge
     state_merged <- state_lead |> 
         left_join(state_pred, by = c("tract" = "TRACT")) |> 
-        final_checks(drop=drop_outcome)
+        final_checks(drop=drop_outcome, drop_if_multiple_testing = drop_if_multiple_testing_bool)
 
     # assign merged data to "{state_name}_merged" (for convenience of further analysis)
     assign(str_to_lower(paste0(state_name, "_merged")), state_merged, envir = .GlobalEnv)
@@ -57,7 +57,7 @@ single_state_tract <- function(state_name, drop_outcome = c(), pred_preprocess_f
 }
 
 # HIGH LEVEL loader for zips
-single_state_zip <- function(state_name, drop_outcome = c(), pred_preprocess_func = NULL, filter_year = NULL){
+single_state_zip <- function(state_name, drop_outcome = c(), pred_preprocess_func = NULL, filter_year = NULL, drop_if_multiple_testing_bool=FALSE){
     # load and assign the state data
     load_state(state_name, from_raw = FALSE) # from 00_merging_functions.R 
     state_data <- get(str_to_lower(state_name)) # (overwritten after merge)
@@ -82,7 +82,7 @@ single_state_zip <- function(state_name, drop_outcome = c(), pred_preprocess_fun
     # merge
     state_merged <- state_lead |> 
         left_join(state_pred, by = "zip") |> 
-        final_checks(drop=drop_outcome)
+        final_checks(drop=drop_outcome, drop_if_multiple_testing = drop_if_multiple_testing_bool)
     
     # assign merged data to "{state_name}_merged" (for convenience of further analysis)
     assign(str_to_lower(paste0(state_name, "_merged")), state_merged, envir = .GlobalEnv)
@@ -151,12 +151,19 @@ preprocess_lead_data <- function(lead_data){
     return(lead_data)
 }
 
-final_checks <- function(merged_data, drop="BLL_geq_10"){
+final_checks <- function(merged_data, drop="BLL_geq_10", drop_if_multiple_testing=FALSE){
     #' implements final data checks and optionally drop outcome variable
     merged_data <- merged_data |>
-        filter(under_yo5_pplE>=tested,
-               tested>0) |> 
+        mutate(tests_p_kid = tested/under_yo5_ppl) |> # Note: before, this was under_yo5_pplE from the ACS 
         select(-all_of(drop))
+    
+    if (drop_if_multiple_testing) {
+        # drop if multiple testing
+        merged_data <- merged_data |>
+            filter(tests_p_kid <= 1)
+    }
+
+
         
     # get presence of outcomes by substr BLL_geq_*
     outcome_vars <- merged_data |> names() |> str_subset("BLL_geq_") |> str_remove("_suppressed") |> unique()
