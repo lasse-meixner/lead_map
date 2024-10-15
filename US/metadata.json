@@ -1,182 +1,291 @@
 {
-    "zip_states": [
-        "AL",
-        "AZ",
-        "IL",
-        "NY",
-        "RI",
-        "LA",
-        "NJ",
-        "VT",
-        "CA",
-        "FL",
-        "IA",
-        "CT",
-        "SC",
-        "DC",
-        "MI",
-        "GA",
-        "NM",
-        "MO",
-        "OK",
-        "TX",
-        "TN",
-        "VA",
-        "KS"
+  "states": {
+    "AL": {
+      "geography": "zip",
+      "year_range": null,
+      "best_year": null
+    },
+    "AZ": {
+      "geography": "zip",
+      "year_range": null,
+      "best_year": null
+    },
+    "IL": {
+      "geography": "zip",
+      "year_range": null,
+      "best_year": null
+    },
+    "NY": {
+      "geography": "zip",
+      "year_range": null,
+      "best_year": null
+    },
+    "RI": {
+      "geography": "zip",
+      "year_range": null,
+      "best_year": null
+    },
+    "LA": {
+      "geography": "zip",
+      "year_range": null,
+      "best_year": null
+    },
+    "NJ": {
+      "geography": "zip",
+      "year_range": null,
+      "best_year": null
+    },
+    "VT": {
+      "geography": "zip",
+      "year_range": null,
+      "best_year": null
+    },
+    "CA": {
+      "geography": "zip",
+      "year_range": null,
+      "best_year": null
+    },
+    "FL": {
+      "geography": "zip",
+      "year_range": null,
+      "best_year": null
+    },
+    "IA": {
+      "geography": "zip",
+      "year_range": null,
+      "best_year": null
+    },
+    "CT": {
+      "geography": "zip",
+      "year_range": null,
+      "best_year": null
+    },
+    "SC": {
+      "geography": "zip",
+      "year_range": null,
+      "best_year": null
+    },
+    "DC": {
+      "geography": "zip",
+      "year_range": null,
+      "best_year": null
+    },
+    "MI": {
+      "geography": "zip",
+      "year_range": null,
+      "best_year": null
+    },
+    "GA": {
+      "geography": "zip",
+      "year_range": null,
+      "best_year": null
+    },
+    "NM": {
+      "geography": "zip",
+      "year_range": null,
+      "best_year": null
+    },
+    "MO": {
+      "geography": "zip",
+      "year_range": null,
+      "best_year": null
+    },
+    "OK": {
+      "geography": "zip",
+      "year_range": null,
+      "best_year": null
+    },
+    "TX": {
+      "geography": "zip",
+      "year_range": null,
+      "best_year": null
+    },
+    "TN": {
+      "geography": "zip",
+      "year_range": null,
+      "best_year": null
+    },
+    "VA": {
+      "geography": "zip",
+      "year_range": null,
+      "best_year": null
+    },
+    "KS": {
+      "geography": "zip",
+      "year_range": null,
+      "best_year": null
+    },
+    "OH": {
+      "geography": "tract",
+      "year_range": "2005-2015",
+      "best_year": 2011
+    },
+    "PA": {
+      "geography": "tract",
+      "year_range": "2005-2015",
+      "best_year": 2008,
+      "issues": "strange jump in censoring in 2009"
+    },
+    "CO": {
+      "geography": "tract",
+      "year_range": "2010-2014",
+      "best_year": 2010,
+      "issues": "avg. vs sum"
+    },
+    "MD": {
+      "geography": "tract",
+      "year_range": "2005-2015",
+      "best_year": 2011
+    },
+    "MA": {
+      "geography": "tract",
+      "year_range": "2005-2015",
+      "best_year": 2012
+    },
+    "MN": {
+      "geography": "tract",
+      "year_range": "2011-2015",
+      "best_year": 2011,
+      "issues": "avg. vs sum"
+    },
+    "NYC": {
+      "geography": null,
+      "year_range": null,
+      "best_year": null,
+      "issues": "lead data availabilty neighbourhood tabulation areas"
+    },
+    "NC": {
+      "geography": "tract",
+      "year_range": "2005-2015",
+      "best_year": 2012
+    },
+    "IN": {
+      "geography": "tract",
+      "year_range": "2005-2015",
+      "best_year": 2011
+    },
+    "OR": {
+      "geography": "tract",
+      "year_range": null,
+      "best_year": null,
+      "issues": "only censored values, no outcome variation"
+    },
+    "NH": {
+      "geography": "tract",
+      "year_range": "2005-2015",
+      "best_year": 2011
+    },
+    "WI": {
+      "geography": "tract",
+      "year_range": "1998-2021",
+      "best_year": 2011
+    }
+  },
+  "variables": {
+    "id": [
+      "TRACT",
+      "NAME",
+      "STATE_ABBR",
+      "STATE_NAME",
+      "STATE_FIPS",
+      "COUNTY",
+      "CNTY_FIPS"
     ],
-    "tract_states": [
-        "OH",
-        "PA",
-        "CO",
-        "MD",
-        "MA",
-        "MN",
-        "NYC", // probably this will have to be Neighbourhood Tabulation Area...
-        "NC",
-        "IN",
-        "OR",
-        "NH",
-        "WI"
+    "count": [
+      "total_ppl_acs20E",
+      "median_annual_incomeE",
+      "house_price_medianE",
+      "build_year_median_dodgyE",
+      "build_year_median",
+      "build_year_mean",
+      "avg_siblingsE",
+      "under_yo5_ppl",
+      "under_yo5_pplE",
+      "yo5to9_pplE",
+      "yo10to14_pplE",
+      "yo15to17_pplE",
+      "ALAND",
+      "TYPE_I",
+      "TYPE_S",
+      "TYPE_U",
+      "TYPE_M",
+      "TYPE_C",
+      "TYPE_O",
+      "TOTAL_ONSITE_RELEASE",
+      "TOTAL_AIR_RELEASE",
+      "TOTAL_WATER_RELEASE",
+      "TOTAL_LAND_RELEASE",
+      "TOTAL_POTW_TRANSFER",
+      "TOTAL_OFFSITE_RELEASE",
+      "TOTAL_RECYCLING_TRANSFER",
+      "TOTAL_RECOVERY_TRANSFER",
+      "TOTAL_TREATMENT_TRANSFER",
+      "TOTAL_TRANSFER",
+      "TOTAL_TQR_RELEASE",
+      "TOTAL_PROD_WASTE",
+      "TOTAL_ONSITE_RELEASE_density",
+      "TOTAL_AIR_RELEASE_density",
+      "TOTAL_WATER_RELEASE_density",
+      "TOTAL_LAND_RELEASE_density",
+      "TOTAL_POTW_TRANSFER_density",
+      "TOTAL_OFFSITE_RELEASE_density",
+      "TOTAL_RECYCLING_TRANSFER_density",
+      "TOTAL_RECOVERY_TRANSFER_density",
+      "TOTAL_TREATMENT_TRANSFER_density",
+      "TOTAL_TRANSFER_density",
+      "TOTAL_TQR_RELEASE_density",
+      "TOTAL_PROD_WASTE_density"
     ],
-    "id_variables":
-    ["TRACT",
-    "NAME",
-    "STATE_ABBR",
-    "STATE_NAME",
-    "STATE_FIPS",
-    "COUNTY",
-    "CNTY_FIPS"
-    ],
-    "count_variables": [
-        // census & acs variables
-        "total_ppl_acs20E",
-        "median_annual_incomeE",
-        "house_price_medianE",
-        "build_year_median_dodgyE",
-        "build_year_median",
-        "build_year_mean",
-        "avg_siblingsE",
-        "under_yo5_ppl", // newly added from census
-        "under_yo5_pplE",
-        "yo5to9_pplE",
-        "yo10to14_pplE",
-        "yo15to17_pplE",
-        // roads
-        "ALAND",
-        "TYPE_I",
-        "TYPE_S",
-        "TYPE_U",
-        "TYPE_M",
-        "TYPE_C",
-        "TYPE_O",
-        "TYPE_I_density",
-        "TYPE_S_density",
-        "TYPE_U_density",
-        "TYPE_M_density",
-        "TYPE_C_density",
-        "TYPE_O_density",
-        // TRI emissions
-        "TOTAL_ONSITE_RELEASE",
-        "TOTAL_AIR_RELEASE",
-        "TOTAL_WATER_RELEASE",
-        "TOTAL_LAND_RELEASE",
-        "TOTAL_POTW_TRANSFER",
-        "TOTAL_OFFSITE_RELEASE",
-        "TOTAL_RECYCLING_TRANSFER",
-        "TOTAL_RECOVERY_TRANSFER",
-        "TOTAL_TREATMENT_TRANSFER",
-        "TOTAL_TRANSFER",
-        "TOTAL_TQR_RELEASE",
-        "TOTAL_PROD_WASTE",
-        "TOTAL_ONSITE_RELEASE_density",
-        "TOTAL_AIR_RELEASE_density",
-        "TOTAL_WATER_RELEASE_density",
-        "TOTAL_LAND_RELEASE_density",
-        "TOTAL_POTW_TRANSFER_density",
-        "TOTAL_OFFSITE_RELEASE_density",
-        "TOTAL_RECYCLING_TRANSFER_density",
-        "TOTAL_RECOVERY_TRANSFER_density",
-        "TOTAL_TREATMENT_TRANSFER_density",
-        "TOTAL_TRANSFER_density",
-        "TOTAL_TQR_RELEASE_density",
-        "TOTAL_PROD_WASTE_density",
-        "TOTAL_ONSITE_RELEASE_cumulative",
-        "TOTAL_AIR_RELEASE_cumulative",
-        "TOTAL_WATER_RELEASE_cumulative",
-        "TOTAL_LAND_RELEASE_cumulative",
-        "TOTAL_POTW_TRANSFER_cumulative",
-        "TOTAL_OFFSITE_RELEASE_cumulative",
-        "TOTAL_RECYCLING_TRANSFER_cumulative",
-        "TOTAL_RECOVERY_TRANSFER_cumulative",
-        "TOTAL_TREATMENT_TRANSFER_cumulative",
-        "TOTAL_TRANSFER_cumulative",
-        "TOTAL_TQR_RELEASE_cumulative",
-        "TOTAL_PROD_WASTE_cumulative",
-        "TOTAL_ONSITE_RELEASE_density_cumulative",
-        "TOTAL_AIR_RELEASE_density_cumulative",
-        "TOTAL_WATER_RELEASE_density_cumulative",
-        "TOTAL_LAND_RELEASE_density_cumulative",
-        "TOTAL_POTW_TRANSFER_density_cumulative",
-        "TOTAL_OFFSITE_RELEASE_density_cumulative",
-        "TOTAL_RECYCLING_TRANSFER_density_cumulative",
-        "TOTAL_RECOVERY_TRANSFER_density_cumulative",
-        "TOTAL_TREATMENT_TRANSFER_density_cumulative",
-        "TOTAL_TRANSFER_density_cumulative",
-        "TOTAL_TQR_RELEASE_density_cumulative",
-        "TOTAL_PROD_WASTE_density_cumulative"
-  
-      ],
-      "proportion_variables": [
-        // census & acs variables
-        "renter_occupied_hu_propE",
-        "poor_fam_propE",
-        "lone_parent_female_fam_w_kids_propE",
-        "white_ppl_propE",
-        "black_ppl_propE",
-        "bp_pre_1939E_prop",
-        "bp_1940_1949E_prop",
-        "bp_1950_1959E_prop",
-        "bp_1960_1969E_prop",
-        "bp_1970_1979E_prop",
-        "bp_1980_1989E_prop",
-        "bp_1990_1999E_prop",
-        "bp_2000_2009E_prop",
-        "bp_2010_2013E_prop",
-        "bp_post_2014E_prop",
-        "bp_unkwE_prop",
-        "bp_pre_1949E_prop",
-        "bp_pre_1959E_prop",
-        "bp_pre_1954_prop_imputed",
-        "bp_pre_1979E_prop",
-        "bp_post_1990E_prop",
-        "under_yo5_pplE_prop",
-        "yo5to9_pplE_prop",
-        "yo10to14_pplE_prop",
-        "yo15to17_pplE_prop",
-        "male_ppl_u17_propE",
-        "female_ppl_u17_propE",
-        "sub_grade_9_ppl_18to44_propE",
-        "grade_9to12_no_diploma_ppl_18to44_propE",
-        "hs_grad_ppl_18to44_propE",
-        "some_college_no_degree_ppl_18to44_propE",
-        "associate_degree_ppl_18to44_propE",
-        "bachelor_degree_ppl_18to44_propE",
-        "graduate_degree_ppl_18to44_propE",
-        "some_college_or_associate_degree_ppl_18to44_propE",
-        "bachelor_or_graduate_degree_ppl_18to44_propE",
-        "sub_hs_recent_mother_propE",
-        "hs_grad_recent_mother_propE",
-        "some_college_or_associate_degree_recent_mother_propE",
-        "bachelor_degree_recent_mother_propE",
-        "graduate_degree_recent_mother_propE",
-        "married_fam_w_kids_propE",
-        "married_recent_mother_propE",
-        "urban_ppl_prop",
-        // svi variables
-        "svi_socioeconomic_pctile",
-        "svi_disability_pctile",
-        "svi_minority_lang_pctile",
-        "svi_housing_transprt_pctile",
-        "svi_pctile"
-      ]
+    "ratio": [
+      "renter_occupied_hu_propE",
+      "poor_fam_propE",
+      "lone_parent_female_fam_w_kids_propE",
+      "white_ppl_propE",
+      "black_ppl_propE",
+      "bp_pre_1939E_prop",
+      "bp_1940_1949E_prop",
+      "bp_1950_1959E_prop",
+      "bp_1960_1969E_prop",
+      "bp_1970_1979E_prop",
+      "bp_1980_1989E_prop",
+      "bp_1990_1999E_prop",
+      "bp_2000_2009E_prop",
+      "bp_2010_2013E_prop",
+      "bp_post_2014E_prop",
+      "bp_unkwE_prop",
+      "bp_pre_1949E_prop",
+      "bp_pre_1959E_prop",
+      "bp_pre_1954_prop_imputed",
+      "bp_pre_1979E_prop",
+      "bp_post_1990E_prop",
+      "under_yo5_pplE_prop",
+      "yo5to9_pplE_prop",
+      "yo10to14_pplE_prop",
+      "yo15to17_pplE_prop",
+      "male_ppl_u17_propE",
+      "female_ppl_u17_propE",
+      "sub_grade_9_ppl_18to44_propE",
+      "grade_9to12_no_diploma_ppl_18to44_propE",
+      "hs_grad_ppl_18to44_propE",
+      "some_college_no_degree_ppl_18to44_propE",
+      "associate_degree_ppl_18to44_propE",
+      "bachelor_degree_ppl_18to44_propE",
+      "graduate_degree_ppl_18to44_propE",
+      "some_college_or_associate_degree_ppl_18to44_propE",
+      "bachelor_or_graduate_degree_ppl_18to44_propE",
+      "sub_hs_recent_mother_propE",
+      "hs_grad_recent_mother_propE",
+      "some_college_or_associate_degree_recent_mother_propE",
+      "bachelor_degree_recent_mother_propE",
+      "graduate_degree_recent_mother_propE",
+      "married_fam_w_kids_propE",
+      "married_recent_mother_propE",
+      "urban_ppl_prop",
+      "svi_socioeconomic_pctile",
+      "svi_disability_pctile",
+      "svi_minority_lang_pctile",
+      "svi_housing_transprt_pctile",
+      "svi_pctile"
+    ]
+  }
 }

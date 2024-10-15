@@ -48,8 +48,8 @@ pediatricians_zip <- map_df(unique(pediatricians_mod$State), function(x) {
 
 # get metadata on tract and ZIP states
 metadata  <- fromJSON("../../metadata.json")
-zip_states <- metadata$zip_states
-tract_states <- metadata$tract_states
+zip_states <- names(metadata$states)[sapply(metadata$states, function(x) x$geography == "zip")]
+tract_states <- names(metadata$states)[sapply(metadata$states, function(x) x$geography == "tract")]
 
 # get tract data and add county FIPS (the first 5 digits of the tract FIPS) then join pediatrician data
 final_tract <- read_csv("../processed_data/combined_tract.csv")  |>
