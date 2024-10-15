@@ -30,7 +30,7 @@ data {
  }
 
  model {
-   alpha ~ normal(-1.69, 2); // log(lambda/kids) = alpha = log(0.02) based on CDC national average figures
+   alpha ~ normal(-3.91, 0.416); // log(lambda/kids) = alpha = log(0.02) based on CDC national average figures
    gamma ~ normal(0, 1.2); // logit intercept
    beta ~ normal(0, 0.5); // poisson coefficients (standardised)
    delta ~ normal(0, 0.4); // logit coefficients (standardised)
