@@ -5,30 +5,18 @@ import pandas as pd
 import numpy as np
 import json
 
-import geopandas as gpd
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-import pyproj
 
 import dash
 from dash import Input, Output
 import dash_daq as daq
 
+from shapefile_loading import get_msoa_merged_shapefile
 
-def get_msoa_merged_shapefile():
-    msoa = gpd.read_file("../raw_data/shapefiles/msoa/england_msoa_2011_simple.shp") # get the downsampled file
-    msoa.to_crs(pyproj.CRS.from_epsg(4326), inplace=True)
-    msoa.rename({"code":"msoa11cd", "name":"msoa_name"}, axis=1, inplace=True)
-    df = pd.read_csv("../processed_data/combined_msoa.csv")
-
-    # get list of predictor names
-    cols = df.columns[3:]
-    # merge
-    merged = msoa.merge(df, left_on="msoa11cd", right_on="msoa11cd", how="left")
-    del msoa, df
-
-    return merged, cols
+# load merged file from england_msoa_2011.shp and combined_msoa.csv
+merged, cols = get_msoa_merged_shapefile(path_relative_to_UK="../")
 
 # auxiliary function to compute empirical quantile in [0,1] and average for risk score
 def compute_risk_score(df, predictors):
@@ -42,9 +30,6 @@ def compute_risk_score(df, predictors):
     # pass through its own ECDF again
     df_copy["risk_score"] = df_copy["risk_score"].rank(pct=True)
     return df_copy
-
-# load merged file from england_msoa_2011.shp and combined_msoa.csv
-merged, cols = get_msoa_merged_shapefile()
 
 # load metadata.json
 with open("../metadata.json", "r") as f:
