@@ -1,18 +1,100 @@
 ---
-title: "Interactive Quarto Presentation"
+title: "Lead exposure risk in Leeds"
+author: "Lead Map Project Team"
 format: revealjs
 execute:
   echo: true
+  cache: true
+jupyter: lead_map
 ---
 
-# Slide 1: Introduction
+## Introduction
 
-Welcome to this interactive presentation!
+Goals of this presentation
+- why is Leeds a good place to test kids for lead?
+- what do we know about kids in Leeds?
+- what do we know about risk factors in Leeds?
 
-# Slide 2: R Plot Example
+# Data
+## UK MSOA data
+We collect a series of demographic, socioeconomic, and environmental variables at the MSOA level.
+<!-- general intro slide: what is an msoa? preview of the variables we will look at -->
+
+## Distribution of kids
+<!-- plot number of kids in various age groups across leeds map -->
+
+## Risk factors
+<!-- Introduce risk factors one by one, list their source, and why we think it is related to lead (e.g. building period, because lead paint was in frequent use prior to year Y etc.) -->
+
+
+# Geospatial analysis of risk factors
+<!-- plot risk factors one by one, each time showing geospatial distribution across leeds as well as a barplot of distribution in leeds vs rest of UK  -->
+
+## Number of kids
+```{python}
+#| label: geospatial-analysis
+#| echo: false
+from plotting_functions import *
+
+import sys
+sys.path.append('../UK/predictors/exploration')
+from shapefile_loading import get_msoa_merged_shapefile
+
+merged, cols = get_msoa_merged_shapefile(path_relative_to_UK="../UK/predictors")
+```
+
+```{python}
+#| label: kids-comparison
+#| echo: false
+#| output-location: slide
+
+fig = plot_histograms("total_kids_2011", merged, "Leeds", n_bins = 26)
+fig.update_layout(title_text="Leeds has more kids relative to the UK")
+fig.show()
+```
+
+## Location of kids
+
+```{python}
+#| label: kids-location
+#| echo: false
+#| output-location: slide
+
+fig = plot_chloropleth("total_kids_2011", merged, "Leeds")
+fig.update_layout(title_text="Distribution of kids in Leeds")
+fig.show()
+```
+
+# Hazard Map
+
+## Efforts by Public Health England
+<!-- describe their approach, and then describe how we expand it: more granular analysis (MSOA isntead of LAD), more risk variables of choice, and less wasteful risk function (dont throw out info by computing discrete deciles) -->
+
+## Risk map
+<!-- show the risk map, and then show the risk map with the number of kids in each MSOA overlaid -->
+
+
+# Slide ?: R Plot Example
 
 ```{r}
 #| label: r-plot
 #| fig-cap: "A Simple R Plot"
 plot(cars)
+```
+
+# Slide ?: Python Plot Example
+
+```{python}
+#| label: py-plot
+#| fig-cap: "A Simple Python Plot"
+
+import matplotlib.pyplot as plt
+import numpy as np
+
+x = np.linspace(0, 10, 100)
+y = np.sin(x)
+
+plt.plot(x, y)
+plt.title("Sine Wave")
+plt.show()
 ```
