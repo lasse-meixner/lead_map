@@ -46,7 +46,6 @@ merged, cols = get_msoa_merged_shapefile(path_relative_to_UK="../UK/predictors")
 ```{python}
 #| label: kids-comparison
 #| echo: false
-#| output-location: slide
 
 fig = plot_histograms("total_kids_2011", merged, "Leeds", n_bins = 26)
 fig.update_layout(title_text="Leeds has more kids relative to the UK")
@@ -58,12 +57,54 @@ fig.show()
 ```{python}
 #| label: kids-location
 #| echo: false
-#| output-location: slide
 
 fig = plot_chloropleth("total_kids_2011", merged, "Leeds")
 fig.update_layout(title_text="Distribution of kids in Leeds")
 fig.show()
 ```
+
+## Housing age
+
+```{python}
+#| label: housing-age-comparison
+#| echo: false
+
+fig = plot_histograms("bp_pre_1954_prop", merged, "Leeds", n_bins = 20)
+fig.update_layout(title_text="Leeds has older housing relative to the UK")
+fig.show()
+```
+
+## Location of older housing stock
+```{python}
+#| label: housing-age-location
+#| echo: false
+
+fig = plot_chloropleth("bp_pre_1954_prop", merged, "Leeds")
+fig.update_layout(title_text="Distribution of older housing in Leeds")
+fig.show()
+```
+
+## Poverty rate
+
+```{python}
+#| label: poverty-comparison
+#| echo: false
+
+fig = plot_histograms("poverty_rateE", merged, "Leeds", n_bins = 18)
+fig.update_layout(title_text="Leeds has higher poverty rate relative to the UK")
+fig.show()
+```
+
+## Location of poverty
+```{python}
+#| label: poverty-location
+#| echo: false
+
+fig = plot_chloropleth("poverty_rateE", merged, "Leeds")
+fig.update_layout(title="The center of Leeds is poorest")
+fig.show()
+```
+
 
 # Hazard Map
 
@@ -80,21 +121,4 @@ fig.show()
 #| label: r-plot
 #| fig-cap: "A Simple R Plot"
 plot(cars)
-```
-
-# Slide ?: Python Plot Example
-
-```{python}
-#| label: py-plot
-#| fig-cap: "A Simple Python Plot"
-
-import matplotlib.pyplot as plt
-import numpy as np
-
-x = np.linspace(0, 10, 100)
-y = np.sin(x)
-
-plt.plot(x, y)
-plt.title("Sine Wave")
-plt.show()
 ```
