@@ -75,6 +75,35 @@ fig.show()
 - the average age of parents is lowest in the center of Leeds
 
 # Housing
+
+## Why housing
+
+- Lead paint was widely used in the UK before 1963. A 1963 agreement required labelling on paint cans with >1% lead, warning people against its use in areas accessible to children.
+- White lead paint was not banned until 1992, so housing built before 1992 still pose lead risks.
+- By examining the proportions of homes built before 1964 and between 1964-1992, we obtain two sources of lead exposure, with risks decreasing in the latter period.
+
+
+## Housing age variables
+
+We use the UK Stock of properties data to obtain the following variables:
+
+- Proportion of Houses Built 1930-1939
+- Proportion of Houses Built 1945-1954
+- Proportion of Houses Built 1955-1964
+- Proportion of Houses Built before 1992 
+
+
+## Proportion of houses built before lead paint banned
+
+```{python}
+#| label: housing-pre-1992-location
+#| echo: false
+
+fig = plot_chloropleth("bp_pre_1992_prop", merged, "Leeds")
+fig.update_layout(title_text="Distribution of houses before lead paint was banned")
+fig.show()
+```
+
 ## Housing age
 
 ```{python}
@@ -111,6 +140,24 @@ fig.show()
 
 
 # Deprivation
+
+## Why Deprivation
+
+- The IMD combines income explores income, employment, educational skills, health, housing, crime and living environment conditions to form a measure of area-level deprivation in the UK.
+- Aizer (2017), Brulle & Pellow (2006), Bullard (1994) find that more deprived families face greater lead exposure risks, with fewer resources for renovations or relocation.
+- Childhood lead exposure is linked to criminal behaviour and aggression.
+
+## Index of Multiple Deprivation Data
+
+By using the UK Index of Multiple Deprivation 2015 data, we capture factors linked to lead exposures providing a basis for predicting high-risk areas.
+
+The variables used are:
+
+- Overall IMD Deprivation Score
+- IMD Income Score
+- IMD Health Disability Score
+- IMD Housing Services Score
+
 
 ## Location of high incomes
 
