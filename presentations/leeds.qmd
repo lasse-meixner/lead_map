@@ -16,9 +16,21 @@ Goals of this presentation
 - what do we know about risk factors in Leeds?
 
 # Data
+## Introduction to MSOAs
+- Middle Layer Super Output Areas are geographic units within local authority districts used for detailed data reporting.
+- Each MSOA includes 2,000–6,000 households or 5,000–15,000 people.
+- MSOA analysis allows for detailed exploration of demographic, socioeconomic, and environmental data, enabling insights at a granular level rather than viewing Leeds as a single unit.
+- Leeds contains a total of 107 MSOAs
+
 ## UK MSOA data
-We collect a series of demographic, socioeconomic, and environmental variables at the MSOA level.
-<!-- general intro slide: what is an msoa? preview of the variables we will look at -->
+We collect socioeconomic, demographic, and environmental data at the MSOA level from the following sources:
+
+-	UK 2011 Census
+-	UK ONS Poverty Rate Estimates
+-	UK Index of Multiple Deprivation Data 2015
+-	UK Stock of Properties Data
+-	England Moss Pollution Data
+-	England Soil Pollution Data
 
 ## Distribution of kids
 <!-- plot number of kids in various age groups across leeds map -->
@@ -93,7 +105,7 @@ We use the UK Stock of properties data to obtain the following variables:
 - Proportion of Houses Built before 1992 
 
 
-## Proportion of houses built before lead paint banned
+## Proportion of houses built before lead paint ban
 
 ```{python}
 #| label: housing-pre-1992-location
