@@ -30,10 +30,17 @@ We collect a series of demographic, socioeconomic, and environmental variables a
 # Geospatial analysis of risk factors
 <!-- plot risk factors one by one, each time showing geospatial distribution across leeds as well as a barplot of distribution in leeds vs rest of UK  -->
 
+## Kids
+- We have geospatial info on the number of kids
+- we have geospatial info on the proportion of families with kids by age of the parents
+
+<!-- re slack discussion: We can compute more variables that explicitly show distribution by ages of kids. should we? do we care about the age of parents? -->
+
 ## Number of kids
 ```{python}
 #| label: geospatial-analysis
 #| echo: false
+
 from plotting_functions import *
 
 import sys
@@ -63,6 +70,11 @@ fig.update_layout(title_text="Distribution of kids in Leeds")
 fig.show()
 ```
 
+## Location of families by age of parents
+- average ages of parents correlate very highly with income and median house prices
+- the average age of parents is lowest in the center of Leeds
+
+# Housing
 ## Housing age
 
 ```{python}
@@ -84,14 +96,44 @@ fig.update_layout(title_text="Distribution of older housing in Leeds")
 fig.show()
 ```
 
-## Poverty rate
+## Location of house prices
+- House prices are highest in the north
+- Median house prices 2017-2021 have tripled since 1995-2000
 
+```{python}
+#| label: house-prices-location
+#| echo: false
+
+fig = plot_chloropleth("house_price_mean_median_2017to2021", merged, "Leeds")
+fig.update_layout(title_text="Distribution of house prices in Leeds")
+fig.show()
+```
+
+
+# Deprivation
+
+## Location of high incomes
+
+- The outskirts are richer than the center, especially the north
+- Except for the old town, the center is poorer
+```{python}
+#| label: high-income-location
+#| echo: false
+
+fig = plot_chloropleth("median_annual_incomeE", merged, "Leeds")
+fig.update_layout(title="Median annual incomes (estimated)")
+fig.show()
+```
+
+## Poverty rate
+- Poverty rates in Leeds have a heavier tail then the UK
+- Poverty rates are increasing towards the center
 ```{python}
 #| label: poverty-comparison
 #| echo: false
 
-fig = plot_histograms("poverty_rateE", merged, "Leeds", n_bins = 18)
-fig.update_layout(title_text="Leeds has higher poverty rate relative to the UK")
+fig = plot_CDFs("poverty_rateE", merged, "Leeds")
+fig.update_layout(title="Leeds has higher poverty rate relative to the UK")
 fig.show()
 ```
 
@@ -105,6 +147,16 @@ fig.update_layout(title="The center of Leeds is poorest")
 fig.show()
 ```
 
+## Minority population
+- The population of black people is concentrated in the north of the center
+- High correlation with poverty
+
+<!-- add correlation plot -->
+
+# Pollution
+## Soil lead
+
+<!-- add soil lead plot? -->
 
 # Hazard Map
 
@@ -113,12 +165,3 @@ fig.show()
 
 ## Risk map
 <!-- show the risk map, and then show the risk map with the number of kids in each MSOA overlaid -->
-
-
-# Slide ?: R Plot Example
-
-```{r}
-#| label: r-plot
-#| fig-cap: "A Simple R Plot"
-plot(cars)
-```

@@ -31,7 +31,7 @@ def plot_chloropleth(variable, df, location = "Leeds"):
     return fig
 
 # plot function that compares variable distribution selected location (e.g. leeds) with rest of UK
-def plot_histograms(variable, df, location="Leeds", n_bins=16):
+def plot_histograms(variable, df, location="Leeds", show_UK=True, n_bins=16):
     # filter for leeds
     leeds = df.loc[df["msoa_name_x"].str.contains(location)]
 
@@ -42,8 +42,10 @@ def plot_histograms(variable, df, location="Leeds", n_bins=16):
     fig = go.Figure()
 
     # Add histograms to the figure with normalization to show proportions and custom bin edges
+    if show_UK:
+        fig.add_trace(go.Histogram(x=df[variable], name="UK", histnorm='probability', xbins=dict(start=bin_edges[0], end=bin_edges[-1], size=(bin_edges[1] - bin_edges[0]))))
+
     fig.add_trace(go.Histogram(x=leeds[variable], name=location, histnorm='probability', xbins=dict(start=bin_edges[0], end=bin_edges[-1], size=(bin_edges[1] - bin_edges[0]))))
-    fig.add_trace(go.Histogram(x=df[variable], name="UK", histnorm='probability', xbins=dict(start=bin_edges[0], end=bin_edges[-1], size=(bin_edges[1] - bin_edges[0]))))
 
     # Customize the layout
     fig.update_layout(
@@ -57,3 +59,30 @@ def plot_histograms(variable, df, location="Leeds", n_bins=16):
     fig.update_traces(opacity=0.75)
 
     return fig
+
+# plot function that compares empirical CDF of variable in selected location (e.g. leeds) with rest of UK
+def plot_CDFs(variable, df, location="Leeds"):
+    # filter for leeds
+    leeds = df.loc[df["msoa_name_x"].str.contains(location)]
+
+    # create common axis
+    x = np.linspace(df[variable].min(), df[variable].max(), num=100)
+
+    # Compute the empirical CDF for the UK and Leeds
+    y_uk = np.searchsorted(np.sort(df[variable]), x, side='right') / len(df)
+    y_leeds = np.searchsorted(np.sort(leeds[variable]), x, side='right') / len(leeds)
+    
+    # Create a Plotly figure
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=x, y=y_uk, mode='lines', name='UK'))
+    fig.add_trace(go.Scatter(x=x, y=y_leeds, mode='lines', name=location))
+
+    # Customize the layout
+    fig.update_layout(
+        title=f"Empirical CDF of {variable}",
+        xaxis_title=variable,
+        yaxis_title="Proportion of MSOA",
+    )
+
+    return fig
+
