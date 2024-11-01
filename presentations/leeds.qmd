@@ -16,9 +16,21 @@ Goals of this presentation
 - what do we know about risk factors in Leeds?
 
 # Data
+## Introduction to MSOAs
+- Middle Layer Super Output Areas are geographic units within local authority districts used for detailed data reporting.
+- Each MSOA includes 2,000–6,000 households or 5,000–15,000 people.
+- MSOA analysis allows for detailed exploration of demographic, socioeconomic, and environmental data, enabling insights at a granular level rather than viewing Leeds as a single unit.
+- Leeds contains a total of 107 MSOAs
+
 ## UK MSOA data
-We collect a series of demographic, socioeconomic, and environmental variables at the MSOA level.
-<!-- general intro slide: what is an msoa? preview of the variables we will look at -->
+We collect socioeconomic, demographic, and environmental data at the MSOA level from the following sources:
+
+-	UK 2011 Census
+-	UK ONS Poverty Rate Estimates
+-	UK Index of Multiple Deprivation Data 2015
+-	UK Stock of Properties Data
+-	England Moss Pollution Data
+-	England Soil Pollution Data
 
 ## Distribution of kids
 <!-- plot number of kids in various age groups across leeds map -->
@@ -75,6 +87,35 @@ fig.show()
 - the average age of parents is lowest in the center of Leeds
 
 # Housing
+
+## Why housing
+
+- Lead paint was widely used in the UK before 1963. A 1963 agreement required labelling on paint cans with >1% lead, warning people against its use in areas accessible to children.
+- White lead paint was not banned until 1992, so housing built before 1992 still pose lead risks.
+- By examining the proportions of homes built before 1964 and between 1964-1992, we obtain two sources of lead exposure, with risks decreasing in the latter period.
+
+
+## Housing age variables
+
+We use the UK Stock of properties data to obtain the following variables:
+
+- Proportion of Houses Built 1930-1939
+- Proportion of Houses Built 1945-1954
+- Proportion of Houses Built 1955-1964
+- Proportion of Houses Built before 1992 
+
+
+## Proportion of houses built before lead paint ban
+
+```{python}
+#| label: housing-pre-1992-location
+#| echo: false
+
+fig = plot_chloropleth("bp_pre_1992_prop", merged, "Leeds")
+fig.update_layout(title_text="Distribution of houses before lead paint was banned")
+fig.show()
+```
+
 ## Housing age
 
 ```{python}
@@ -109,8 +150,68 @@ fig.update_layout(title_text="Distribution of house prices in Leeds")
 fig.show()
 ```
 
+## Primary and secondary sector employment
+
+Primary and secondary sector employment often mean working near industrial sites which use lead as a raw material as part of the production process.
+
+We use the UK 2011 Census to investigate the following jobs and its impact on lead exposure:
+- Proportion Working in Mining
+- Proportion Working in Construction 
+- Proportion Working in Machinery and Plants
+
+
+## Unemployment and economic inactivity 
+
+- Higher rates of unemployment and economic inactivity are often found in lower-income areas
+- Residents may have fewer housing options and are likelier to live in older, potentially lead-contaminated buildings.
+
+- High unemployment regions are often located near industrial sites.
+
+- May have lead emissions from industrial processes or transport, increasing the risk of lead particulate dispersal to nearby residents.
+
+## Unemployment and economic inactivity data
+We analyse the following variables from the UK 2011 census:
+
+- Proportion of unemployed males
+- Proportion of unemployed females
+- Proportion of economically inactive males
+- Proportion of economically inactive females
+
+## Exploration of economic inactivity and Unemployment
+
+<!-- add correlation plot? -->
 
 # Deprivation
+
+## Why Deprivation
+
+- The IMD combines income explores income, employment, educational skills, health, housing, crime and living environment conditions to form a measure of area-level deprivation in the UK.
+- Aizer (2017), Brulle & Pellow (2006), Bullard (1994) find that more deprived families face greater lead exposure risks, with fewer resources for renovations or relocation.
+- Childhood lead exposure is linked to criminal behaviour and aggression.
+
+## Index of Multiple Deprivation Data
+
+By using the UK Index of Multiple Deprivation 2015 data, we capture factors linked to lead exposures providing a basis for predicting high-risk areas.
+
+The variables used are:
+
+- Overall IMD Deprivation Score
+- IMD Income Score
+- IMD Health Disability Score
+- IMD Housing Services Score
+
+## Single Parent Incidence
+
+Single parents rely on a single income and this limits access to safer housing, often resulting in older homes with potential for lead paint.
+
+Single parents may have less time to monitor lead hazards at home 
+
+We obtain the following variables from the UK 2011 census as part of our investigation:
+
+- Proportion of single parent families
+- Proportion of single fathers
+- Proportion of single mothers
+
 
 ## Location of high incomes
 
@@ -124,6 +225,21 @@ fig = plot_chloropleth("median_annual_incomeE", merged, "Leeds")
 fig.update_layout(title="Median annual incomes (estimated)")
 fig.show()
 ```
+
+## Parental educational attainment
+
+- Parental education level directly impacts socioeconomic status, affecting housing options and access to resources
+
+- Higher educational attainment may be linked to greater awareness of lead exposure risks, making parents likelier to avoid high risk environments.
+
+## Parental educational attainment data
+
+Using the UK 2011 census we analyse:
+
+- Proportion of parents with level 1 qualifications
+- Proportion of parents with level 2 qualifications
+- Proportion of parents with level 3 qualifications
+- Proportion of parents with level 4 qualifications
 
 ## Poverty rate
 - Poverty rates in Leeds have a heavier tail then the UK
@@ -148,15 +264,40 @@ fig.show()
 ```
 
 ## Minority population
+- (Wheeler et al. , 2021) find that African Americans face a higher risk of deprivation and lead poisoning in Maryland. 
+- While the structural system in the US differs, it may be the case that minorities face fewer opportunities
+
+We obtain data on minorities from the UK 2011 Census and consider the following groups:
+
+-	Proportion of Black People
+-	Proportion of White People
+
+## Exploration of minority population
 - The population of black people is concentrated in the north of the center
 - High correlation with poverty
 
 <!-- add correlation plot -->
 
-# Pollution
+# Pollution indicators
+
+Moss and soil absorb heavy metals that are in the atmosphere, and can therefore be used as a bioindicator for lead presence.
+
+We use the following variables from England’s Moss and Soil Pollution Data:
+
+-	Mean Moss Lead Concentration 1990
+-	Mean Moss Lead Concentration 1995
+-	Mean Moss Lead Concentration 2000
+-	Mean Moss Lead Concentration 2005
+-	Mean Soil Lead Concentration
+
+
 ## Soil lead
 
 <!-- add soil lead plot? -->
+
+## Moss lead
+
+<!-- add moss lead plot? -->
 
 # Hazard Map
 
