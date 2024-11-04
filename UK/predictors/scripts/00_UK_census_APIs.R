@@ -412,10 +412,13 @@ get_census_data_england_2011 <- function(geography_type_code) {
            yo17_ppl = yo17_male_ppl + yo17_female_ppl, 
            male_ppl_u17 = rowSums(across(under_yo1_male_ppl:yo17_male_ppl)), 
            female_ppl_u17 = rowSums(across(under_yo1_female_ppl:yo17_female_ppl)), 
+           total_ppl_u5 = rowSums(across(under_yo1_ppl:yo5_ppl)),
            total_ppl_u17 = male_ppl_u17 + female_ppl_u17,
+           total_ppl_u5_totalpop_prop = total_ppl_u5 / total_ppl_census,
            male_u17_ppl_prop = male_ppl_u17 / total_ppl_u17,
            female_u17_ppl_prop = female_ppl_u17 / total_ppl_u17,
-           across(.cols = under_yo1_ppl:yo17_ppl, .fns = ~. / total_ppl_u17, .names = "{.col}_u17_prop")) %>%
+           across(.cols = under_yo1_ppl:yo17_ppl, .fns = ~. / total_ppl_u17, .names = "{.col}_u17_prop"),
+           across(.cols = under_yo1_ppl:yo17_ppl, .fns = ~. / total_ppl_census, .names = "{.col}_totalpop_prop")) %>%
     
     
     # Get population industry data
