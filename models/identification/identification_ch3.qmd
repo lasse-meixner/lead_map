@@ -1,0 +1,138 @@
+---
+title: "Understanding identification in pogit from the ground up pt. 2"
+format:
+    html:
+      code-fold: true
+---
+
+In this chapter I want to test if insufficiently spread support on the x's could be the root of the identification issues. This builds on ch2 as well as the *handwritten notes* on identification if X is binary.
+
+## The DGP
+
+Let's again consider our baseline
+
+```{r}
+set.seed(1999)
+library(mvtnorm)
+
+n <- 1000
+rho <- 0.5
+S <- matrix(c(1, rho,
+              rho, 1), 2, 2, byrow = TRUE)
+x_z <- rmvnorm(n, sigma = S)
+x <- x_z[,1] 
+z <- x_z[,2] 
+
+alpha <- 0.5 # poisson intercept
+beta <- 1 # x in poisson
+log_mu <- alpha + beta * (x - mean(x)) # poisson rate
+ystar <- rpois(n, exp(log_mu)) # unobserved count
+
+gamma <- (-0.5) # logit intercept
+delta <- 1.2 # excluded z in logit
+kappa <- 0.5 # x in logit
+logit_pi <- gamma + delta * (z - mean(z)) + kappa * (x - mean(x)) # logit probability
+y <- rbinom(n, size = ystar, prob = plogis(logit_pi)) # observed (thinned) count
+
+true_params <- c(alpha = alpha, beta = beta, gamma = gamma, delta = delta, kappa = kappa)
+```
+
+as well as a modified version where the x's are not as smoothly spread out:
+
+```{r}
+# create an x_new that has less spread support
+x_new <- x
+x_new[x_new < 0] <- -1
+x_new[x_new >= 0] <- 1
+x_new <- x_new + rnorm(n, sd = 0.1)
+cor(x_new,z)
+```
+
+Plot x against x_new:
+
+```{r}
+library(ggplot2)
+library(dplyr)
+
+# two histograms
+data.frame(x = x, type = "x") %>%
+  bind_rows(data.frame(x = x_new, type = "x_new")) %>%
+  ggplot(aes(x = x, fill = type)) +
+  geom_histogram(bins = 30, alpha = 0.5, position = "dodge") +
+  labs(title = "Histogram of x and x_new",
+       x = "x",
+       y = "count")
+```
+
+## Sampling
+
+Sampling both versions of the data:
+
+```{r}
+library(cmdstanr)
+library(bayesplot)
+
+# load model
+stan_model <- cmdstan_model("thinned_poisson_w_priors_x_logit.stan")
+
+# original data
+dat <- list(N = n, y = y, x = x, z = z, alpha_prior_var = 1)
+
+# define diagnostics
+plot_diagnostics <- function(fit){
+    draws <- fit$draws(format = "draws_df") |>
+        dplyr::select(-lp__)
+
+    fig1 <- mcmc_areas(draws, prob = 0.9) + ggtitle("Posterior draws") +
+        theme_minimal()
+
+    fig2 <- mcmc_trace(draws) + ggtitle("Trace plots") + theme_minimal()
+
+    fig3 <- mcmc_rank_ecdf(draws, prob = 0.99, plot_diff = TRUE) + ggtitle("Cumulative rank plots (difference)") +
+    theme_minimal()
+
+    # potentially add plot for divergent transitions
+
+    list(fig1, fig2, fig3)
+}
+```
+
+```{r}
+# sample 
+fit <- stan_model$sample(data = dat, chains = 4, refresh = 500)
+fit$summary() |>
+    knitr::kable(digits = 3)
+```
+
+```{r}
+plot_diagnostics(fit)
+```
+
+Changing the data with x_new:
+
+```{r}
+# x_new implies new y* and pi
+log_mu_new <- alpha + beta * (x_new - mean(x_new)) # poisson rate
+ystar_new <- rpois(n, exp(log_mu)) # unobserved count
+
+logit_pi_new <- gamma + delta * (z - mean(z)) + kappa * (x_new - mean(x_new)) # logit probability
+y_new <- rbinom(n, size = ystar_new, prob = plogis(logit_pi_new)) # observed (thinned) count
+```
+
+Sampling the model with more discrete X
+
+```{r}
+# new data
+dat_new <- list(N = n, y = y_new, x = x_new, z = z, alpha_prior_var = 1)
+
+# fit
+fit_new <- stan_model$sample(data = dat_new, chains = 4, refresh = 500)
+fit_new$summary() |>
+    knitr::kable(digits = 3)
+```
+
+```{r}
+plot_diagnostics(fit_new)
+```
+
+So not only does this model have worse convergence stats, but the posteriors are also wrong! This if of course consistent with an identification problem. So this might be it. I will go back to the real data and see if I can perhaps pool some tracts/zips to get more spread support on x. (Probably if I used more chains on more initialisation values I can also get no mixing, and another peak on the true values...?)
