@@ -8,16 +8,13 @@ def plot_chloropleth(variable, df, location = "Leeds"):
     # filter for leeds
     leeds = df.loc[df["msoa_name_x"].str.contains(location)]
 
-    # random lat/lon in location
-    focus_loc = dict(zip(["lon", "lat"], leeds.sample(1).geometry.iloc[0].exterior.coords[0]))
-
     fig = px.choropleth_mapbox(
         leeds,
         hover_data=["msoa_name_x", variable],
         geojson=leeds.geometry,
         locations=leeds.index,
         # center on England
-        center=focus_loc,
+        center={"lat": 53.801277, "lon": -1.548567},
         # size based on browser window
         color=variable,
         color_continuous_scale="Viridis",
@@ -86,3 +83,42 @@ def plot_CDFs(variable, df, location="Leeds"):
 
     return fig
 
+
+def plot_risk_score(predictors, df, location = "Leeds"):
+    # filter for leeds
+    leeds = df.loc[df["msoa_name_x"].str.contains(location)]
+    # compute risk score
+    merged_sub = compute_risk_score(leeds, predictors)
+    # plot
+    fig = px.choropleth_mapbox(
+        merged_sub,
+        # add all predictors' deciles
+        hover_data=["msoa_name_x", "risk_score"] + [p + "_pctile" for p in predictors],
+        geojson=merged_sub.geometry,
+        locations=merged_sub.index,
+        # center on England
+        center={"lat": 53.801277, "lon": -1.548567},
+        color="risk_score",
+        color_continuous_scale="RdYlBu_r",
+        range_color=(merged_sub["risk_score"].min(), merged_sub["risk_score"].max()),
+        mapbox_style="carto-positron",
+        zoom=9.5,
+        opacity=0.4,
+        labels={"risk_score": "Risk Score"}
+    )
+    fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
+    return fig
+
+## auxiliary function to compute risk score
+def compute_risk_score(df, predictors):
+    relevant_vars = predictors + ["msoa_name_x", "geometry"]
+    # get copy of df
+    df_copy = df.copy().loc[:, relevant_vars]
+    # compute empirical quantiles by passing through ECDF
+    for p in predictors:
+        df_copy[p + "_pctile"] = df_copy[p].rank(pct=True)
+    # compute risk score by taking equal weighting
+    df_copy["risk_score"] = df_copy[[p + "_pctile" for p in predictors]].mean(axis=1)
+    # pass through its own ECDF again
+    df_copy["risk_score"] = df_copy["risk_score"].rank(pct=True)
+    return df_copy
