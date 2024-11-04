@@ -1,7 +1,9 @@
 ---
 title: "Lead exposure risk in Leeds"
 author: "Lead Map Project Team"
-format: revealjs
+format: 
+  revealjs:
+    css: styles.css
 execute:
   echo: true
   cache: true
@@ -32,46 +34,28 @@ We collect socioeconomic, demographic, and environmental data at the MSOA level 
 -	England Moss Pollution Data
 -	England Soil Pollution Data
 
-## Distribution of kids
-<!-- plot number of kids in various age groups across leeds map -->
+We believe that a combination of them can give a good indication of lead exposure risk for children in the UK, including Leeds.
 
-## Risk factors
-<!-- Introduce risk factors one by one, list their source, and why we think it is related to lead (e.g. building period, because lead paint was in frequent use prior to year Y etc.) -->
+## Where are the kids in Leeds?
 
-
-# Geospatial analysis of risk factors
-<!-- plot risk factors one by one, each time showing geospatial distribution across leeds as well as a barplot of distribution in leeds vs rest of UK  -->
-
-## Kids
-- We have geospatial info on the number of kids
-- we have geospatial info on the proportion of families with kids by age of the parents
-
-<!-- re slack discussion: We can compute more variables that explicitly show distribution by ages of kids. should we? do we care about the age of parents? -->
-
-## Number of kids
 ```{python}
-#| label: geospatial-analysis
+#| label: imports
 #| echo: false
+#| cache: false
 
 from plotting_functions import *
 
 import sys
 sys.path.append('../UK/predictors/exploration')
 from shapefile_loading import get_msoa_merged_shapefile
-
-merged, cols = get_msoa_merged_shapefile(path_relative_to_UK="../UK/predictors")
 ```
 
 ```{python}
-#| label: kids-comparison
+#| label: load-data
 #| echo: false
 
-fig = plot_histograms("total_kids_2011", merged, "Leeds", n_bins = 26)
-fig.update_layout(title_text="Leeds has more kids relative to the UK")
-fig.show()
+merged, cols = get_msoa_merged_shapefile(path_relative_to_UK="../UK/predictors")
 ```
-
-## Location of kids
 
 ```{python}
 #| label: kids-location
@@ -81,6 +65,15 @@ fig = plot_chloropleth("total_kids_2011", merged, "Leeds")
 fig.update_layout(title_text="Distribution of kids in Leeds")
 fig.show()
 ```
+
+
+
+# Geospatial analysis of risk factors
+<!-- plot risk factors one by one, each time showing geospatial distribution across leeds as well as a barplot of distribution in leeds vs rest of UK  -->
+
+## Location of children by age
+<!-- re slack discussion: We can compute more variables that explicitly show distribution by ages of kids. should we? do we care about the age of parents? -->
+
 
 ## Location of families by age of parents
 - average ages of parents correlate very highly with income and median house prices
@@ -301,8 +294,55 @@ We use the following variables from England’s Moss and Soil Pollution Data:
 
 # Hazard Map
 
-## Efforts by Public Health England
-<!-- describe their approach, and then describe how we expand it: more granular analysis (MSOA isntead of LAD), more risk variables of choice, and less wasteful risk function (dont throw out info by computing discrete deciles) -->
+## Idea
+
+- We can combine the risk factors to create a hazard map
+- We can use the hazard map to identify high risk areas
+  
+- This was previously done by Public Health England & Imperial College London, with our data we can supercede their work
+
+## Comparison with Public Health England
+
+We have more data, at a more granular level.
+
+::: {.panel-tabset}
+
+### Public Health England
+- Level: LAD<br>
+- Risk variables:<br>
+  - % houses built pre 1973<br>
+  - Index of Multiple Deprivation<br>
+  - Soil lead concentration<br>
+- Method:<br>
+  - construct deciles for each risk factor<br>
+  - compute decile risk by taking average of deciles<br>
+  - recast risk back into deciles<br>
+
+### Our approach
+- Level: MSOA **(more granular)** <br>
+- Risk variables: **(works dynamically for any selection)**<br>
+  - % houses built pre 1954<br>
+  - Index of Multiple Deprivation<br>
+  - % of families with single parents<br>
+  - House price median 2017-2021<br>
+- Method: **(avoids loss of information from discretization)**<br>
+  - transform each variable to a uniform distribution<br>
+  - compute risk scores via average of values<br>
+  - since risk variables are dependent, risk scores themselves will likely not be uniform -> re-transform to a uniform scale
+
+:::
 
 ## Risk map
-<!-- show the risk map, and then show the risk map with the number of kids in each MSOA overlaid -->
+
+```{python}
+#| label: risk-map
+#| echo: false
+
+risk_factors = ["bp_pre_1954_prop", "imd_overall_score_2015", "lone_parent_fam_w_kids_prop_2011", "house_price_mean_median_2017to2021"]
+
+fig = plot_risk_score(risk_factors, merged, "Leeds")
+fig.update_layout(title="Risk map for Leeds")
+fig.show()
+```
+
+The MSOAs with the highest risk scores are located in the **north/north-eastern belt** around the center of Leeds.
