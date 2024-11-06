@@ -25,7 +25,7 @@ def plot_chloropleth(variable, df, location = "Leeds"):
         opacity=0.4,
         labels={variable: variable}
     )
-    fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
+    #fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
     return fig
 
 # plot function that compares variable distribution selected location (e.g. leeds) with rest of UK
@@ -126,9 +126,15 @@ def plot_pairs(variables, df, location="Leeds"):
 
             # Update axes
             if i == n-1:
-                fig.update_xaxes(title_text=variables[j], row=i+1, col=j+1)
+                fig.update_xaxes(
+                    title_text=variables[j], 
+                    row=i+1, 
+                    col=j+1)
             if j == 0:
-                fig.update_yaxes(title_text=variables[i], row=i+1, col=j+1)
+                fig.update_yaxes(
+                    title_text=variables[i], 
+                    row=i+1, 
+                    col=j+1)
 
     fig.update_layout(
         showlegend=False,
