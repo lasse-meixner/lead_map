@@ -4,24 +4,26 @@ author: "Lead Map Project Team"
 format: 
   revealjs:
     css: styles.css
+    toc: true
+    toc-depth: 2
+    slideNumber: true
+    auto: true
 execute:
   echo: true
   cache: true
 jupyter: lead_map
 ---
 
-## Introduction
+## Testing kids in Leeds for lead
 
-Goals of this presentation
-- why is Leeds a good place to test kids for lead?
-- what do we know about kids in Leeds?
-- what do we know about risk factors in Leeds?
+- What do we know about kids in Leeds?
+- What do we know about risk factors in Leeds?
 
 # Data
 ## Introduction to MSOAs
 - Middle Layer Super Output Areas are geographic units within local authority districts used for detailed data reporting.
 - Each MSOA includes 2,000–6,000 households or 5,000–15,000 people.
-- MSOA analysis allows for detailed exploration of demographic, socioeconomic, and environmental data, enabling insights at a granular level rather than viewing Leeds as a single unit.
+- MSOA analysis allows for detailed exploration of **demographic**, **socioeconomic**, and **environmental** data, enabling insights at a granular level rather than viewing Leeds as a single unit.
 - Leeds contains a total of 107 MSOAs
 
 ## UK MSOA data
@@ -42,6 +44,7 @@ We believe that a combination of them can give a good indication of lead exposur
 #| label: imports
 #| echo: false
 #| cache: false
+
 
 from plotting_functions import *
 
@@ -66,27 +69,37 @@ fig.update_layout(title_text="Distribution of kids in Leeds")
 fig.show()
 ```
 
-
-
-# Geospatial analysis of risk factors
-<!-- plot risk factors one by one, each time showing geospatial distribution across leeds as well as a barplot of distribution in leeds vs rest of UK  -->
-
 ## Location of children by age
-<!-- re slack discussion: We can compute more variables that explicitly show distribution by ages of kids. should we? do we care about the age of parents? -->
 
+- If we look at the distribution of kids under 5 years, the distribution is similar to the overall distribution of kids
+  
+```{python}
+#| label: kids-u5-location
+#| echo: false
+
+fig = plot_chloropleth("total_ppl_u5_totalpop_prop_2011", merged, "Leeds")
+fig.update_layout(title_text="Proportion of population under 5 years old in Leeds")
+fig.show()
+```
 
 ## Location of families by age of parents
-- average ages of parents correlate very highly with income and median house prices
-- the average age of parents is lowest in the center of Leeds
 
-# Housing
+```{python}
+#| label: correlation income & house prices
+#| echo: false
+
+fig = plot_pairs(["house_price_mean_median_2017to2021", "frp_u24_fam_w_kids_prop_2011","frp_50_64_fam_w_kids_prop_2011"], merged, "Leeds")
+fig.show()
+```
+
+- Young parents tend to live in the center of Leeds, while older parents live in the wealthier outskirts
+
+# Risk factors: Housing
 
 ## Why housing
 
 - Lead paint was widely used in the UK before 1963. A 1963 agreement required labelling on paint cans with >1% lead, warning people against its use in areas accessible to children.
 - White lead paint was not banned until 1992, so housing built before 1992 still pose lead risks.
-- By examining the proportions of homes built before 1964 and between 1964-1992, we obtain two sources of lead exposure, with risks decreasing in the latter period.
-
 
 ## Housing age variables
 
@@ -115,12 +128,12 @@ fig.show()
 #| label: housing-age-comparison
 #| echo: false
 
-fig = plot_histograms("bp_pre_1954_prop", merged, "Leeds", n_bins = 20)
+plot_histograms("build_year_median", merged, "Leeds", "UK", n_bins=16)
 fig.update_layout(title_text="Leeds has older housing relative to the UK")
 fig.show()
 ```
 
-## Location of older housing stock
+## Location of very old housing stock
 ```{python}
 #| label: housing-age-location
 #| echo: false
@@ -143,12 +156,14 @@ fig.update_layout(title_text="Distribution of house prices in Leeds")
 fig.show()
 ```
 
+# Risk factors: Employment
+
 ## Primary and secondary sector employment
 
-Primary and secondary sector employment often mean working near industrial sites which use lead as a raw material as part of the production process.
+Primary and secondary sector employment often mean working near industrial sites which use lead as a raw material as part of the production process. (Note: maybe lead roofings for construction. but we dont know much about the construction attribution so I'd maybe leave this out too)
 
 We use the UK 2011 Census to investigate the following jobs and its impact on lead exposure:
-- Proportion Working in Mining
+- Proportion Working in Mining (Note: proportions are miniscule, I'd leave this out)
 - Proportion Working in Construction 
 - Proportion Working in Machinery and Plants
 
@@ -158,23 +173,18 @@ We use the UK 2011 Census to investigate the following jobs and its impact on le
 - Higher rates of unemployment and economic inactivity are often found in lower-income areas
 - Residents may have fewer housing options and are likelier to live in older, potentially lead-contaminated buildings.
 
-- High unemployment regions are often located near industrial sites.
+## Unemployment rate
 
-- May have lead emissions from industrial processes or transport, increasing the risk of lead particulate dispersal to nearby residents.
+```{python}
+#| label: unemployment-location
+#| echo: false
 
-## Unemployment and economic inactivity data
-We analyse the following variables from the UK 2011 census:
+plot_chloropleth("unemployed_16to74_ppl_prop_2011", merged, "Leeds")
+fig.update_layout(title="Proportion of unemployed people in Leeds")
+fig.show()
+```
 
-- Proportion of unemployed males
-- Proportion of unemployed females
-- Proportion of economically inactive males
-- Proportion of economically inactive females
-
-## Exploration of economic inactivity and Unemployment
-
-<!-- add correlation plot? -->
-
-# Deprivation
+# Risk factors: Deprivation
 
 ## Why Deprivation
 
@@ -193,6 +203,8 @@ The variables used are:
 - IMD Health Disability Score
 - IMD Housing Services Score
 
+# Risk factors: Single parenting
+
 ## Single Parent Incidence
 
 Single parents rely on a single income and this limits access to safer housing, often resulting in older homes with potential for lead paint.
@@ -205,6 +217,18 @@ We obtain the following variables from the UK 2011 census as part of our investi
 - Proportion of single fathers
 - Proportion of single mothers
 
+## Location of single parents
+
+```{python}
+#| label: single-parents-location
+#| echo: false
+
+fig = plot_chloropleth("lone_parent_fam_w_kids_prop_2011", merged, "Leeds")
+fig.update_layout(title="Proportion of single parent families in Leeds")
+fig.show()
+```
+
+# Risk factors: Income and poverty
 
 ## Location of high incomes
 
@@ -219,24 +243,7 @@ fig.update_layout(title="Median annual incomes (estimated)")
 fig.show()
 ```
 
-## Parental educational attainment
-
-- Parental education level directly impacts socioeconomic status, affecting housing options and access to resources
-
-- Higher educational attainment may be linked to greater awareness of lead exposure risks, making parents likelier to avoid high risk environments.
-
-## Parental educational attainment data
-
-Using the UK 2011 census we analyse:
-
-- Proportion of parents with level 1 qualifications
-- Proportion of parents with level 2 qualifications
-- Proportion of parents with level 3 qualifications
-- Proportion of parents with level 4 qualifications
-
 ## Poverty rate
-- Poverty rates in Leeds have a heavier tail then the UK
-- Poverty rates are increasing towards the center
 ```{python}
 #| label: poverty-comparison
 #| echo: false
@@ -245,6 +252,7 @@ fig = plot_CDFs("poverty_rateE", merged, "Leeds")
 fig.update_layout(title="Leeds has higher poverty rate relative to the UK")
 fig.show()
 ```
+- Poverty rates in Leeds have a heavier tail then the UK
 
 ## Location of poverty
 ```{python}
@@ -256,41 +264,114 @@ fig.update_layout(title="The center of Leeds is poorest")
 fig.show()
 ```
 
+- Poverty rates are increasing towards the center
+
 ## Minority population
 - (Wheeler et al. , 2021) find that African Americans face a higher risk of deprivation and lead poisoning in Maryland. 
-- While the structural system in the US differs, it may be the case that minorities face fewer opportunities
+- While the structural system in the US differs, as a comparatively poorer population it may well be an at-risk group in the UK.
 
-We obtain data on minorities from the UK 2011 Census and consider the following groups:
+## Minorities and poverty
 
--	Proportion of Black People
--	Proportion of White People
+```{python}
+#| label: black-poverty-correlation
+#| echo: false
 
-## Exploration of minority population
+fig = plot_pairs(["black_ppl_prop_2011", "poverty_rateE"], merged, "Leeds")
+fig.update_layout(title="Correlation between black population and poverty rate")
+fig.show()
+```
+
+## Location of black population
+
+```{python}
+#| label: black-population-location
+#| echo: false
+
+fig = plot_chloropleth("black_ppl_prop_2011", merged, "Leeds")
+fig.update_layout(title="Distribution of black population in Leeds")
+fig.show()
+
+```
 - The population of black people is concentrated in the north of the center
-- High correlation with poverty
 
-<!-- add correlation plot -->
+# Risk factors: Education
+
+## Parental educational attainment
+
+- Parental education level directly impacts socioeconomic status, affecting housing options and access to resources
+
+- Higher educational attainment may be linked to greater awareness of lead exposure risks, making parents likelier to avoid high risk environments.
+
+## Location of educated parents
+
+```{python}
+#| label: education-location
+#| echo: false
+
+fig = plot_chloropleth("l4_qual_ppl_w_kids_prop_2011", merged, "Leeds")
+fig.update_layout(title="Proportion of people with higher education in Leeds")
+fig.show()
+```
+
+## Location of uneducated parents
+
+```{python}
+#| label: uneducated-location
+#| echo: false
+
+fig = plot_chloropleth("no_qual_ppl_w_kids_prop_2011", merged, "Leeds")
+fig.update_layout(title="Proportion of people with lower education in Leeds")
+fig.show()
+```
+
+- This correlates highly with the poverty map
+
+## Correlation between education of parents and income
+
+```{python}
+#| label: education-income-correlation
+#| echo: false
+
+fig = plot_pairs(["l4_qual_ppl_w_kids_prop_2011","poverty_rateE","no_qual_ppl_w_kids_prop_2011"], merged, "Leeds")
+fig.show()
+```
+
+
+# Risk factors: Pollution
 
 # Pollution indicators
+- Moss and soil absorb heavy metals that are in the atmosphere, and can therefore be used as a bioindicator for (past) lead presence. We have data both on:
+  - Moss lead concentration (2005)
+  - Soil lead concentration
 
-Moss and soil absorb heavy metals that are in the atmosphere, and can therefore be used as a bioindicator for lead presence.
+- Since moss measurements are extremely sparse and MSOA-level values mostly imputed, we focus on soil lead concentration
 
-We use the following variables from England’s Moss and Soil Pollution Data:
+## Soil Lead
 
--	Mean Moss Lead Concentration 1990
--	Mean Moss Lead Concentration 1995
--	Mean Moss Lead Concentration 2000
--	Mean Moss Lead Concentration 2005
--	Mean Soil Lead Concentration
+```{python}
+#| label: soil-lead-comparison
+#| echo: false
+merged_no_soil_na = merged.dropna(subset=["soil_lead_mean"])
+fig = plot_histograms("soil_lead_mean", merged_no_soil_na, location="Leeds", other_location="UK", n_bins=60)
+fig.update_layout(title="Soil lead concentration in Leeds vs UK")
+# limit x-axis to 300
+fig.update_xaxes(range=[0, 300])
+fig.show()
+```
 
+- compared to the overall UK distribution, Leeds has higher soil lead concentrations
 
-## Soil lead
+## Soil lead location
+```{python}
+#| label: soil-lead
+#| echo: false
 
-<!-- add soil lead plot? -->
+fig = plot_chloropleth("soil_lead_mean", merged, "Leeds")
+fig.update_layout(title="Soil lead concentration in Leeds")
+fig.show()
+```
 
-## Moss lead
-
-<!-- add moss lead plot? -->
+- High lead soil in Otley perhaps due to airport location?
 
 # Hazard Map
 
