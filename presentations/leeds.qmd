@@ -28,6 +28,8 @@ jupyter: lead_map
 - MSOA analysis allows for detailed exploration at a granular level, rather than viewing Leeds as a single unit.
 - Leeds contains a total of 107 MSOAs
 
+<!-- todo: OA level? -->
+
 ## UK MSOA data
 We collect socioeconomic, demographic, and environmental data at the MSOA level from the following sources:
 
@@ -96,6 +98,8 @@ fig.show()
 
 - Young parents tend to live in the center of Leeds, while older parents live in the wealthier outskirts
 
+<!-- does the census variable count kids, or kids in household -->
+
 # Risk factors: Housing
 
 ## Why housing
@@ -111,6 +115,8 @@ We use the UK Stock of properties data to obtain the proportion of houses built 
 - Proportion of houses built before 1972
 - Proportion of houses built before 1954
 
+<!-- put entire list of variables -->
+
 ## Proportion of houses built before 1992
 
 ```{python}
@@ -124,6 +130,8 @@ fig.show()
 - These were built before a legal ban on lead paint
 
 ## Proportion of houses built before 1954
+
+<!-- Note: perhaps think about different color scale -->
 
 ```{python}
 #| label: housing-pre-1954-location
@@ -172,6 +180,8 @@ We use the UK 2011 Census to investigate the following jobs and its impact on le
 - Proportion Working in Construction 
 - Proportion Working in Machinery and Plants
 
+<!-- perhaps plot -->
+
 
 ## Unemployment and economic inactivity 
 
@@ -179,6 +189,8 @@ We use the UK 2011 Census to investigate the following jobs and its impact on le
 - Residents may have fewer housing options and are likelier to live in older, potentially lead-contaminated buildings.
 
 ## Unemployment rate
+
+<!-- todo: renders wrong plot?! -->
 
 ```{python}
 #| label: unemployment-location
@@ -243,6 +255,9 @@ fig.show()
 ```
 
 ## Poverty rate
+
+<!-- cdf plot is not very clear: show comparison of centralities -->
+
 ```{python}
 #| label: poverty-comparison
 #| echo: false
@@ -253,6 +268,8 @@ fig.show()
 - Poverty rates in Leeds have a heavier tail then the UK
 
 ## Location of poverty
+
+<!-- todo: find out exact definition of poverty -->
 ```{python}
 #| label: poverty-location
 #| echo: false
@@ -341,6 +358,7 @@ fig.show()
   - Soil lead concentration
 
 - Since moss measurements are extremely sparse and MSOA-level values mostly imputed, we focus on soil lead concentration
+<!-- add sources! -->
 
 ## Soil Lead
 
@@ -380,6 +398,7 @@ fig.show()
 ## Comparison with Public Health England
 
 We have more data, at a more granular level.
+<!-- replace by columns -->
 
 ::: {.panel-tabset}
 
