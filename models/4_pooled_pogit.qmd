@@ -54,7 +54,7 @@ source("compute_descriptives.R")
 get_corplot(pooled_data)
 ```
 
-## Pooled state model
+# Pooled state model
 
 I will use the building period and the SVI as logit predictors in combination with the pediatrician data.
 
@@ -126,7 +126,7 @@ print(fig2)
 
 Overall, there continues to be a identification problem. The building period coefficient is not concentrated around sensible values in either side of the model. The upside is that for some poisson parameters, all finished chains are mixing well.
 
-## Avoid skew and multicollinearity by using PCAs in logit
+# Avoid skew and multicollinearity by using PCAs in logit
 
 The idea of these steps is that it helps if predictors are not too skewed and that logit predictors shouldn't be too correlated. Here I use all poisson features in the logit to produce the PCAs!
 
@@ -176,9 +176,12 @@ pooled_data_logged <- pooled_data_logged |>
 get_spread_plot(pooled_data_logged, c("pca1", "pca2"))
 ```
 
+## Fit new model with PCAs
+
 ```{r, cache=TRUE}
 # set new logit features
 logit_features_pca <- c("pca1", "pca2", "ped_per_100k")
+
 
 # build stan data with PCA features in logit
 stan_data_pca <- build_stan_data(pooled_data_logged, poisson_features, logit_features_pca)
@@ -187,14 +190,14 @@ stan_data_pca <- build_stan_data(pooled_data_logged, poisson_features, logit_fea
 fit_pca <- pooled_model$sample(
   data = stan_data_pca, 
   chains = 4,
-  seed = 1999,
+  seed = 1234,
   parallel_chains = 4,
   refresh = 500
 )
 ```
 
 ```{r}
-fit_pca$summary() |> 
+fit_pca$summary(variables = c("alpha", "beta", "gamma", "delta", "delta_last")) |>
   # replace betas by poisson features names
   mutate(variable = ifelse(grepl("beta", variable), poisson_features[as.numeric(gsub("\\D", "", variable))], variable)) |>
   # replace deltas by logit features names with _logit suffix
@@ -204,7 +207,7 @@ fit_pca$summary() |>
 
 ```{r}
 library(bayesplot)
-draws <- fit_pca$draws(format = "draws_df") |>
+draws <- fit_pca$draws(format = "draws_df", variables = c("alpha", "beta", "gamma", "delta", "delta_last")) |>
    select(-lp__) |> 
    # rename betas by poisson features names
    rename_with(~poisson_features[as.numeric(gsub("\\D", "", .))] %>% as.character(), starts_with("beta")) |>
@@ -218,3 +221,14 @@ fig2 <- mcmc_trace(draws) + ggtitle("Trace plots") + theme_minimal()
 print(fig1)
 print(fig2)
 ```
+
+## Posterior predictive checks
+
+```{r}
+# filter for rows in the summmary where not entire row is NA
+fit_pca$summary() %>%
+  filter(!rowSums(is.na(.)) == ncol(.)) |>
+  knitr::kable(digits = 3)
+```
+
+Running the above model, the generated quantities block throws a ton of exceptions because the poisson rate parameter is too large. So something is definitely very wrong with the model. Looking at the posteriors, this could only happen because the offsets pushes it out of sensible ranges...
