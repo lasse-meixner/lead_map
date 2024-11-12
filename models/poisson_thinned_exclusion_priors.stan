@@ -19,6 +19,7 @@ data {
     vector[N_cens] log_kids_cens = log(kids_cens);
     int<lower=0> N = N_obs + N_cens;
     matrix[N, K] X = append_row(x_obs, x_cens); // for posterior predictive checks
+    matrix[N, L] Z = append_row(z_obs, z_cens); // for posterior predictive checks
     vector[N] log_kids = append_row(log_kids_obs, log_kids_cens); // for posterior predictive checks
 }
 
@@ -48,5 +49,14 @@ data {
    }
  }
 
+
 // add generated quantities?
+
+generated quantities {
+vector[N] mu = exp(log_kids + alpha + X * beta);
+vector[N] pi = inv_logit(gamma + Z[, 1:(L-1)] * delta + Z[, L] * delta_last);
+array[N] int<lower=0> y_star = poisson_log_rng(mu .* pi);
+array[N] int<lower=0> y = poisson_log_rng(mu);
+}
+
 // generate estimates for the unknown P(tested|negative) = (Tested_i - pi-mu)/(kids-mu)?
