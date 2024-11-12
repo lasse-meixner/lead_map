@@ -1,0 +1,235 @@
+---
+title: "Pogit model runs on corrected data"
+format:
+    html:
+      code-fold: true
+---
+
+This notebook demonstrates the use of the data loading pipeline and attempts to sample from our pogit model sampling using new kids data from all pooled tract states.
+
+```{r}
+# load packages
+library(tidyverse)
+library(jsonlite)
+library(cmdstanr)
+
+# source navigation functions
+source("../init.R")
+
+# source data loading functions
+find_and_set_directory("US/exploration")
+source("load_and_preprocess.R")
+```
+
+```{r, error=TRUE}
+# get metadata from ~US root
+metadata  <- fromJSON("../US/metadata.json")
+# extract required metadata (lists)
+tract_states <- names(metadata$states)[vapply(metadata$states, function(x) x$geography == "tract" && is.null(x$issues), logical(1))]
+
+print(tract_states)
+```
+
+For each tract state in our selection, we find the "best_year" attribute and load the data for that year. I do not take any further preprocessing steps here, such as log transforming the predictors prior to standardisation.
+
+```{r}
+# iterate through tracts and append data to a list
+tract_data <- lapply(tract_states, function(state) {
+  # get best year
+  best_year <- metadata$states[[state]]$best_year
+  # load data, no additional preprocessing
+  single_state_tract(state, filter_year = best_year)
+})
+```
+
+I append all tract states' data and create the STAN data object.
+
+```{r}
+# append all tract states' data
+pooled_data <- bind_rows(tract_data)
+
+# Inspect intercorrelation in pooled data
+find_and_set_directory("US/exploration")
+source("compute_descriptives.R")
+get_corplot(pooled_data)
+```
+
+# Pooled state model
+
+I will use the building period and the SVI as logit predictors in combination with the pediatrician data.
+
+```{r}
+logit_features <- c("bp_pre_1959E_prop", "poor_fam_propE", "ped_per_100k")
+poisson_features <- setdiff(features, "ped_per_100k")
+
+build_stan_data <- function(data, poisson_features, logit_features){
+  stan_data <- list(
+    N_obs = data |> filter(!BLL_geq_5_suppressed) |> count() |> pull(n),
+    N_cens = data |> filter(BLL_geq_5_suppressed) |> count() |> pull(n),
+    K = length(poisson_features),
+    L = length(logit_features),
+    y_obs = data |> filter(!BLL_geq_5_suppressed) |> pull(BLL_geq_5) |> as.numeric(),
+    x_obs = data |> filter(!BLL_geq_5_suppressed) |> select(all_of(poisson_features)),
+    x_cens = data |> filter(BLL_geq_5_suppressed) |> select(all_of(poisson_features)),
+    z_obs = data |> filter(!BLL_geq_5_suppressed) |> select(all_of(logit_features)),
+    z_cens = data |> filter(BLL_geq_5_suppressed) |> select(all_of(logit_features)),
+    kids_obs = data |> filter(!BLL_geq_5_suppressed) |> pull(under_yo5_ppl),
+    kids_cens = data |> filter(BLL_geq_5_suppressed) |> pull(under_yo5_ppl),
+    ell = data |> filter(BLL_geq_5_suppressed) |> pull(ell_5) |> as.integer(),
+    zero_sup = data |> filter(BLL_geq_5_suppressed) |> pull(zero_sup_BLL_5) |> as.integer()
+  )
+}
+
+stan_data <- build_stan_data(pooled_data, poisson_features, logit_features)
+```
+
+Load the model and fit
+
+```{r, cache=TRUE}
+pooled_model <- cmdstan_model("poisson_thinned_exclusion_priors.stan")
+
+fit <- pooled_model$sample(
+  data = stan_data, 
+  chains = 4,
+  seed = 1999,
+  parallel_chains = 4,
+  refresh = 500
+)
+```
+
+```{r}
+fit$summary() |> 
+  # replace betas by poisson features names
+  mutate(variable = ifelse(grepl("beta", variable), poisson_features[as.numeric(gsub("\\D", "", variable))], variable)) |>
+  # replace deltas by logit features names with _logit suffix
+  mutate(variable = ifelse(grepl("delta", variable), logit_features[as.numeric(gsub("\\D", "", variable))] %>% paste0("_logit"), variable)) |> 
+  knitr::kable(digits = 3)
+```
+
+```{r}
+library(bayesplot)
+
+draws <- fit$draws(format = "draws_df") |>
+   select(-lp__) |> 
+   # rename betas by poisson features names
+   rename_with(~poisson_features[as.numeric(gsub("\\D", "", .))] %>% as.character(), starts_with("beta")) |>
+   # rename deltas by logit features names with _logit suffix
+   rename_with(~logit_features[as.numeric(gsub("\\D", "", .))] %>% paste0("_logit"), starts_with("delta"))
+
+fig1 <- mcmc_areas(draws, prob = 0.9) + ggtitle("Posterior draws") +
+   theme_minimal()
+fig2 <- mcmc_trace(draws) + ggtitle("Trace plots") + theme_minimal()
+
+print(fig1)
+print(fig2)
+```
+
+Overall, there continues to be a identification problem. The building period coefficient is not concentrated around sensible values in either side of the model. The upside is that for some poisson parameters, all finished chains are mixing well.
+
+# Avoid skew and multicollinearity by using PCAs in logit
+
+The idea of these steps is that it helps if predictors are not too skewed and that logit predictors shouldn't be too correlated. Here I use all poisson features in the logit to produce the PCAs!
+
+```{r}
+# get spread plot
+get_spread_plot(pooled_data, poisson_features)
+```
+
+Reload the data but with log-transformed logit predictors.
+
+```{r, cache = TRUE}
+# get rid of all tract states
+rm(list = tolower(tract_states))
+rm(list = tolower(tract_states) %>% paste0("_merged"))
+
+# reset tract states
+tract_states <- names(metadata$states)[vapply(metadata$states, function(x) x$geography == "tract" && is.null(x$issues), logical(1))]
+
+# additional log preprocess function that takes and adds the logarithm of the logit features
+log_preprocess <- function(data){
+  data |>
+    mutate(across(all_of(poisson_features), log1p, .names = "{.col}_log"))
+}
+
+# Note: requires to clear env of existing state_data objects
+tract_data_l <- lapply(tract_states, function(state) {
+  # get best year
+  best_year <- metadata$states[[state]]$best_year
+  # load data, no additional preprocessing
+  single_state_tract(state, filter_year = best_year, pred_preprocess_func = log_preprocess)
+})
+
+# append all tract states' data
+pooled_data_logged <- bind_rows(tract_data_l)
+```
+
+Extracting the first 2 PCAs:
+
+```{r}
+# get first two PCAs from transformed logit predictors
+logit_pca <- prcomp(pooled_data_logged |> select(ends_with("_log")), scale = TRUE, center = TRUE)
+pooled_data_logged <- pooled_data_logged |>
+  mutate(pca1 = logit_pca$x[,1], pca2 = logit_pca$x[,2])
+```
+
+```{r}
+get_spread_plot(pooled_data_logged, c("pca1", "pca2"))
+```
+
+## Fit new model with PCAs
+
+```{r, cache=TRUE}
+# set new logit features
+logit_features_pca <- c("pca1", "pca2", "ped_per_100k")
+
+
+# build stan data with PCA features in logit
+stan_data_pca <- build_stan_data(pooled_data_logged, poisson_features, logit_features_pca)
+
+# sample
+fit_pca <- pooled_model$sample(
+  data = stan_data_pca, 
+  chains = 4,
+  seed = 1234,
+  parallel_chains = 4,
+  refresh = 500
+)
+```
+
+```{r}
+fit_pca$summary(variables = c("alpha", "beta", "gamma", "delta", "delta_last")) |>
+  # replace betas by poisson features names
+  mutate(variable = ifelse(grepl("beta", variable), poisson_features[as.numeric(gsub("\\D", "", variable))], variable)) |>
+  # replace deltas by logit features names with _logit suffix
+  mutate(variable = ifelse(grepl("delta", variable), logit_features_pca[as.numeric(gsub("\\D", "", variable))] %>% paste0("_logit"), variable)) |> 
+  knitr::kable(digits = 3)
+```
+
+```{r}
+library(bayesplot)
+draws <- fit_pca$draws(format = "draws_df", variables = c("alpha", "beta", "gamma", "delta", "delta_last")) |>
+   select(-lp__) |> 
+   # rename betas by poisson features names
+   rename_with(~poisson_features[as.numeric(gsub("\\D", "", .))] %>% as.character(), starts_with("beta")) |>
+   # rename deltas by logit features names with _logit suffix
+   rename_with(~logit_features_pca[as.numeric(gsub("\\D", "", .))] %>% paste0("_logit"), starts_with("delta"))
+
+fig1 <- mcmc_areas(draws, prob = 0.9) + ggtitle("Posterior draws") +
+   theme_minimal()
+fig2 <- mcmc_trace(draws) + ggtitle("Trace plots") + theme_minimal()
+
+print(fig1)
+print(fig2)
+```
+
+Chains are mixing well, all posteriors are centered at sensible values but intercepts are very wide.
+## Posterior predictive checks
+
+```{r}
+# filter for rows in the summmary where not entire row is NA
+fit_pca$summary() %>%
+  filter(!rowSums(is.na(.)) == ncol(.)) |>
+  knitr::kable(digits = 3)
+```
+
+Running the above model, the generated quantities block throws a ton of exceptions because the poisson rate parameter is too large. Looking at the posteriors, this could only happen because the offsets pushes it out of sensible ranges...
