@@ -42,8 +42,6 @@ tract_data <- lapply(tract_states, function(state) {
 })
 ```
 
-## Pooled state model
-
 I append all tract states' data and create the STAN data object.
 
 ```{r}
@@ -55,6 +53,8 @@ find_and_set_directory("US/exploration")
 source("compute_descriptives.R")
 get_corplot(pooled_data)
 ```
+
+## Pooled state model
 
 I will use the building period and the SVI as logit predictors in combination with the pediatrician data.
 
@@ -128,25 +128,30 @@ Overall, there continues to be a identification problem. The building period coe
 
 ## Avoid skew and multicollinearity by using PCAs in logit
 
-The idea of these steps is that it helps if predictors are not too skewed and that logit predictors shouldn't be too correlated.
+The idea of these steps is that it helps if predictors are not too skewed and that logit predictors shouldn't be too correlated. Here I use all poisson features in the logit to produce the PCAs!
 
 ```{r}
 # get spread plot
-get_spread_plot(pooled_data, logit_features)
+get_spread_plot(pooled_data, poisson_features)
 ```
 
 Reload the data but with log-transformed logit predictors.
 
 ```{r, cache = TRUE}
+# get rid of all tract states
+rm(list = tolower(tract_states))
+rm(list = tolower(tract_states) %>% paste0("_merged"))
+
 # reset tract states
 tract_states <- names(metadata$states)[vapply(metadata$states, function(x) x$geography == "tract" && is.null(x$issues), logical(1))]
 
 # additional log preprocess function that takes and adds the logarithm of the logit features
 log_preprocess <- function(data){
   data |>
-    mutate(across(all_of(logit_features), log1p, .names = "{.col}_log"))
+    mutate(across(all_of(poisson_features), log1p, .names = "{.col}_log"))
 }
 
+# Note: requires to clear env of existing state_data objects
 tract_data_l <- lapply(tract_states, function(state) {
   # get best year
   best_year <- metadata$states[[state]]$best_year
@@ -157,6 +162,8 @@ tract_data_l <- lapply(tract_states, function(state) {
 # append all tract states' data
 pooled_data_logged <- bind_rows(tract_data_l)
 ```
+
+Extracting the first 2 PCAs:
 
 ```{r}
 # get first two PCAs from transformed logit predictors
@@ -171,7 +178,7 @@ get_spread_plot(pooled_data_logged, c("pca1", "pca2"))
 
 ```{r, cache=TRUE}
 # set new logit features
-logit_features_pca <- c("pca1", "pca2")
+logit_features_pca <- c("pca1", "pca2", "ped_per_100k")
 
 # build stan data with PCA features in logit
 stan_data_pca <- build_stan_data(pooled_data_logged, poisson_features, logit_features_pca)
@@ -198,47 +205,6 @@ fit_pca$summary() |>
 ```{r}
 library(bayesplot)
 draws <- fit_pca$draws(format = "draws_df") |>
-   select(-lp__) |> 
-   # rename betas by poisson features names
-   rename_with(~poisson_features[as.numeric(gsub("\\D", "", .))] %>% as.character(), starts_with("beta")) |>
-   # rename deltas by logit features names with _logit suffix
-   rename_with(~logit_features_pca[as.numeric(gsub("\\D", "", .))] %>% paste0("_logit"), starts_with("delta"))
-
-fig1 <- mcmc_areas(draws, prob = 0.9) + ggtitle("Posterior draws") +
-   theme_minimal()
-fig2 <- mcmc_trace(draws) + ggtitle("Trace plots") + theme_minimal()
-
-print(fig1)
-print(fig2)
-```
-
-## More precise prior on 𝜶
-
-```{r}
-# load the new model
-pooled_model_2 <- cmdstan_model("poisson_thinned_exclusion_priors2.stan")
-
-# refit the same data
-fit_pca_2 <- pooled_model_2$sample(
-  data = stan_data_pca, 
-  chains = 4,
-  seed = 1999,
-  parallel_chains = 4,
-  refresh = 500
-)
-```
-
-```{r}
-fit_pca_2$summary() |> 
-  # replace betas by poisson features names
-  mutate(variable = ifelse(grepl("beta", variable), poisson_features[as.numeric(gsub("\\D", "", variable))], variable)) |>
-  # replace deltas by logit features names with _logit suffix
-  mutate(variable = ifelse(grepl("delta", variable), logit_features_pca[as.numeric(gsub("\\D", "", variable))] %>% paste0("_logit"), variable)) |> 
-  knitr::kable(digits = 3)
-```
-
-```{r}
-draws <- fit_pca_2$draws(format = "draws_df") |>
    select(-lp__) |> 
    # rename betas by poisson features names
    rename_with(~poisson_features[as.numeric(gsub("\\D", "", .))] %>% as.character(), starts_with("beta")) |>
