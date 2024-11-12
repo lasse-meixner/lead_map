@@ -222,6 +222,7 @@ print(fig1)
 print(fig2)
 ```
 
+Chains are mixing well, all posteriors are centered at sensible values but intercepts are very wide.
 ## Posterior predictive checks
 
 ```{r}
@@ -231,4 +232,4 @@ fit_pca$summary() %>%
   knitr::kable(digits = 3)
 ```
 
-Running the above model, the generated quantities block throws a ton of exceptions because the poisson rate parameter is too large. So something is definitely very wrong with the model. Looking at the posteriors, this could only happen because the offsets pushes it out of sensible ranges...
+Running the above model, the generated quantities block throws a ton of exceptions because the poisson rate parameter is too large. Looking at the posteriors, this could only happen because the offsets pushes it out of sensible ranges...
