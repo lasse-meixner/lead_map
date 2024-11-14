@@ -1,0 +1,167 @@
+---
+title: "Hierarchical pogit model"
+format:
+    html:
+      code-fold: true
+---
+
+# Intro
+
+This notebook attempts to sample from a hierarchical version of our pogit model. In a first step, I allow only the intercepts of each state for the logit side to be drawn from a common hyperprior, while the poisson coefficients and the slope coefficients remain fixed. This is saying that states differ in their processes determining the base rate of the probability of testing given positive, but that the effect of the predictors is the same across states.
+
+In particular, I let
+
+$$\gamma_ \sim \text{Normal}(\bar{\mu},\bar{\sigma}^2)$$
+
+where
+
+$$\bar{\mu} \sim \text{Normal}(0,1)$$ $$\bar{\sigma} \sim \text{Lognormal}(-1.5,0.7)$$
+
+We can calculate the implied prior variance of $\gamma$ analytically using the law of total variance. Or, we just sample from the prior and check that it is sensible.
+
+# Application to healthy tract states
+
+## Loading data
+
+```{r}
+# load packages
+library(tidyverse)
+library(jsonlite)
+library(cmdstanr)
+
+# source navigation functions
+source("../init.R")
+
+# source data loading functions
+find_and_set_directory("US/exploration")
+source("load_and_preprocess.R")
+```
+
+```{r}
+# get metadata from ~US root
+metadata  <- fromJSON("../US/metadata.json")
+# extract required metadata (lists)
+tract_states <- names(metadata$states)[vapply(metadata$states, function(x) x$geography == "tract" && is.null(x$issues), logical(1))]
+
+print(tract_states)
+```
+
+## Preprocessing
+
+```{r}
+# additional log preprocess function that takes and adds the logarithm of the logit features
+log_preprocess <- function(data){
+  data |>
+    mutate(across(all_of(poisson_features), log1p, .names = "{.col}_log"))
+}
+
+tract_data_l <- lapply(tract_states, function(state) {
+  # get best year
+  best_year <- metadata$states[[state]]$best_year
+  # load data, no additional preprocessing
+  single_state_tract(state, filter_year = best_year, pred_preprocess_func = log_preprocess)
+})
+
+# append all tract states' data
+pooled_data_logged <- bind_rows(tract_data_l)
+```
+
+I add the first 3 PCAs of the log-transformed variables to the logit predictors.
+
+```{r}
+# get first two PCAs from transformed logit predictors
+logit_pca <- prcomp(pooled_data_logged |> select(ends_with("_log")), scale = TRUE, center = TRUE)
+pooled_data_logged <- pooled_data_logged |>
+  mutate(pca1 = logit_pca$x[,1], pca2 = logit_pca$x[,2], pca3 = logit_pca$x[,3])
+```
+
+Factor encode the state names
+
+```{r}
+pooled_data_logged <- pooled_data_logged |>
+  mutate(state_factor = state |> factor() |> as.integer())
+
+# save mapping of name to factor
+state_factor_map <- pooled_data_logged |> select(state, state_factor) |> distinct()
+```
+
+## Loading STAN model
+
+```{r}
+# load stan model
+hierarchical_model_v1 <- cmdstan_model("poisson_thinned_exclusion_hierarchical.stan")
+
+poisson_features <- setdiff(features, "ped_per_100k")
+logit_features <- c("pca1", "pca2", "pca3", "ped_per_100k")
+
+build_stan_data <- function(data, poisson_features, logit_features){
+  stan_data <- list(
+    N_obs = data |> filter(!BLL_geq_5_suppressed) |> count() |> pull(n),
+    N_cens = data |> filter(BLL_geq_5_suppressed) |> count() |> pull(n),
+    K = length(poisson_features),
+    L = length(logit_features),
+    S = length(unique(data$state)),
+    state_obs = data |> filter(!BLL_geq_5_suppressed) |> pull(state_factor),
+    state_cens = data |> filter(BLL_geq_5_suppressed) |> pull(state_factor),
+    y_obs = data |> filter(!BLL_geq_5_suppressed) |> pull(BLL_geq_5) |> as.numeric(),
+    x_obs = data |> filter(!BLL_geq_5_suppressed) |> select(all_of(poisson_features)),
+    x_cens = data |> filter(BLL_geq_5_suppressed) |> select(all_of(poisson_features)),
+    z_obs = data |> filter(!BLL_geq_5_suppressed) |> select(all_of(logit_features)),
+    z_cens = data |> filter(BLL_geq_5_suppressed) |> select(all_of(logit_features)),
+    kids_obs = data |> filter(!BLL_geq_5_suppressed) |> pull(under_yo5_ppl),
+    kids_cens = data |> filter(BLL_geq_5_suppressed) |> pull(under_yo5_ppl),
+    ell = data |> filter(BLL_geq_5_suppressed) |> pull(ell_5) |> as.integer(),
+    zero_sup = data |> filter(BLL_geq_5_suppressed) |> pull(zero_sup_BLL_5) |> as.integer()
+  )
+}
+
+stan_data <- build_stan_data(pooled_data_logged, poisson_features, logit_features)
+```
+
+## Sampling
+
+In Lambert (2018) Ch. 17.4 he talks about non-centered parameterisations as a way to improve the efficiency of the sampler in hierarchical models by avoiding sub-optimal local step (lengths) of the sampler. I have not yet implemented this, but it is something to consider.
+
+```{r}
+# sample
+fit <- hierarchical_model_v1$sample(
+  data = stan_data, 
+  chains = 4,
+  parallel_chains = 4,
+  iter_warmup = 1000,
+  iter_sampling = 1000,
+  refresh = 500,
+  seed = 1999,
+)
+```
+
+## Results
+
+```{r}
+fit$summary(variables = c("alpha", "beta", "gamma", "delta", "delta_last")) |>
+  # replace betas by poisson features names
+  mutate(variable = ifelse(grepl("beta", variable), poisson_features[as.numeric(gsub("\\D", "", variable))], variable)) |>
+  # replace deltas by logit features names with _logit suffix
+  mutate(variable = ifelse(grepl("delta", variable), logit_features[as.numeric(gsub("\\D", "", variable))] %>% paste0("_logit"), variable)) |> 
+  # replace gammas by state names with _gamma suffix
+  mutate(variable = ifelse(grepl("gamma", variable), state_factor_map$state[as.numeric(gsub("\\D", "", variable))] %>% paste0("_gamma"), variable)) |>
+  knitr::kable(digits = 3)
+```
+
+```{r}
+library(bayesplot)
+draws <- fit$draws(format = "draws_df", variables = c("alpha", "beta", "gamma", "delta", "delta_last")) |>
+   # rename betas by poisson features names
+   rename_with(~poisson_features[as.numeric(gsub("\\D", "", .))] %>% as.character(), starts_with("beta")) |>
+   # rename deltas by logit features names with _logit suffix
+   rename_with(~logit_features[as.numeric(gsub("\\D", "", .))] %>% paste0("_logit"), starts_with("delta")) |>
+   # rename gammas by state names with _gamma suffix
+    rename_with(~state_factor_map$state[as.numeric(gsub("\\D", "", .))] %>% paste0("_gamma"), starts_with("gamma"))
+
+fig1 <- mcmc_areas(draws, prob = 0.9) + ggtitle("Posterior draws") +
+   theme_minimal()
+fig2 <- mcmc_trace(draws) + ggtitle("Trace plots") + theme_minimal()
+
+print(fig1)
+print(fig2)
+```
