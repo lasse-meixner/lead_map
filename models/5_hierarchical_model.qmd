@@ -7,7 +7,7 @@ format:
 
 # Intro
 
-This notebook attempts to sample from a hierarchical version of our pogit model. In a first step, I allow only the intercepts of each state for the logit side to be drawn from a common hyperprior, while the poisson coefficients and the slope coefficients remain fixed. This is saying that states differ in their processes determining the base rate of the probability of testing given positive, but that the effect of the predictors is the same across states.
+This notebook attempts to sample from a hierarchical version of our pogit model. In a first step, I allow only the intercepts of each state for the logit side to be drawn from a common hyperprior, while the poisson coefficients and the slope coefficients remain fixed. This is saying that states differ in their processes determining the base rate of the probability of testing given positive, but that the effect of the predictors is the same across states. This is of course somewhat unrealistic, but I want to start simple and play with the modifications required in STAN.
 
 In particular, I let
 
