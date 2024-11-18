@@ -33,8 +33,8 @@ def get_tract_merged_shapefile():
     
     # get list of predictor names of interest
     area_predictors = ["total_ppl_acs20E", "median_annual_incomeE", "house_price_medianE", "poor_fam_propE", "white_ppl_propE", "black_ppl_propE",
-            "bp_pre_1939E_prop", "bp_pre_1949E_prop", "bp_pre_1959E_prop", "bp_pre_1979E_prop", "bp_post_1990E_prop", "build_year_median", 
-            "under_yo5_ppl_propE", "yo5to9_ppl_propE", "yo10to14_ppl_propE", "yo15to17_ppl_propE", "urban_ppl_prop", "hs_grad_ppl_18to44_propE"]
+            "bp_pre_1939E_prop", "bp_pre_1949E_prop", "bp_pre_1959E_prop", "bp_pre_1979E_prop", "bp_post_1990E_prop", "build_year_median", "under_yo5_ppl",
+            "urban_ppl_prop", "hs_grad_ppl_18to44_propE"]
     df = df[["TRACT", "COUNTY", "STATE", "REPORTING_YEAR"] + area_predictors]
     
     #TODO: handle YEARS in tri: select all entries that have REPORTING_YEAR as NA or == 2015
