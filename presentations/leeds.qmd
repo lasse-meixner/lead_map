@@ -367,6 +367,29 @@ fig.show()
 
 ## Soil Lead
 
+::: {.columns}
+::: {.column width="50%"}
+We obtain gridded topsoil lead concentration data from the UK Geological Survey[^1].
+The data they publish is produced as follows:
+- collected raw data point measures based on 5 surveys conducted until 2014.
+- to produce a continous prediction map, they use an interpolation method (*ordinary kriging*)
+- they fit an exponential variogram, using the nearest 5 to 8 neighbours within a maximum search radius of 10km
+- based on this continous map, they produce a raster with 500m grid resolution
+:::
+
+::: {.column width="50%"}
+<!-- add picture of UKGS -->
+![](assets/Pb_v1.png)
+:::
+:::
+
+We then use this grid to compute two measures:
+- Mean soil lead concentration: Calculate the average lead concentration for all soil grid cells that intersect each MSOA.
+- IDW mean soil lead concentration: Like the previous, but using an inverse distance weighting method to account for the distance between the grid cell and the MSOA centroid.
+
+[^1]: UK Geological Survey. Retrieved from [https://www.ukso.org/static-maps/uk-topsoil-geochemistry.html](https://www.ukso.org/static-maps/uk-topsoil-geochemistry.html)
+
+## Soil lead comparison
 ```{python}
 #| label: soil-lead-comparison
 #| echo: false
