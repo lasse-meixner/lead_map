@@ -32,4 +32,4 @@ data_tract |>
 
 # write to Gdrive
 source("00_gdrive_utils.R")
-drive_upload_w_tstamp("combined_tract")
+gdrive_upload_w_tstamp("combined_tract")
