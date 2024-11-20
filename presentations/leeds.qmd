@@ -50,7 +50,6 @@ We believe that a combination of them can give a good indication of lead exposur
 #| cache: false
 
 from plotting_functions import *
-
 import sys
 sys.path.append('../UK/predictors/exploration')
 from shapefile_loading import get_msoa_merged_shapefile
@@ -130,7 +129,7 @@ Cumulative:
 #| label: housing-pre-1992-location
 #| echo: false
 
-fig = plot_chloropleth("bp_pre_1992_prop", merged, "Leeds")
+fig = plot_chloropleth("bp_pre_1992_prop", merged, "Leeds", color_continuous_scale="rdbu")
 fig.show()
 ```
 
@@ -138,13 +137,12 @@ fig.show()
 
 ## Proportion of houses built before 1954
 
-<!-- Note: perhaps think about different color scale -->
 
 ```{python}
 #| label: housing-pre-1954-location
 #| echo: false
 
-fig = plot_chloropleth("bp_pre_1954_prop", merged, "Leeds")
+fig = plot_chloropleth("bp_pre_1954_prop", merged, "Leeds", color_continuous_scale="rdbu")
 fig.show()
 ```
 
@@ -156,7 +154,8 @@ fig.show()
 #| label: housing-pre-1939-location
 #| echo: false
 
-fig = plot_chloropleth("bp_pre_1939_prop", merged, "Leeds")
+fig = plot_chloropleth("bp_pre_1939_prop", merged, "Leeds",
+color_continuous_scale="rdbu")
 fig.show()
 ```
 
@@ -259,7 +258,7 @@ fig.show()
 #| label: poverty-comparison
 #| echo: false
 
-fig = plot_CDFs("poverty_rateE", merged, "Leeds")
+fig = plot_histograms("poverty_rateE", merged, "Leeds")
 fig.show()
 ```
 - Poverty rates in Leeds have a heavier tail then the UK
@@ -374,7 +373,7 @@ fig.show()
 ::: {.columns}
 ::: {.column width="50%"}
 We obtain gridded topsoil lead concentration data from the UK Geological Survey[^1].
-The data they publish is produced as follows:
+They:
 - collected raw data point measures based on 5 surveys conducted until 2014.
 - to produce a continous prediction map, they use an interpolation method (*ordinary kriging*)
 - they fit an exponential variogram, using the nearest 5 to 8 neighbours within a maximum search radius of 10km
@@ -432,32 +431,20 @@ fig.show()
 We have more data, at a more granular level.
 <!-- replace by columns -->
 
-::: {.panel-tabset}
+| **Public Health England** | **Our approach** |
+|---------------------------|------------------|
+| **Level:** LAD            | **Level:** MSOA |
+| **Risk variables:**       | **Risk variables:** |
+| - % houses built pre 1973 | - % houses built pre 1954 |
+| - Index of Multiple Deprivation | - Index of Multiple Deprivation |
+| - Soil lead concentration | - Soil lead concentration |
+|                          | - House price median 2017-2021 |
+| **Method:**               | **Method:** **(avoids loss of information from discretization)** |
+| - construct deciles for each risk factor | - transform each variable to a uniform distribution |
+| - compute decile risk by taking average of deciles | - compute risk scores via average of values |
+| - recast risk back into deciles | - since risk variables are dependent, risk scores themselves will likely not be uniform -> re-transform to a uniform scale |
 
-### Public Health England
-- Level: LAD<br>
-- Risk variables:<br>
-  - % houses built pre 1973<br>
-  - Index of Multiple Deprivation<br>
-  - Soil lead concentration<br>
-- Method:<br>
-  - construct deciles for each risk factor<br>
-  - compute decile risk by taking average of deciles<br>
-  - recast risk back into deciles<br>
 
-### Our approach
-- Level: MSOA **(more granular)** <br>
-- Risk variables: **(works dynamically for any selection)**<br>
-  - % houses built pre 1954<br>
-  - Index of Multiple Deprivation<br>
-  - % of families with single parents<br>
-  - House price median 2017-2021<br>
-- Method: **(avoids loss of information from discretization)**<br>
-  - transform each variable to a uniform distribution<br>
-  - compute risk scores via average of values<br>
-  - since risk variables are dependent, risk scores themselves will likely not be uniform -> re-transform to a uniform scale
-
-:::
 
 ## Risk map
 
