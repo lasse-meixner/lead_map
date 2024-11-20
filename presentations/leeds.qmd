@@ -110,15 +110,19 @@ fig.show()
 ## Housing age variables
 
 We use the UK Stock of properties data to obtain the proportion of houses built in various intervals. We focus on the following variables:
+
+Windows:
 - Proportion of Houses Built 1930-1939
 - Proportion of Houses Built 1945-1954
 - Proportion of Houses Built 1955-1964
 
-- Proportion of houses built before 1992
-- Proportion of houses built before 1972
+Cumulative:
+- Proportion of Houses built before 1939
 - Proportion of houses built before 1954
+- Proportion of houses built before 1972
+- Proportion of houses built before 1983
+- Proportion of houses built before 1992
 
-<!-- put entire list of variables -->
 
 ## Proportion of houses built before 1992
 
