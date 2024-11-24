@@ -8,12 +8,22 @@ format:
     toc-depth: 1
     slideNumber: true
     auto: true
+    toc: true
+    toc-depth: 1
+    slideNumber: true
+    auto: true
 execute:
   echo: true
   cache: true
 jupyter: lead_map
 ---
 
+## Testing kids in Leeds for lead
+- We collected a lot of **demographic**, **socioeconomic**, and **environmental** data the MSOA level for England.
+
+- Using this data, we want to identify high-risk areas for lead exposure for children in Leeds.
+  - What do we know about kids in Leeds?
+  - What do we know about risk factors in Leeds?
 ## Testing kids in Leeds for lead
 - We collected a lot of **demographic**, **socioeconomic**, and **environmental** data the MSOA level for England.
 
@@ -60,7 +70,6 @@ We believe that a combination of them can give a good indication of lead exposur
 #| cache: false
 
 from plotting_functions import *
-
 import sys
 sys.path.append('../UK/predictors/exploration')
 from shapefile_loading import get_msoa_merged_shapefile
@@ -95,6 +104,19 @@ fig.show()
 
 - If we look at the distribution of kids under 5 years, the distribution is similar to the overall distribution of kids
   
+## Location of children under 5 years
+
+```{python}
+#| label: kids-u5-location
+#| echo: false
+
+fig = plot_chloropleth("total_ppl_u5_totalpop_prop_2011", merged, "Leeds")
+fig.show()
+```
+
+
+- If we look at the distribution of kids under 5 years, the distribution is similar to the overall distribution of kids
+  
 
 ## Location of families by age of parents
 
@@ -108,6 +130,8 @@ fig.show()
 
 - Young parents tend to live in the center of Leeds, while older parents live in the wealthier outskirts
 
+<!-- does the census variable count kids, or kids in household -->
+
 # Risk factors: Housing
 
 ## Why housing
@@ -117,13 +141,20 @@ fig.show()
 
 ## Housing age variables
 
-We use the UK Stock of properties data to obtain the proportion of houses built in various intervals.<br>
-The most granular scale at which this data is collected is the LSOA level.<br>
-We focus on the following variables:
+We use the UK Stock of properties data to obtain the proportion of houses built in various intervals. We focus on the following variables:
 
-- Proportion of houses built before 1992
-- Proportion of houses built before 1972
+Windows:
+- Proportion of Houses Built 1930-1939
+- Proportion of Houses Built 1945-1954
+- Proportion of Houses Built 1955-1964
+
+Cumulative:
+- Proportion of Houses built before 1939
 - Proportion of houses built before 1954
+- Proportion of houses built before 1972
+- Proportion of houses built before 1983
+- Proportion of houses built before 1992
+
 
 ## Proportion of houses built before 1992
 
@@ -131,7 +162,7 @@ We focus on the following variables:
 #| label: housing-pre-1992-location
 #| echo: false
 
-fig = plot_chloropleth("bp_pre_1992_prop", merged, "Leeds")
+fig = plot_chloropleth("bp_pre_1992_prop", merged, "Leeds", color_continuous_scale="rdbu")
 fig.show()
 ```
 
@@ -139,11 +170,12 @@ fig.show()
 
 ## Proportion of houses built before 1954
 
+
 ```{python}
 #| label: housing-pre-1954-location
 #| echo: false
 
-fig = plot_chloropleth("bp_pre_1954_prop", merged, "Leeds")
+fig = plot_chloropleth("bp_pre_1954_prop", merged, "Leeds", color_continuous_scale="rdbu")
 fig.show()
 ```
 
@@ -155,7 +187,8 @@ fig.show()
 #| label: housing-pre-1939-location
 #| echo: false
 
-fig = plot_chloropleth("bp_pre_1939_prop", merged, "Leeds")
+fig = plot_chloropleth("bp_pre_1939_prop", merged, "Leeds",
+color_continuous_scale="rdbu")
 fig.show()
 ```
 
@@ -176,6 +209,26 @@ fig = plot_chloropleth("house_price_mean_median_2017to2021", merged, "Leeds")
 fig.update_layout(title_text="Distribution of house prices in Leeds")
 fig.show()
 ```
+
+- House prices are highest in the north
+- Median house prices 2017-2021 have tripled since 1995-2000
+
+# Risk factors: Employment
+
+- House prices are highest in the north
+- Median house prices 2017-2021 have tripled since 1995-2000
+
+# Risk factors: Employment
+
+- House prices are highest in the north
+- Median house prices 2017-2021 have tripled since 1995-2000
+
+# Risk factors: Employment
+
+- House prices are highest in the north
+- Median house prices 2017-2021 have tripled since 1995-2000
+
+# Risk factors: Employment
 
 - House prices are highest in the north
 - Median house prices 2017-2021 have tripled since 1995-2000
@@ -214,6 +267,8 @@ The variables used are:
 - IMD Income Score
 - IMD Health Disability Score
 - IMD Housing Services Score
+
+# Risk factors: Single parenting
 
 ## Calculation of IMD Income Score
 
@@ -294,8 +349,73 @@ fig.show()
 - This is reported at the MSOA level.
 
 ## Poverty rate
+
+<!-- cdf plot is not very clear: show comparison of centralities -->
+
 ```{python}
 #| label: poverty-comparison
+#| echo: false
+
+fig = plot_histograms("poverty_rateE", merged, "Leeds")
+fig.show()
+```
+- Poverty rates in Leeds have a heavier tail then the UK
+
+## Location of poverty
+
+<!-- todo: find out exact definition of poverty -->
+```{python}
+#| label: poverty-location
+#| echo: false
+
+fig = plot_chloropleth("poverty_rateE", merged, "Leeds")
+fig.show()
+```
+
+- Poverty rates are highest towards the center
+
+## Minority population
+
+- (Wheeler et al. , 2021) find that African Americans face a higher risk of deprivation and lead poisoning in Maryland. 
+- While the structural system in the US differs, as a comparatively poorer population it may well be an at-risk group in the UK.
+
+From the UK 2011 Census we consider the following groups:
+-	Proportion of Black People
+-	Proportion of White People
+- Proportion of Immigrants (todo: check in what form we have this!)
+
+## Correlation of black population and poverty
+
+```{python}
+#| label: black-poverty-correlation
+#| echo: false
+
+fig = plot_pairs(["black_ppl_prop_2011", "poverty_rateE"], merged, "Leeds")
+fig.show()
+```
+
+## Location of black population
+
+```{python}
+#| label: black-population-location
+#| echo: false
+
+fig = plot_chloropleth("black_ppl_prop_2011", merged, "Leeds")
+fig.show()
+
+```
+- The population of black people is concentrated in the north of the center
+
+# Risk factors: Education
+
+## Poverty rate data
+- Poverty rate data is collected from the ONS and it reports the proportion of households living below 60% of median income.
+- In order to have comparable poverty rates between different areas in the UK, we consider the poverty rate after adjusting for housing costs.
+- This is reported at the MSOA level.
+
+## Poverty rate
+```{python}
+#| label: education-location
 #| echo: false
 
 fig = plot_CDFs("poverty_rateE", merged, "Leeds")
@@ -303,9 +423,10 @@ fig.show()
 ```
 - Poverty rates in Leeds have a heavier tail then the UK
 
-## Location of poverty
+## Location of uneducated parents
+
 ```{python}
-#| label: poverty-location
+#| label: uneducated-location
 #| echo: false
 
 fig = plot_chloropleth("poverty_rateE", merged, "Leeds")
@@ -359,9 +480,33 @@ fig.show()
   - Soil lead concentration
 
 - Since moss measurements are extremely sparse and MSOA-level values mostly imputed, we focus on soil lead concentration
+<!-- add sources! -->
 
 ## Soil Lead
 
+::: {.columns}
+::: {.column width="50%"}
+We obtain gridded topsoil lead concentration data from the UK Geological Survey[^1].
+They:
+- collected raw data point measures based on 5 surveys conducted until 2014.
+- to produce a continous prediction map, they use an interpolation method (*ordinary kriging*)
+- they fit an exponential variogram, using the nearest 5 to 8 neighbours within a maximum search radius of 10km
+- based on this continous map, they produce a raster with 500m grid resolution
+:::
+
+::: {.column width="50%"}
+<!-- add picture of UKGS -->
+![](assets/Pb_v1.png)
+:::
+:::
+
+We then use this grid to compute two measures:
+- Mean soil lead concentration: Calculate the average lead concentration for all soil grid cells that intersect each MSOA.
+- IDW mean soil lead concentration: Like the previous, but using an inverse distance weighting method to account for the distance between the grid cell and the MSOA centroid.
+
+[^1]: UK Geological Survey. Retrieved from [https://www.ukso.org/static-maps/uk-topsoil-geochemistry.html](https://www.ukso.org/static-maps/uk-topsoil-geochemistry.html)
+
+## Soil lead comparison
 ```{python}
 #| label: soil-lead-comparison
 #| echo: false
@@ -398,33 +543,22 @@ fig.show()
 ## Comparison with Public Health England
 
 We have more data, at a more granular level.
+<!-- replace by columns -->
 
-::: {.panel-tabset}
+| **Public Health England** | **Our approach** |
+|---------------------------|------------------|
+| **Level:** LAD            | **Level:** MSOA |
+| **Risk variables:**       | **Risk variables:** |
+| - % houses built pre 1973 | - % houses built pre 1954 |
+| - Index of Multiple Deprivation | - Index of Multiple Deprivation |
+| - Soil lead concentration | - Soil lead concentration |
+|                          | - House price median 2017-2021 |
+| **Method:**               | **Method:** **(avoids loss of information from discretization)** |
+| - construct deciles for each risk factor | - transform each variable to a uniform distribution |
+| - compute decile risk by taking average of deciles | - compute risk scores via average of values |
+| - recast risk back into deciles | - since risk variables are dependent, risk scores themselves will likely not be uniform -> re-transform to a uniform scale |
 
-### Public Health England
-- Level: LAD<br>
-- Risk variables:<br>
-  - % houses built pre 1973<br>
-  - Index of Multiple Deprivation<br>
-  - Soil lead concentration<br>
-- Method:<br>
-  - construct deciles for each risk factor<br>
-  - compute decile risk by taking average of deciles<br>
-  - recast risk back into deciles<br>
 
-### Our approach
-- Level: MSOA **(more granular)** <br>
-- Risk variables: **(works dynamically for any selection)**<br>
-  - % houses built pre 1954<br>
-  - Index of Multiple Deprivation<br>
-  - % of families with single parents<br>
-  - House price median 2017-2021<br>
-- Method: **(avoids loss of information from discretization)**<br>
-  - transform each variable to a uniform distribution<br>
-  - compute risk scores via average of values<br>
-  - since risk variables are dependent, risk scores themselves will likely not be uniform -> re-transform to a uniform scale
-
-:::
 
 ## Risk map
 

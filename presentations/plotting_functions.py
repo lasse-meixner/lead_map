@@ -5,7 +5,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 # plot function that shows geospatial distribution of predictor across leeds
-def plot_chloropleth(variable, df, location = "Leeds"):
+def plot_chloropleth(variable, df, location = "Leeds",**kwargs):
     # filter for leeds
     leeds = df.loc[df["msoa_name_x"].str.contains(location)]
 
@@ -18,12 +18,12 @@ def plot_chloropleth(variable, df, location = "Leeds"):
         center={"lat": 53.801277, "lon": -1.548567},
         # size based on browser window
         color=variable,
-        color_continuous_scale="Viridis",
         range_color=(leeds[variable].min(), leeds[variable].max()),
         mapbox_style="carto-positron",
         zoom=9.5,
         opacity=0.4,
-        labels={variable: variable}
+        labels={variable: variable},
+        **kwargs
     )
     #fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
     return fig
@@ -52,7 +52,7 @@ def plot_histograms(variable, df, location="Leeds", other_location = "UK", n_bin
         other = df.loc[df["msoa_name_x"].str.contains(other_location)]
         fig.add_trace(go.Histogram(x=other[variable], name=other_location, histnorm='probability', xbins=hist_x_bins))
     else:
-        fig.add_trace(go.Histogram(x=leeds[variable], name=location, histnorm='probability', xbins=hist_x_bins))
+        pass
 
     # overlay leeds
     fig.add_trace(go.Histogram(x=leeds[variable], name=location, histnorm='probability', xbins=hist_x_bins))

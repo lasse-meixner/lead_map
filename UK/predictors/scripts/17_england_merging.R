@@ -43,6 +43,8 @@ data_msoa <- imd_msoa %>%
 data_msoa |> 
   write_csv("../processed_data/combined_msoa.csv")
 
+gdrive_upload_w_tstamp("combined_msoa")
+
 
 # clear environment except for data_msoa
 rm(list = ls() |> setdiff(c("data_msoa")))

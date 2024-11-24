@@ -12,14 +12,17 @@ get_census_data_us <- function(geography_type, state_str = NULL) {
   dec_2010 <- get_decennial(
     geography = geography_type,
     state = state_str,
-    variables = c(urban_ppl_prop = "PCT002002"),
+    variables = c(urban_ppl_prop = "PCT002002",
+                  total_male_under_yo_5 = "P012003", # UPDATE (Sept '24): pull from decennial in response to kid loss
+                  total_female_under_yo_5 = "P012027"), # UPDATE (Sept '24): pull from decennial in response to kid loss
     year = 2010,
     output = "wide",
     geometry = FALSE,
     resolution = "20m") %>%
     filter(substr(GEOID, 1, 2) != 72) %>%
     mutate(urban_ppl_prop = urban_ppl_prop / 100, 
-           urban_majority = ifelse(urban_ppl_prop > 0.5, 1, 0))
+           urban_majority = ifelse(urban_ppl_prop > 0.5, 1, 0),
+           under_yo5_ppl = total_male_under_yo_5 + total_female_under_yo_5)
     # shift_geometry()
   
   # Next we get the variables we need from the 2000 decennial census (age of householder data which isn't available in the 2010 decennial census)
@@ -173,7 +176,9 @@ get_census_data_us <- function(geography_type, state_str = NULL) {
            male_ppl_u17E = rowSums(across(under_yo5_male_pplE:yo15to17_male_pplE)), 
            female_ppl_u17E = rowSums(across(under_yo5_female_pplE:yo15to17_female_pplE)),
            total_ppl_u17E = male_ppl_u17E + female_ppl_u17E, 
-           across(.cols = under_yo5_pplE:yo15to17_pplE, .fns = ~. / total_ppl_u17E, .names = "{.col}_prop"),
+           across(.cols = under_yo5_pplE:yo15to17_pplE, .fns = ~. / total_ppl_u17E, .names = "{.col}_prop_youngpop"), # this is proportion of YOUNG population
+           across(.cols = under_yo5_pplE:yo15to17_pplE, .fns = ~. / total_ppl_u17E, .names = "{.col}_prop_totalpop"), # this is proportion of total population
+           under_yo_5_prop_totalpop = under_yo5_ppl/total_ppl_acs20,
            male_ppl_u17_propE = male_ppl_u17E / total_ppl_u17E,
            female_ppl_u17_propE = female_ppl_u17E / total_ppl_u17E,
            avg_siblingsE = total_ppl_u17E / total_fam_w_kidsE,
