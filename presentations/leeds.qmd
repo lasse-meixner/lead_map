@@ -417,32 +417,6 @@ fig.show()
 
 - Poverty rates are highest towards the center
 
-## Minority population
-- (Wheeler et al. , 2021) find that African Americans face a higher risk of deprivation and lead poisoning in Maryland. 
-- While the structural system in the US differs, as a comparatively poorer population it may well be an at-risk group in the UK.
-
-## Correlation of black population and poverty
-
-```{python}
-#| label: black-poverty-correlation
-#| echo: false
-
-fig = plot_pairs(["black_ppl_prop_2011", "poverty_rateE"], merged, "Leeds")
-fig.show()
-```
-
-## Location of black population
-
-```{python}
-#| label: black-population-location
-#| echo: false
-
-fig = plot_chloropleth("black_ppl_prop_2011", merged, "Leeds")
-fig.show()
-
-```
-- The population of black people is concentrated in the north of the center
-
 ## Correlation between education of parents and income
 
 ```{python}
@@ -590,34 +564,3 @@ fig = plot_chloropleth("lone_parent_fam_w_kids_prop_2011", merged, "Leeds")
 fig.show()
 ```
 
-# Risk factors: Education
-
-## Parental educational attainment
-
-- Parental education level directly impacts socioeconomic status, affecting housing options and access to resources
-
-- Higher educational attainment may be linked to greater awareness of lead exposure risks, making parents likelier to avoid high risk environments.
-
-## Location of educated parents
-
-```{python}
-#| label: education-location
-#| echo: false
-
-fig = plot_chloropleth("l4_qual_ppl_w_kids_prop_2011", merged, "Leeds")
-fig.update_layout(title="Proportion of people with higher education in Leeds")
-fig.show()
-```
-
-## Location of uneducated parents
-
-```{python}
-#| label: uneducated-location
-#| echo: false
-
-fig = plot_chloropleth("no_qual_ppl_w_kids_prop_2011", merged, "Leeds")
-fig.update_layout(title="Proportion of people with lower education in Leeds")
-fig.show()
-```
-
-- This correlates highly with the poverty map
