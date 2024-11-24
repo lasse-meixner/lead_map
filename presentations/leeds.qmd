@@ -99,20 +99,6 @@ fig.show()
 
 
 - If we look at the distribution of kids under 5 years, the distribution is similar to the overall distribution of kids
-  
-## Location of children under 5 years
-
-```{python}
-#| label: kids-u5-location
-#| echo: false
-
-fig = plot_chloropleth("total_ppl_u5_totalpop_prop_2011", merged, "Leeds")
-fig.show()
-```
-
-
-- If we look at the distribution of kids under 5 years, the distribution is similar to the overall distribution of kids
-  
 
 ## Location of families by age of parents
 
