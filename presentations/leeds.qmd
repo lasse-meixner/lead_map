@@ -8,10 +8,6 @@ format:
     toc-depth: 1
     slideNumber: true
     auto: true
-    toc: true
-    toc-depth: 1
-    slideNumber: true
-    auto: true
 execute:
   echo: true
   cache: true
