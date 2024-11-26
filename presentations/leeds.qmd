@@ -200,21 +200,6 @@ fig.show()
 - House prices are highest in the north
 - Median house prices 2017-2021 have tripled since 1995-2000
 
-# Risk factors: Employment
-
-- House prices are highest in the north
-- Median house prices 2017-2021 have tripled since 1995-2000
-
-# Risk factors: Employment
-
-- House prices are highest in the north
-- Median house prices 2017-2021 have tripled since 1995-2000
-
-# Risk factors: Employment
-
-- House prices are highest in the north
-- Median house prices 2017-2021 have tripled since 1995-2000
-
 ## Unemployment and economic inactivity 
 - Unemployment rates are taken from the UK census by calculating the proportion of people who are unemployed by the number of economically active individuals aged 16 or over.
 - Higher rates of unemployment and economic inactivity are often found in lower-income areas
@@ -243,67 +228,105 @@ fig.show()
 
 By using the UK Index of Multiple Deprivation 2015 data, we capture factors linked to lead exposures providing a basis for predicting high-risk areas.
 
-The variables used are:
+The variables we use are:
 
-- Overall IMD Deprivation Score
-- IMD Income Score
-- IMD Health Disability Score
-- IMD Housing Services Score
-
-# Risk factors: Single parenting
+- Overall IMD deprivation score
+- IMD income score
+- IMD health disability score
+- IMD barriers to housing and services score
 
 ## Calculation of IMD Income Score
 
-Includes:
 - Out-of-work adults and children in families claiming specific benefits.
 - Working individuals with low earnings satisfying means-tested criteria.
 
 Key indicators include adults and children receiving:
+
 1. Income Support
 2. Income based job seeker's allowance
 3. Income based employment and support allowance
 4. Pension Credit 
 
-## Calculation of IMD Health Disability score
+This score is calculated by finding the total people satisfying these indicators as a proportion of the LSOA population.
+
+## IMD health disability score
 - Measures the risk of premature death and impairment of quality of life due to poor physical or mental health.
 - Does not include behavior or environmental factors predictive of future health deprivation.
 
-Indicators:
+Indicators include:
+
 1. Years of potential life lost
-  - Age standardised measure of premature death
-2. Comparative Illness and Disability Ratio
-  - An age and sex-standardized morbidity/disability ratio.
-3. Acute Morbidity
-  - An age and sex-standardized rate of emergency hospital admissions.
-4. Mood and Anxiety Disorders
-  - A composite measure derived from:
-  - Hospital episode data
-  - Prescribing data
-  - Suicide mortality data
+2. Comparative illness and disability ratio
+3. Acute morbidity
+4. Mood and anxiety disorders
 
-## Calculation of IMD Housing Services Score
+## IMD health disability score indicators I
+
+1. **Years of potential life lost**: Age standardised measure of premature death. Based on 2013–2017 mortality data, weights unexpected deaths more heavily for younger individuals, using age-sex population estimates (excluding prisoners) to calculate impact.
+2. **Comparative illness and disability ratio**: Age and sex-standardised morbidity/disability ratio based on those receiving benefits due to inability to work from ill health. This indicator is based on March 2016 data from the Department of Work and Pensions, compares actual versus expected benefit recipients. Uses age-sex standardised rate and excluding prisoners to adjust for population structure.
+
+## IMD health disability score indicators II
+
+3. **Acute morbidity**: Measures the level of emergency admissions to hospital based on administrative records of in-patient admissions.
+
+- This indicator is based on 2015/16–2016/17 emergency hospital admissions lasting over one day and uses age-sex standardised rates with 2016–2017 population estimates while excluding prisoners.
+
+## IMD health disability score indicators III
+
+4. **Mood and anxiety Disorders**: A composite measure derived from:
+  - Prescribing data (from NHS Business Services Authority)
+  - Hospital episode data (from Hospital Episode Statistics 2015/16-2016/17)
+  - Suicide mortality data (from the ONS)
+
+:::{.callout}
+**Indicator weights for mood and anxiety disorders**
+
+| **Indicator**                            | **Indicator Weight** |
+|------------------------------------------|-----------------------|
+| Prescribing data                         | 0.415                 |
+| Hospital episode data                    | 0.381                 |
+| Suicide mortality data                   | 0.205                 |
+:::
+
+## Health disability score calculation
+
+:::{.callout}
+- The indicators within the domain were standardised by ranking and transforming to a normal distribution.
+- Factor analysis was used to generate the weights to combine the indicators into the final domain score:
+
+| **Indicator**                            | **Indicator Weight** |
+|------------------------------------------|-----------------------|
+| Years of potential life lost             | 0.271                 |
+| Comparative illness and disability ratio | 0.300                 |
+| Acute morbidity                          | 0.256                 |
+| Mood and anxiety disorders               | 0.172                 |
+:::
+
+
+## IMD barriers to housing and services score indicators
 - Measures the physical and financial accessibility of housing and local services by considering geographical and wider barriers.
+- Geographical indicators: mean road distance to the closest post office, primary school, supermarket or general store and GP surgery.
+- Wider barrier indicator: LSOA proportion of household overcrowding,  homelessness measured by LAD rate of acceptances for housing assistance and housing affordability.
 
-Indicators for geographical barriers:
-- Mean road distance to the closest post office for people living at the LSOA level.
-- Mean road distance to the closest primary school for people living at the LSOA level.
-- Mean road distance to the closest supermarket or general store for people living at the LSOA level.
-- Mean road distance to the closest GP surgery for people living at the LSOA level.
+## IMD barriers to housing and services score calculation
 
-Indicators for wider barriers: 
-- The proportion of all households at the LSOA level judged to have insufficient space to meet the household’s needs.
-- The LAD-level rate of acceptances for housing assistance under the homelessness provisions of the 1996 Housing Act, assigned to the constituent LSOA.
-
+- The indicators within each sub-domains are standardised by ranking
+and transforming to a normal distribution.
+- They are then combined using equal weights.
+- The subdomains were then standardised by ranking and transforming to an exponential distribution and combined with equal weights to create the overall domain score. 
 
 ## Calculation of IMD overall score
-The IMD combines information from the seven domains to produce an overall relative measure of deprivation:
-- Income score (22.5%)
-- Employment deprivation (22.5%)
-- Education, skills and training deprivation (13.5%)
-- Health deprivation and disability (13.5%)
-- Crime (9.3%)
-- Barriers to housing and services (9.3%)
-- Living environment deprivation (9.3%)
+The IMD overall score combines information from the seven domains to produce an overall relative measure of deprivation:
+
+| **IMD Domain**                           | **Weight (%)** |
+|-----------------------------------------|----------------|
+| Income score                            | 22.5           |
+| Employment deprivation                  | 22.5           |
+| Education, skills and training          | 13.5           |
+| Health deprivation and disability       | 13.5           |
+| Crime                                   | 9.3            |
+| Barriers to housing and services        | 9.3            |
+| Living environment deprivation          | 9.3            |
 
 # Risk factors: Income and poverty
 
