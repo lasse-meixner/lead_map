@@ -20,15 +20,31 @@ jupyter: lead_map
 - Using this data, we want to identify high-risk areas for lead exposure for children in Leeds.
   - What do we know about kids in Leeds?
   - What do we know about risk factors in Leeds?
+## Testing kids in Leeds for lead
+- We collected a lot of **demographic**, **socioeconomic**, and **environmental** data the MSOA level for England.
+
+- Using this data, we want to identify high-risk areas for lead exposure for children in Leeds.
+  - What do we know about kids in Leeds?
+  - What do we know about risk factors in Leeds?
 
 # Data Overview
+## Introduction to OAs
+- Output Areas (OAs) are the smallest geographic units within local authority districts used for detailed data reporting.
+- OA adjustments in the 2021 census include merging or splitting 2011 OAs to maintain these thresholds, except in cases like large prisons
+- Around 200 OA boundaries were selectively realined to align with ward boundaries.
+- Leeds contains a total of 2,543 OAs.
+
+## Introduction to LSOAs
+- Lower Layer Support Output Areas (LSOAs) are built from groups of OAs (typically four or five).
+- Designed for consistent and comparable reporting of census data.
+- Each LSOA contains 400-1,200 households and a resident population of 1,000 - 3,000 people.
+- Leeds contains a total of 482 LSOAs.
+
 ## Introduction to MSOAs
-- Middle Layer Super Output Areas are geographic units within local authority districts used for detailed data reporting.
+- Middle Layer Super Output Areas are built from groups of four or five LSOAs.
 - Each MSOA includes 2,000–6,000 households or 5,000–15,000 people.
 - MSOA analysis allows for detailed exploration at a granular level, rather than viewing Leeds as a single unit.
-- Leeds contains a total of 107 MSOAs
-
-<!-- todo: OA level? -->
+- Leeds contains a total of 107 MSOAs.
 
 ## UK MSOA data
 We collect socioeconomic, demographic, and environmental data at the MSOA level from the following sources:
@@ -83,7 +99,6 @@ fig.show()
 
 
 - If we look at the distribution of kids under 5 years, the distribution is similar to the overall distribution of kids
-  
 
 ## Location of families by age of parents
 
@@ -161,6 +176,11 @@ fig.show()
 
 - These are almost guaranteed to have lead paint
 
+## House price data
+- Median house price data is reported by the ONS which uses open data from HM Land Registry, a source of comprehensive record level administrative data on property transactions.
+- This covers transactions within a four-quarter window (one year) and is updated each quarter
+- The most granular level this is reported at is the LSOA level.
+
 ## Distribution of (median) house prices
 
 ```{python}
@@ -177,30 +197,30 @@ fig.show()
 
 # Risk factors: Employment
 
-## Primary and secondary sector employment
-
-Primary and secondary sector employment often mean working near industrial sites which use lead as a raw material as part of the production process. (Note: maybe lead roofings for construction. but we dont know much about the construction attribution so I'd maybe leave this out too)
-
-We use the UK 2011 Census to investigate the following jobs and its impact on lead exposure:
-- Proportion Working in Mining (Note: proportions are miniscule, I'd leave this out)
-- Proportion Working in Construction 
-- Proportion Working in Machinery and Plants
-
+- House prices are highest in the north
+- Median house prices 2017-2021 have tripled since 1995-2000
 
 ## Unemployment and economic inactivity 
-
+- Unemployment rates are taken from the UK census by calculating the proportion of people who are unemployed by the number of economically active individuals aged 16 or over.
 - Higher rates of unemployment and economic inactivity are often found in lower-income areas
 - Residents may have fewer housing options and are likelier to live in older, potentially lead-contaminated buildings.
 
-We have the following variables from the UK 2011 census:
+## Unemployment rate
 
-- Proportion of unemployed (by gender)
-- Proportion of economically inactive (by gender)
+```{python}
+#| label: unemployment-location
+#| echo: false
+
+plot_chloropleth("unemployed_16to74_ppl_prop_2011", merged, "Leeds")
+fig.show()
+```
+
 # Risk factors: Deprivation
 
 ## Why Deprivation
 
-- The IMD combines income explores income, employment, educational skills, health, housing, crime and living environment conditions to form a measure of area-level deprivation in the UK.
+- The IMD explores income, employment, educational skills, health, housing, crime and living environment conditions to form a measure of area-level deprivation in the UK.
+- The IMD data is collected at the LSOA level.
 - Aizer (2017), Brulle & Pellow (2006), Bullard (1994) find that more deprived families face greater lead exposure risks, with fewer resources for renovations or relocation.
 - Childhood lead exposure is linked to criminal behaviour and aggression.
 
@@ -208,34 +228,112 @@ We have the following variables from the UK 2011 census:
 
 By using the UK Index of Multiple Deprivation 2015 data, we capture factors linked to lead exposures providing a basis for predicting high-risk areas.
 
-The variables used are:
+The variables we use are:
 
-- Overall IMD Deprivation Score
-- IMD Income Score
-- IMD Health Disability Score
-- IMD Housing Services Score
+- Overall IMD deprivation score
+- IMD income score
+- IMD health disability score
+- IMD barriers to housing and services score
 
-# Risk factors: Single parenting
+## Calculation of IMD Income Score
 
-## Single Parent Incidence
+- Out-of-work adults and children in families claiming specific benefits.
+- Working individuals with low earnings satisfying means-tested criteria.
 
-- Single parents rely on a single income and this limits access to safer housing, often resulting in older homes with potential for lead paint.
+Key indicators include adults and children receiving:
 
-- Single parents may have less time to monitor lead hazards at home 
+1. Income Support
+2. Income based job seeker's allowance
+3. Income based employment and support allowance
+4. Pension Credit 
 
-- We focus on the **proportion of single parent families** from the UK 2011 census
+This score is calculated by finding the total people satisfying these indicators as a proportion of the LSOA population.
 
-## Location of single parents families
+## IMD health disability score
+- Measures the risk of premature death and impairment of quality of life due to poor physical or mental health.
+- Does not include behavior or environmental factors predictive of future health deprivation.
 
-```{python}
-#| label: single-parents-location
-#| echo: false
+Indicators include:
 
-fig = plot_chloropleth("lone_parent_fam_w_kids_prop_2011", merged, "Leeds")
-fig.show()
-```
+1. Years of potential life lost
+2. Comparative illness and disability ratio
+3. Acute morbidity
+4. Mood and anxiety disorders
+
+## IMD health disability score indicators I
+
+1. **Years of potential life lost**: Age standardised measure of premature death. Based on 2013–2017 mortality data, weights unexpected deaths more heavily for younger individuals, using age-sex population estimates (excluding prisoners) to calculate impact.
+2. **Comparative illness and disability ratio**: Age and sex-standardised morbidity/disability ratio based on those receiving benefits due to inability to work from ill health. This indicator is based on March 2016 data from the Department of Work and Pensions, compares actual versus expected benefit recipients. Uses age-sex standardised rate and excluding prisoners to adjust for population structure.
+
+## IMD health disability score indicators II
+
+3. **Acute morbidity**: Measures the level of emergency admissions to hospital based on administrative records of in-patient admissions.
+
+- This indicator is based on 2015/16–2016/17 emergency hospital admissions lasting over one day and uses age-sex standardised rates with 2016–2017 population estimates while excluding prisoners.
+
+## IMD health disability score indicators III
+
+4. **Mood and anxiety Disorders**: A composite measure derived from:
+  - Prescribing data (from NHS Business Services Authority)
+  - Hospital episode data (from Hospital Episode Statistics 2015/16-2016/17)
+  - Suicide mortality data (from the ONS)
+
+:::{.callout}
+**Indicator weights for mood and anxiety disorders**
+
+| **Indicator**                            | **Indicator Weight** |
+|------------------------------------------|-----------------------|
+| Prescribing data                         | 0.415                 |
+| Hospital episode data                    | 0.381                 |
+| Suicide mortality data                   | 0.205                 |
+:::
+
+## Health disability score calculation
+
+:::{.callout}
+- The indicators within the domain were standardised by ranking and transforming to a normal distribution.
+- Factor analysis was used to generate the weights to combine the indicators into the final domain score:
+
+| **Indicator**                            | **Indicator Weight** |
+|------------------------------------------|-----------------------|
+| Years of potential life lost             | 0.271                 |
+| Comparative illness and disability ratio | 0.300                 |
+| Acute morbidity                          | 0.256                 |
+| Mood and anxiety disorders               | 0.172                 |
+:::
+
+
+## IMD barriers to housing and services score indicators
+- Measures the physical and financial accessibility of housing and local services by considering geographical and wider barriers.
+- Geographical indicators: mean road distance to the closest post office, primary school, supermarket or general store and GP surgery.
+- Wider barrier indicator: LSOA proportion of household overcrowding,  homelessness measured by LAD rate of acceptances for housing assistance and housing affordability.
+
+## IMD barriers to housing and services score calculation
+
+- The indicators within each sub-domains are standardised by ranking
+and transforming to a normal distribution.
+- They are then combined using equal weights.
+- The subdomains were then standardised by ranking and transforming to an exponential distribution and combined with equal weights to create the overall domain score. 
+
+## Calculation of IMD overall score
+The IMD overall score combines information from the seven domains to produce an overall relative measure of deprivation:
+
+| **IMD Domain**                           | **Weight (%)** |
+|-----------------------------------------|----------------|
+| Income score                            | 22.5           |
+| Employment deprivation                  | 22.5           |
+| Education, skills and training          | 13.5           |
+| Health deprivation and disability       | 13.5           |
+| Crime                                   | 9.3            |
+| Barriers to housing and services        | 9.3            |
+| Living environment deprivation          | 9.3            |
 
 # Risk factors: Income and poverty
+
+## Income data
+- Low-income households are more likely to live in older, poorly maintained housing with lead-based paint.
+- Children in families with lower incomes have limited access to safer housing leading to longer exposure periods to lead.
+- Our measure for income uses median household income data that is collected from the UK ONS at the MSOA level.
 
 ## Location of high incomes
 
@@ -249,6 +347,11 @@ fig = plot_chloropleth("median_annual_incomeE", merged, "Leeds")
 fig.update_layout(title="Median annual incomes (estimated)")
 fig.show()
 ```
+
+## Poverty rate data
+- Poverty rate data is collected from the ONS and it reports the proportion of households living below 60% of median income.
+- In order to have comparable poverty rates between different areas in the UK, we consider the poverty rate after adjusting for housing costs.
+- This is reported at the MSOA level.
 
 ## Poverty rate
 
@@ -310,29 +413,20 @@ fig.show()
 
 # Risk factors: Education
 
-## Parental educational attainment
+## Poverty rate data
+- Poverty rate data is collected from the ONS and it reports the proportion of households living below 60% of median income.
+- In order to have comparable poverty rates between different areas in the UK, we consider the poverty rate after adjusting for housing costs.
+- This is reported at the MSOA level.
 
-- Parental education level directly impacts socioeconomic status, affecting housing options and access to resources
-
-- Higher educational attainment may be linked to greater awareness of lead exposure risks, making parents likelier to avoid high risk environments.
-
-Using the UK 2011 census we analyse:
-
-- Proportion of parents with level 1 qualifications
-- Proportion of parents with level 2 qualifications
-- Proportion of parents with level 3 qualifications
-- Proportion of parents with level 4 qualifications
-
-## Location of educated parents
-
+## Poverty rate
 ```{python}
 #| label: education-location
 #| echo: false
 
-fig = plot_chloropleth("l4_qual_ppl_w_kids_prop_2011", merged, "Leeds")
-fig.update_layout(title="Proportion of people with higher education in Leeds")
+fig = plot_CDFs("poverty_rateE", merged, "Leeds")
 fig.show()
 ```
+- Poverty rates in Leeds have a heavier tail then the UK
 
 ## Location of uneducated parents
 
@@ -340,12 +434,11 @@ fig.show()
 #| label: uneducated-location
 #| echo: false
 
-fig = plot_chloropleth("no_qual_ppl_w_kids_prop_2011", merged, "Leeds")
-fig.update_layout(title="Proportion of people with lower education in Leeds")
+fig = plot_chloropleth("poverty_rateE", merged, "Leeds")
 fig.show()
 ```
 
-- This correlates highly with the poverty map
+- Poverty rates are highest towards the center
 
 ## Correlation between education of parents and income
 
@@ -460,3 +553,37 @@ fig.show()
 ```
 
 The MSOAs with the highest risk scores are located in the **north/north-eastern belt** around the center of Leeds.
+
+## Appendix
+
+# Risk factors: Employment
+
+## Primary and secondary sector employment
+
+Primary and secondary sector employment often mean working near industrial sites which use lead as a raw material as part of the production process. (Note: maybe lead roofings for construction. but we dont know much about the construction attribution so I'd maybe leave this out too)
+
+We use the UK 2011 Census to investigate the following jobs and its impact on lead exposure:
+- Proportion Working in Mining (Note: proportions are miniscule, I'd leave this out)
+- Proportion Working in Construction 
+- Proportion Working in Machinery and Plants
+
+# Risk factors: Single parenting
+
+## Single Parent Incidence
+
+- Single parents rely on a single income and this limits access to safer housing, often resulting in older homes with potential for lead paint.
+
+- Single parents may have less time to monitor lead hazards at home 
+
+- We focus on the **proportion of single parent families** from the UK 2011 census
+
+## Location of single parents families
+
+```{python}
+#| label: single-parents-location
+#| echo: false
+
+fig = plot_chloropleth("lone_parent_fam_w_kids_prop_2011", merged, "Leeds")
+fig.show()
+```
+
