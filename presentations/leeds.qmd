@@ -9,6 +9,7 @@ format:
     slideNumber: true
     auto: true
 execute:
+  enabled: true
   echo: true
   cache: true
 jupyter: lead_map
@@ -18,12 +19,7 @@ jupyter: lead_map
 - We collected a lot of **demographic**, **socioeconomic**, and **environmental** data the MSOA level for England.
 
 - Using this data, we want to identify high-risk areas for lead exposure for children in Leeds.
-  - What do we know about kids in Leeds?
-  - What do we know about risk factors in Leeds?
-## Testing kids in Leeds for lead
-- We collected a lot of **demographic**, **socioeconomic**, and **environmental** data the MSOA level for England.
 
-- Using this data, we want to identify high-risk areas for lead exposure for children in Leeds.
   - What do we know about kids in Leeds?
   - What do we know about risk factors in Leeds?
 
@@ -76,6 +72,7 @@ from shapefile_loading import get_msoa_merged_shapefile
 #| echo: false
 
 merged, cols = get_msoa_merged_shapefile(path_relative_to_UK="../UK/predictors")
+leeds = merged.loc[merged["msoa_name_x"].str.contains("Leeds")]
 ```
 
 ```{python}
@@ -83,11 +80,10 @@ merged, cols = get_msoa_merged_shapefile(path_relative_to_UK="../UK/predictors")
 #| echo: false
 
 fig = plot_chloropleth("total_kids_2011", merged, "Leeds")
-fig.update_layout(title_text="Distribution of kids in Leeds")
 fig.show()
 ```
 
-## Location of children under 5 years
+## % of kids under 5
 
 ```{python}
 #| label: kids-u5-location
@@ -98,22 +94,6 @@ fig.show()
 ```
 
 
-- If we look at the distribution of kids under 5 years, the distribution is similar to the overall distribution of kids
-
-## Location of families by age of parents
-
-```{python}
-#| label: correlation income & house prices
-#| echo: false
-
-fig = plot_pairs(["house_price_mean_median_2017to2021", "frp_u24_fam_w_kids_prop_2011","frp_50_64_fam_w_kids_prop_2011"], merged, "Leeds")
-fig.show()
-```
-
-- Young parents tend to live in the center of Leeds, while older parents live in the wealthier outskirts
-
-<!-- does the census variable count kids, or kids in household -->
-
 # Risk factors: Housing
 
 ## Why housing
@@ -121,16 +101,18 @@ fig.show()
 - Lead paint was widely used in the UK before 1963. A 1963 agreement required labelling on paint cans with >1% lead, warning people against its use in areas accessible to children.
 - White lead paint was not banned until 1992, so housing built before 1992 still pose lead risks.
 
-## Housing age variables
+## Housing age variables {.smaller .scrollable}
 
 We use the UK Stock of properties data to obtain the proportion of houses built in various intervals. We focus on the following variables:
 
-Windows:
+**Windows:**
+
 - Proportion of Houses Built 1930-1939
 - Proportion of Houses Built 1945-1954
 - Proportion of Houses Built 1955-1964
 
-Cumulative:
+**Cumulative:**
+
 - Proportion of Houses built before 1939
 - Proportion of houses built before 1954
 - Proportion of houses built before 1972
@@ -144,7 +126,7 @@ Cumulative:
 #| label: housing-pre-1992-location
 #| echo: false
 
-fig = plot_chloropleth("bp_pre_1992_prop", merged, "Leeds", color_continuous_scale="rdbu")
+fig = plot_chloropleth("bp_pre_1992_prop", merged, "Leeds", color_continuous_scale="rdbu_r")
 fig.show()
 ```
 
@@ -157,7 +139,7 @@ fig.show()
 #| label: housing-pre-1954-location
 #| echo: false
 
-fig = plot_chloropleth("bp_pre_1954_prop", merged, "Leeds", color_continuous_scale="rdbu")
+fig = plot_chloropleth("bp_pre_1954_prop", merged, "Leeds", color_continuous_scale="rdbu_r")
 fig.show()
 ```
 
@@ -169,8 +151,7 @@ fig.show()
 #| label: housing-pre-1939-location
 #| echo: false
 
-fig = plot_chloropleth("bp_pre_1939_prop", merged, "Leeds",
-color_continuous_scale="rdbu")
+fig = plot_chloropleth("bp_pre_1939_prop", merged, "Leeds", color_continuous_scale="rdbu_r")
 fig.show()
 ```
 
@@ -187,8 +168,7 @@ fig.show()
 #| label: house-prices-location
 #| echo: false
 
-fig = plot_chloropleth("house_price_mean_median_2017to2021", merged, "Leeds")
-fig.update_layout(title_text="Distribution of house prices in Leeds")
+fig = plot_chloropleth("house_price_mean_median_2017to2021", merged, "Leeds", color_continuous_scale="Viridis")
 fig.show()
 ```
 
@@ -197,21 +177,18 @@ fig.show()
 
 # Risk factors: Employment
 
-- House prices are highest in the north
-- Median house prices 2017-2021 have tripled since 1995-2000
-
 ## Unemployment and economic inactivity 
 - Unemployment rates are taken from the UK census by calculating the proportion of people who are unemployed by the number of economically active individuals aged 16 or over.
 - Higher rates of unemployment and economic inactivity are often found in lower-income areas
 - Residents may have fewer housing options and are likelier to live in older, potentially lead-contaminated buildings.
 
 ## Unemployment rate
-
+<!-- todo: fix the bug where always house prices are shown...? -->
 ```{python}
-#| label: unemployment-location
+#| label: unemployment-map
 #| echo: false
 
-plot_chloropleth("unemployed_16to74_ppl_prop_2011", merged, "Leeds")
+plot_chloropleth("unemployed_16to74_ppl_prop_2011", merged, "Leeds", color_continuous_scale="rdbu_r")
 fig.show()
 ```
 
@@ -235,7 +212,7 @@ The variables we use are:
 - IMD health disability score
 - IMD barriers to housing and services score
 
-## Calculation of IMD Income Score
+## Calculation of IMD Income Score {.smaller .scrollable}
 
 - Out-of-work adults and children in families claiming specific benefits.
 - Working individuals with low earnings satisfying means-tested criteria.
@@ -260,25 +237,24 @@ Indicators include:
 3. Acute morbidity
 4. Mood and anxiety disorders
 
-## IMD health disability score indicators I
+## IMD health disability score [I]
 
 1. **Years of potential life lost**: Age standardised measure of premature death. Based on 2013–2017 mortality data, weights unexpected deaths more heavily for younger individuals, using age-sex population estimates (excluding prisoners) to calculate impact.
 2. **Comparative illness and disability ratio**: Age and sex-standardised morbidity/disability ratio based on those receiving benefits due to inability to work from ill health. This indicator is based on March 2016 data from the Department of Work and Pensions, compares actual versus expected benefit recipients. Uses age-sex standardised rate and excluding prisoners to adjust for population structure.
 
-## IMD health disability score indicators II
+## IMD health disability score [II]
 
 3. **Acute morbidity**: Measures the level of emergency admissions to hospital based on administrative records of in-patient admissions.
 
 - This indicator is based on 2015/16–2016/17 emergency hospital admissions lasting over one day and uses age-sex standardised rates with 2016–2017 population estimates while excluding prisoners.
 
-## IMD health disability score indicators III
+## IMD health disability score [III] {.scrollable}
 
 4. **Mood and anxiety Disorders**: A composite measure derived from:
   - Prescribing data (from NHS Business Services Authority)
   - Hospital episode data (from Hospital Episode Statistics 2015/16-2016/17)
   - Suicide mortality data (from the ONS)
 
-:::{.callout}
 **Indicator weights for mood and anxiety disorders**
 
 | **Indicator**                            | **Indicator Weight** |
@@ -286,11 +262,10 @@ Indicators include:
 | Prescribing data                         | 0.415                 |
 | Hospital episode data                    | 0.381                 |
 | Suicide mortality data                   | 0.205                 |
-:::
+
 
 ## Health disability score calculation
 
-:::{.callout}
 - The indicators within the domain were standardised by ranking and transforming to a normal distribution.
 - Factor analysis was used to generate the weights to combine the indicators into the final domain score:
 
@@ -300,7 +275,6 @@ Indicators include:
 | Comparative illness and disability ratio | 0.300                 |
 | Acute morbidity                          | 0.256                 |
 | Mood and anxiety disorders               | 0.172                 |
-:::
 
 
 ## IMD barriers to housing and services score indicators
@@ -343,8 +317,7 @@ The IMD overall score combines information from the seven domains to produce an 
 #| label: high-income-location
 #| echo: false
 
-fig = plot_chloropleth("median_annual_incomeE", merged, "Leeds")
-fig.update_layout(title="Median annual incomes (estimated)")
+fig = plot_chloropleth("median_annual_incomeE", merged, "Leeds", color_continuous_scale="Viridis")
 fig.show()
 ```
 
@@ -355,78 +328,33 @@ fig.show()
 
 ## Poverty rate
 
-<!-- cdf plot is not very clear: show comparison of centralities -->
-
 ```{python}
 #| label: poverty-comparison
+#| cache: false
 #| echo: false
 
-fig = plot_histograms("poverty_rateE", merged, "Leeds")
+# compute proportion of MSOAs that have more than 20% poverty.
+leeds_poverty_cum_20 = round((leeds["poverty_rateE"] > 30).sum() / len(leeds),1)
+uk_poverty_cum_20 = round((merged["poverty_rateE"] > 30).sum() / len(merged),1)
+
+fig = plot_histograms("poverty_rateE", merged, "Leeds", n_bins=30)
 fig.show()
 ```
-- Poverty rates in Leeds have a heavier tail then the UK
+- Poverty rates in Leeds have a heavier tail than the UK, with ``{python} leeds_poverty_cum_20`` of MSOAs having more than 20% poverty, compared to ``{python} uk_poverty_cum_20`` in the UK.
 
 ## Location of poverty
 
-<!-- todo: find out exact definition of poverty -->
 ```{python}
 #| label: poverty-location
 #| echo: false
 
-fig = plot_chloropleth("poverty_rateE", merged, "Leeds")
+fig = plot_chloropleth("poverty_rateE", merged, "Leeds", color_continuous_scale="rdylbu")
 fig.show()
 ```
 
 - Poverty rates are highest towards the center
 
-## Minority population
-
-- (Wheeler et al. , 2021) find that African Americans face a higher risk of deprivation and lead poisoning in Maryland. 
-- While the structural system in the US differs, as a comparatively poorer population it may well be an at-risk group in the UK.
-
-From the UK 2011 Census we consider the following groups:
--	Proportion of Black People
--	Proportion of White People
-- Proportion of Immigrants (todo: check in what form we have this!)
-
-## Correlation of black population and poverty
-
-```{python}
-#| label: black-poverty-correlation
-#| echo: false
-
-fig = plot_pairs(["black_ppl_prop_2011", "poverty_rateE"], merged, "Leeds")
-fig.show()
-```
-
-## Location of black population
-
-```{python}
-#| label: black-population-location
-#| echo: false
-
-fig = plot_chloropleth("black_ppl_prop_2011", merged, "Leeds")
-fig.show()
-
-```
-- The population of black people is concentrated in the north of the center
-
 # Risk factors: Education
-
-## Poverty rate data
-- Poverty rate data is collected from the ONS and it reports the proportion of households living below 60% of median income.
-- In order to have comparable poverty rates between different areas in the UK, we consider the poverty rate after adjusting for housing costs.
-- This is reported at the MSOA level.
-
-## Poverty rate
-```{python}
-#| label: education-location
-#| echo: false
-
-fig = plot_CDFs("poverty_rateE", merged, "Leeds")
-fig.show()
-```
-- Poverty rates in Leeds have a heavier tail then the UK
 
 ## Location of uneducated parents
 
@@ -434,19 +362,7 @@ fig.show()
 #| label: uneducated-location
 #| echo: false
 
-fig = plot_chloropleth("poverty_rateE", merged, "Leeds")
-fig.show()
-```
-
-- Poverty rates are highest towards the center
-
-## Correlation between education of parents and income
-
-```{python}
-#| label: education-income-correlation
-#| echo: false
-
-fig = plot_pairs(["l4_qual_ppl_w_kids_prop_2011","poverty_rateE","no_qual_ppl_w_kids_prop_2011"], merged, "Leeds")
+fig = plot_chloropleth("no_qual_ppl_w_kids_prop_2011", merged, "Leeds")
 fig.show()
 ```
 
@@ -458,15 +374,15 @@ fig.show()
   - Moss lead concentration (2005)
   - Soil lead concentration
 
-- Since moss measurements are extremely sparse and MSOA-level values mostly imputed, we focus on soil lead concentration
-<!-- add sources! -->
+- Since moss measurements are extremely sparse and MSOA-level values mostly imputed, we focus on soil lead concentration.
 
-## Soil Lead
+## Soil Lead {.smaller .scrollable}
 
 ::: {.columns}
 ::: {.column width="50%"}
 We obtain gridded topsoil lead concentration data from the UK Geological Survey[^1].
-They:
+They
+
 - collected raw data point measures based on 5 surveys conducted until 2014.
 - to produce a continous prediction map, they use an interpolation method (*ordinary kriging*)
 - they fit an exponential variogram, using the nearest 5 to 8 neighbours within a maximum search radius of 10km
@@ -475,22 +391,26 @@ They:
 
 ::: {.column width="50%"}
 <!-- add picture of UKGS -->
-![](assets/Pb_v1.png)
+![](assets/Pb_v1.png){width=80%}
 :::
 :::
 
-We then use this grid to compute two measures:
-- Mean soil lead concentration: Calculate the average lead concentration for all soil grid cells that intersect each MSOA.
-- IDW mean soil lead concentration: Like the previous, but using an inverse distance weighting method to account for the distance between the grid cell and the MSOA centroid.
+We then use this 500m grid to compute two measures:
+1. **Mean soil lead concentration**: 
+   - Calculate the average lead concentration for all soil grid cells that intersect each MSOA.
+2. **IDW mean soil lead concentration**: 
+   - Like the previous, but using an inverse distance weighting method to account for the distance between the grid cell and the MSOA centroid.
+
 
 [^1]: UK Geological Survey. Retrieved from [https://www.ukso.org/static-maps/uk-topsoil-geochemistry.html](https://www.ukso.org/static-maps/uk-topsoil-geochemistry.html)
+
 
 ## Soil lead comparison
 ```{python}
 #| label: soil-lead-comparison
 #| echo: false
 merged_no_soil_na = merged.dropna(subset=["soil_lead_mean"])
-fig = plot_histograms("soil_lead_mean", merged_no_soil_na, location="Leeds", other_location="UK", n_bins=60)
+fig = plot_histograms("soil_lead_mean", merged_no_soil_na, location="Leeds", other_location="UK", n_bins=40)
 fig.update_layout(title="Soil lead concentration in Leeds vs UK")
 # limit x-axis to 300
 fig.update_xaxes(range=[0, 300])
@@ -499,16 +419,19 @@ fig.show()
 
 - compared to the overall UK distribution, Leeds has higher soil lead concentrations
 
-## Soil lead location
+# Variable dependence
+
+## Correlation between risk factors
+
 ```{python}
-#| label: soil-lead
+#| label: correlation
 #| echo: false
 
-fig = plot_chloropleth("soil_lead_mean", merged, "Leeds")
+risk_factors = ["bp_pre_1954_prop", "imd_overall_score_2015", "poverty_rateE", "house_price_mean_median_2017to2021", "soil_lead_mean"]
+fig = plot_heatmap(risk_factors, merged, "Leeds")
 fig.show()
 ```
 
-- High lead soil in Otley perhaps due to airport location?
 
 # Hazard Map
 
@@ -519,10 +442,9 @@ fig.show()
   
 - This was previously done by Public Health England & Imperial College London, with our data we can supercede their work
 
-## Comparison with Public Health England
+## Comparison with Public Health England {.smaller .scrollable}
 
 We have more data, at a more granular level.
-<!-- replace by columns -->
 
 | **Public Health England** | **Our approach** |
 |---------------------------|------------------|
@@ -538,14 +460,11 @@ We have more data, at a more granular level.
 | - recast risk back into deciles | - since risk variables are dependent, risk scores themselves will likely not be uniform -> re-transform to a uniform scale |
 
 
-
 ## Risk map
 
 ```{python}
 #| label: risk-map
 #| echo: false
-
-risk_factors = ["bp_pre_1954_prop", "imd_overall_score_2015", "lone_parent_fam_w_kids_prop_2011", "house_price_mean_median_2017to2021"]
 
 fig = plot_risk_score(risk_factors, merged, "Leeds")
 fig.update_layout(title="Risk map for Leeds")
@@ -554,36 +473,23 @@ fig.show()
 
 The MSOAs with the highest risk scores are located in the **north/north-eastern belt** around the center of Leeds.
 
-## Appendix
-
-# Risk factors: Employment
-
-## Primary and secondary sector employment
-
-Primary and secondary sector employment often mean working near industrial sites which use lead as a raw material as part of the production process. (Note: maybe lead roofings for construction. but we dont know much about the construction attribution so I'd maybe leave this out too)
-
-We use the UK 2011 Census to investigate the following jobs and its impact on lead exposure:
-- Proportion Working in Mining (Note: proportions are miniscule, I'd leave this out)
-- Proportion Working in Construction 
-- Proportion Working in Machinery and Plants
-
-# Risk factors: Single parenting
-
-## Single Parent Incidence
-
-- Single parents rely on a single income and this limits access to safer housing, often resulting in older homes with potential for lead paint.
-
-- Single parents may have less time to monitor lead hazards at home 
-
-- We focus on the **proportion of single parent families** from the UK 2011 census
-
-## Location of single parents families
+## Risk comparison with ?Oxford
 
 ```{python}
-#| label: single-parents-location
+#| label: risk-comparison
 #| echo: false
 
-fig = plot_chloropleth("lone_parent_fam_w_kids_prop_2011", merged, "Leeds")
+merged_w_risk = compute_risk_score(merged, risk_factors)
+
+# get leeds with UK-wide risk score
+leeds_w_uk_based_risk = merged_w_risk.loc[merged_w_risk["msoa_name_x"].str.contains("Leeds")]
+# compute population weighted average risk score of leeds
+leeds_risk_score_mean = round((leeds_w_uk_based_risk["risk_score"] * leeds["total_kids_2011"]).sum() / leeds["total_kids_2011"].sum(), 1)
+
+fig = plot_histograms("risk_score", merged_w_risk, "Leeds", other_location="Oxford", n_bins=10)
+fig.update_layout(title="Risk score in Leeds vs Oxford")
 fig.show()
 ```
+
+- Overall in the UK, Leeds has a (kid-count weighted) average risk score of ``{python} leeds_risk_score_mean``.
 
