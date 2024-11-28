@@ -369,7 +369,7 @@ fig.show()
 
 # Risk factors: Pollution
 
-# Pollution indicators
+## Pollution indicators
 - Moss and soil absorb heavy metals that are in the atmosphere, and can therefore be used as a bioindicator for (past) lead presence. We have data both on:
   - Moss lead concentration (2005)
   - Soil lead concentration
