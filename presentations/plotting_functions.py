@@ -17,7 +17,8 @@ fancy_names = {
   "median_annual_incomeE": "Median annual income",
   "poverty_rateE": "Poverty rate",
   "black_ppl_prop_2011": "% black people (2011)",
-  "no_qual_ppl_w_kids_prop_2011": "% unqualified people (2011)"
+  "no_qual_ppl_w_kids_prop_2011": "% unqualified people (2011)",
+  "soil_lead_mean": "Soil lead"
 }
 
 # plot function that shows geospatial distribution of predictor across leeds
