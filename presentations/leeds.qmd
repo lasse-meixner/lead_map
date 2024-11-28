@@ -29,6 +29,7 @@ jupyter: lead_map
 - Output Areas (OAs) are the smallest geographic units within local authority districts used for detailed data reporting.
 - OA adjustments in the 2021 census include merging or splitting 2011 OAs to maintain these thresholds, except in cases like large prisons
 - Around 200 OA boundaries were selectively realined to align with ward boundaries.
+- Each OA includes 40-250 households or 100-625 people. 
 - Leeds contains a total of 2,543 OAs.
 
 ## Introduction to LSOAs
