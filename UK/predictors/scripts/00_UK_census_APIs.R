@@ -42,21 +42,284 @@ get_census_data_england_2011 <- function(geography_type_code) {
     
     # Get number of families with dependent children with FRP in each FRP age band
     # And express as percentages of all families with dependent children
+    # FRP age band count with one dependent child
+    
     left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
                                 select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 1, C_DPCFAMUK11 = 2, C_FMTFAMUK11 = 0)) %>%
-    rename("frp_u24_fam_w_kids" = "OBS_VALUE") %>% 
+    rename("frp_u24_fam_w_kids_0_4_one" = "OBS_VALUE") %>% 
     left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
                                 select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 2, C_DPCFAMUK11 = 2, C_FMTFAMUK11 = 0)) %>%
-    rename("frp_25_49_fam_w_kids" = "OBS_VALUE") %>% 
+    rename("frp_25_49_fam_w_kids_0_4_one" = "OBS_VALUE") %>% 
     left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
                                 select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 3, C_DPCFAMUK11 = 2, C_FMTFAMUK11 = 0)) %>%
-    rename("frp_50_64_fam_w_kids" = "OBS_VALUE") %>% 
+    rename("frp_50_64_fam_w_kids_0_4_one" = "OBS_VALUE") %>% 
     left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
                                 select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 4, C_DPCFAMUK11 = 2, C_FMTFAMUK11 = 0)) %>%
-    rename("frp_65_plus_fam_w_kids" = "OBS_VALUE") %>% 
+    rename("frp_65_plus_fam_w_kids_0_4_one" = "OBS_VALUE") %>%
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 1, C_DPCFAMUK11 = 3, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_u24_fam_w_kids_5_7_one" = "OBS_VALUE") %>% 
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 2, C_DPCFAMUK11 = 3, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_25_49_fam_w_kids_5_7_one" = "OBS_VALUE") %>% 
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 3, C_DPCFAMUK11 = 3, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_50_64_fam_w_kids_5_7_one" = "OBS_VALUE") %>% 
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 4, C_DPCFAMUK11 = 3, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_65_plus_fam_w_kids_5_7_one" = "OBS_VALUE") %>%
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 1, C_DPCFAMUK11 = 4, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_u24_fam_w_kids_8_9_one" = "OBS_VALUE") %>% 
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 2, C_DPCFAMUK11 = 4, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_25_49_fam_w_kids_8_9_one" = "OBS_VALUE") %>% 
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 3, C_DPCFAMUK11 = 4, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_50_64_fam_w_kids_8_9_one" = "OBS_VALUE") %>% 
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 4, C_DPCFAMUK11 = 4, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_65_plus_fam_w_kids_8_9_one" = "OBS_VALUE") %>%
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 1, C_DPCFAMUK11 = 5, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_u24_fam_w_kids_10_11_one" = "OBS_VALUE") %>% 
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 2, C_DPCFAMUK11 = 5, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_25_49_fam_w_kids_10_11_one" = "OBS_VALUE") %>% 
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 3, C_DPCFAMUK11 = 5, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_50_64_fam_w_kids_10_11_one" = "OBS_VALUE") %>% 
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 4, C_DPCFAMUK11 = 5, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_65_plus_fam_w_kids_10_11_one" = "OBS_VALUE") %>%
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 1, C_DPCFAMUK11 = 6, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_u24_fam_w_kids_12_15_one" = "OBS_VALUE") %>% 
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 2, C_DPCFAMUK11 = 6, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_25_49_fam_w_kids_12_15_one" = "OBS_VALUE") %>% 
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 3, C_DPCFAMUK11 = 6, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_50_64_fam_w_kids_12_15_one" = "OBS_VALUE") %>% 
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 4, C_DPCFAMUK11 = 6, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_65_plus_fam_w_kids_12_15_one" = "OBS_VALUE") %>%
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 1, C_DPCFAMUK11 = 7, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_u24_fam_w_kids_16_18_one" = "OBS_VALUE") %>% 
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 2, C_DPCFAMUK11 = 7, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_25_49_fam_w_kids_16_18_one" = "OBS_VALUE") %>% 
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 3, C_DPCFAMUK11 = 7, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_50_64_fam_w_kids_16_18_one" = "OBS_VALUE") %>% 
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 4, C_DPCFAMUK11 = 7, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_65_plus_fam_w_kids_16_18_one" = "OBS_VALUE") %>%
+    
+    # FRP age band count with two dependent children
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 1, C_DPCFAMUK11 = 8, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_u24_fam_w_kids_0_4_two" = "OBS_VALUE") %>% 
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 2, C_DPCFAMUK11 = 8, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_25_49_fam_w_kids_0_4_two" = "OBS_VALUE") %>% 
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 3, C_DPCFAMUK11 = 8, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_50_64_fam_w_kids_0_4_two" = "OBS_VALUE") %>% 
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 4, C_DPCFAMUK11 = 8, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_65_plus_fam_w_kids_0_4_two" = "OBS_VALUE") %>% 
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 1, C_DPCFAMUK11 = 9, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_u24_fam_w_kids_5_7_two" = "OBS_VALUE") %>% 
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 2, C_DPCFAMUK11 = 9, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_25_49_fam_w_kids_5_7_two" = "OBS_VALUE") %>% 
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 3, C_DPCFAMUK11 = 9, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_50_64_fam_w_kids_5_7_two" = "OBS_VALUE") %>% 
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 4, C_DPCFAMUK11 = 9, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_65_plus_fam_w_kids_5_7_two" = "OBS_VALUE") %>%
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 1, C_DPCFAMUK11 = 10, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_u24_fam_w_kids_8_9_two" = "OBS_VALUE") %>% 
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 2, C_DPCFAMUK11 = 10, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_25_49_fam_w_kids_8_9_two" = "OBS_VALUE") %>% 
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 3, C_DPCFAMUK11 = 10, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_50_64_fam_w_kids_8_9_two" = "OBS_VALUE") %>% 
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 4, C_DPCFAMUK11 = 10, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_65_plus_fam_w_kids_8_9_two" = "OBS_VALUE") %>%
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 1, C_DPCFAMUK11 = 11, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_u24_fam_w_kids_10_11_two" = "OBS_VALUE") %>% 
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 2, C_DPCFAMUK11 = 11, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_25_49_fam_w_kids_10_11_two" = "OBS_VALUE") %>% 
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 3, C_DPCFAMUK11 = 11, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_50_64_fam_w_kids_10_11_two" = "OBS_VALUE") %>% 
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 4, C_DPCFAMUK11 = 11, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_65_plus_fam_w_kids_10_11_two" = "OBS_VALUE") %>%
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 1, C_DPCFAMUK11 = 12, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_u24_fam_w_kids_12_15_two" = "OBS_VALUE") %>% 
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 2, C_DPCFAMUK11 = 12, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_25_49_fam_w_kids_12_15_two" = "OBS_VALUE") %>% 
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 3, C_DPCFAMUK11 = 12, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_50_64_fam_w_kids_12_15_two" = "OBS_VALUE") %>% 
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 4, C_DPCFAMUK11 = 12, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_65_plus_fam_w_kids_12_15_two" = "OBS_VALUE") %>%
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 1, C_DPCFAMUK11 = 13, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_u24_fam_w_kids_16_18_two" = "OBS_VALUE") %>% 
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 2, C_DPCFAMUK11 = 13, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_25_49_fam_w_kids_16_18_two" = "OBS_VALUE") %>% 
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 3, C_DPCFAMUK11 = 13, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_50_64_fam_w_kids_16_18_two" = "OBS_VALUE") %>% 
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 4, C_DPCFAMUK11 = 13, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_65_plus_fam_w_kids_16_18_two" = "OBS_VALUE") %>%
+    
+    # FRP age band count with two dependent children
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 1, C_DPCFAMUK11 = 14, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_u24_fam_w_kids_0_4_geq_three" = "OBS_VALUE") %>% 
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 2, C_DPCFAMUK11 = 14, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_25_49_fam_w_kids_0_4_geq_three" = "OBS_VALUE") %>% 
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 3, C_DPCFAMUK11 = 14, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_50_64_fam_w_kids_0_4_geq_three" = "OBS_VALUE") %>% 
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 4, C_DPCFAMUK11 = 14, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_65_plus_fam_w_kids_0_4_geq_three" = "OBS_VALUE") %>% 
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 1, C_DPCFAMUK11 = 15, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_u24_fam_w_kids_5_7_geq_three" = "OBS_VALUE") %>% 
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 2, C_DPCFAMUK11 = 15, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_25_49_fam_w_kids_5_7_geq_three" = "OBS_VALUE") %>% 
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 3, C_DPCFAMUK11 = 15, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_50_64_fam_w_kids_5_7_geq_three" = "OBS_VALUE") %>% 
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 4, C_DPCFAMUK11 = 15, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_65_plus_fam_w_kids_5_7_geq_three" = "OBS_VALUE") %>%
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 1, C_DPCFAMUK11 = 16, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_u24_fam_w_kids_8_9_geq_three" = "OBS_VALUE") %>% 
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 2, C_DPCFAMUK11 = 16, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_25_49_fam_w_kids_8_9_geq_three" = "OBS_VALUE") %>% 
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 3, C_DPCFAMUK11 = 16, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_50_64_fam_w_kids_8_9_geq_three" = "OBS_VALUE") %>% 
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 4, C_DPCFAMUK11 = 16, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_65_plus_fam_w_kids_8_9_geq_three" = "OBS_VALUE") %>%
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 1, C_DPCFAMUK11 = 17, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_u24_fam_w_kids_10_11_geq_three" = "OBS_VALUE") %>% 
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 2, C_DPCFAMUK11 = 17, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_25_49_fam_w_kids_10_11_geq_three" = "OBS_VALUE") %>% 
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 3, C_DPCFAMUK11 = 17, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_50_64_fam_w_kids_10_11_geq_three" = "OBS_VALUE") %>% 
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 4, C_DPCFAMUK11 = 17, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_65_plus_fam_w_kids_10_11_geq_three" = "OBS_VALUE") %>%
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 1, C_DPCFAMUK11 = 18, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_u24_fam_w_kids_12_15_geq_three" = "OBS_VALUE") %>% 
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 2, C_DPCFAMUK11 = 18, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_25_49_fam_w_kids_12_15_geq_three" = "OBS_VALUE") %>% 
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 3, C_DPCFAMUK11 = 18, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_50_64_fam_w_kids_12_15_geq_three" = "OBS_VALUE") %>% 
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 4, C_DPCFAMUK11 = 18, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_65_plus_fam_w_kids_12_15_geq_three" = "OBS_VALUE") %>%
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 1, C_DPCFAMUK11 = 19, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_u24_fam_w_kids_16_18_geq_three" = "OBS_VALUE") %>% 
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 2, C_DPCFAMUK11 = 19, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_25_49_fam_w_kids_16_18_geq_three" = "OBS_VALUE") %>% 
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 3, C_DPCFAMUK11 = 19, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_50_64_fam_w_kids_16_18_geq_three" = "OBS_VALUE") %>% 
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 4, C_DPCFAMUK11 = 19, C_FMTFAMUK11 = 0)) %>%
+    rename("frp_65_plus_fam_w_kids_16_18_geq_three" = "OBS_VALUE") %>% 
+    
+    
     left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
                                 select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 0, C_DPCFAMUK11 = 2, C_FMTFAMUK11 = 0)) %>%
-    rename("total_fam_w_kids" = "OBS_VALUE") %>% 
+    rename("total_fam_w_kids_0_4_one" = "OBS_VALUE") %>%
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 0, C_DPCFAMUK11 = 3, C_FMTFAMUK11 = 0)) %>%
+    rename("total_fam_w_kids_5_7_one" = "OBS_VALUE") %>%
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 0, C_DPCFAMUK11 = 4, C_FMTFAMUK11 = 0)) %>%
+    rename("total_fam_w_kids_8_9_one" = "OBS_VALUE") %>% 
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 0, C_DPCFAMUK11 = 5, C_FMTFAMUK11 = 0)) %>%
+    rename("total_fam_w_kids_10_11_one" = "OBS_VALUE") %>%
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 0, C_DPCFAMUK11 = 6, C_FMTFAMUK11 = 0)) %>%
+    rename("total_fam_w_kids_12_15_one" = "OBS_VALUE") %>%
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 0, C_DPCFAMUK11 = 7, C_FMTFAMUK11 = 0)) %>%
+    rename("total_fam_w_kids_16_18_one" = "OBS_VALUE") %>%
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 0, C_DPCFAMUK11 = 8, C_FMTFAMUK11 = 0)) %>%
+    rename("total_fam_w_kids_0_4_two" = "OBS_VALUE") %>%
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 0, C_DPCFAMUK11 = 9, C_FMTFAMUK11 = 0)) %>%
+    rename("total_fam_w_kids_5_7_two" = "OBS_VALUE") %>%
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 0, C_DPCFAMUK11 = 10, C_FMTFAMUK11 = 0)) %>%
+    rename("total_fam_w_kids_8_9_two" = "OBS_VALUE") %>% 
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 0, C_DPCFAMUK11 = 11, C_FMTFAMUK11 = 0)) %>%
+    rename("total_fam_w_kids_10_11_two" = "OBS_VALUE") %>%
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 0, C_DPCFAMUK11 = 12, C_FMTFAMUK11 = 0)) %>%
+    rename("total_fam_w_kids_12_15_two" = "OBS_VALUE") %>%
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 0, C_DPCFAMUK11 = 13, C_FMTFAMUK11 = 0)) %>%
+    rename("total_fam_w_kids_16_18_geq_three" = "OBS_VALUE") %>%
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 0, C_DPCFAMUK11 = 14, C_FMTFAMUK11 = 0)) %>%
+    rename("total_fam_w_kids_0_4_geq_three" = "OBS_VALUE") %>%
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 0, C_DPCFAMUK11 = 15, C_FMTFAMUK11 = 0)) %>%
+    rename("total_fam_w_kids_5_7_geq_three" = "OBS_VALUE") %>%
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 0, C_DPCFAMUK11 = 16, C_FMTFAMUK11 = 0)) %>%
+    rename("total_fam_w_kids_8_9_geq_three" = "OBS_VALUE") %>% 
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 0, C_DPCFAMUK11 = 17, C_FMTFAMUK11 = 0)) %>%
+    rename("total_fam_w_kids_10_11_geq_three" = "OBS_VALUE") %>%
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 0, C_DPCFAMUK11 = 18, C_FMTFAMUK11 = 0)) %>%
+    rename("total_fam_w_kids_12_15_geq_three" = "OBS_VALUE") %>%
+    left_join(., nomis_get_data(id = "NM_854_1", time = "latest", geography = geography_type_code, measures = 20100,
+                                select = c("geography_code", "OBS_VALUE"), AGE_FRPPUK11 = 0, C_DPCFAMUK11 = 19, C_FMTFAMUK11 = 0)) %>%
+    rename("total_fam_w_kids_16_18_geq_three" = "OBS_VALUE") %>%
     mutate(across(.cols = frp_u24_fam_w_kids:frp_65_plus_fam_w_kids, .fns = ~. / total_fam_w_kids, .names = "{.col}_prop"),
            frp_u49_fam_w_kids_prop = frp_u24_fam_w_kids_prop + frp_25_49_fam_w_kids_prop,
            frp_50_plus_fam_w_kids_prop =  frp_50_64_fam_w_kids_prop + frp_65_plus_fam_w_kids_prop, 
