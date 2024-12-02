@@ -29,6 +29,7 @@ jupyter: lead_map
 - Output Areas (OAs) are the smallest geographic units within local authority districts used for detailed data reporting.
 - OA adjustments in the 2021 census include merging or splitting 2011 OAs to maintain these thresholds, except in cases like large prisons
 - Around 200 OA boundaries were selectively realined to align with ward boundaries.
+- Each OA includes 40-250 households or 100-625 people.
 - Leeds contains a total of 2,543 OAs.
 
 ## Introduction to LSOAs
@@ -95,6 +96,40 @@ color_continuous_scale="Viridis")
 fig.show()
 ```
 
+- Kids are defined as being between 6 months to 72 months of age.
+
+# Risk factors: Deprivation
+
+## Why Deprivation
+
+- The IMD summarises income, employment, educational skills, health, housing, crime and living environment conditions to form a measure of area-level deprivation in the UK.
+- The IMD data is collected at the LSOA level.
+- Aizer (2017), Brulle & Pellow (2006), Bullard (1994) find that more deprived families face greater lead exposure risks, with fewer resources for renovations or relocation.
+- Childhood lead exposure is linked to criminal behaviour and aggression.
+
+## Index of Multiple Deprivation Data {#IMD_index}
+
+By using the UK Index of Multiple Deprivation 2015 data, we capture factors linked to lead exposures providing a basis for predicting high-risk areas.
+
+The variables we use are:
+
+- [Overall IMD deprivation score](#IMD_overall)
+- [IMD income score](#IMD_income)
+- [IMD health disability score](#IMD_health)
+- [IMD barriers to housing and services score](#IMD_housing)
+
+## Calculation of IMD overall score {#IMD_overall}
+The IMD overall score combines information from the seven domains to produce an overall relative measure of deprivation:
+
+| **IMD Domain**                           | **Weight (%)** |
+|-----------------------------------------|----------------|
+| Income score                            | 22.5           |
+| Employment deprivation                  | 22.5           |
+| Education, skills and training          | 13.5           |
+| Health deprivation and disability       | 13.5           |
+| Crime                                   | 9.3            |
+| Barriers to housing and services        | 9.3            |
+| Living environment deprivation          | 9.3            |
 
 # Risk factors: Housing
 
@@ -194,116 +229,6 @@ plot_chloropleth("unemployed_16to74_ppl_prop_2011", merged, "Leeds", color_conti
 fig.show()
 ```
 
-# Risk factors: Deprivation
-
-## Why Deprivation
-
-- The IMD explores income, employment, educational skills, health, housing, crime and living environment conditions to form a measure of area-level deprivation in the UK.
-- The IMD data is collected at the LSOA level.
-- Aizer (2017), Brulle & Pellow (2006), Bullard (1994) find that more deprived families face greater lead exposure risks, with fewer resources for renovations or relocation.
-- Childhood lead exposure is linked to criminal behaviour and aggression.
-
-## Index of Multiple Deprivation Data
-
-By using the UK Index of Multiple Deprivation 2015 data, we capture factors linked to lead exposures providing a basis for predicting high-risk areas.
-
-The variables we use are:
-
-- Overall IMD deprivation score
-- IMD income score
-- IMD health disability score
-- IMD barriers to housing and services score
-
-## Calculation of IMD Income Score {.smaller}
-
-- Out-of-work adults and children in families claiming specific benefits.
-- Working individuals with low earnings satisfying means-tested criteria.
-
-Key indicators include adults and children receiving:
-
-1. Income Support
-2. Income based job seeker's allowance
-3. Income based employment and support allowance
-4. Pension Credit 
-
-This score is calculated by finding the total people satisfying these indicators as a proportion of the LSOA population.
-
-## IMD health disability score
-- Measures the risk of premature death and impairment of quality of life due to poor physical or mental health.
-- Does not include behavior or environmental factors predictive of future health deprivation.
-
-Indicators include:
-
-1. Years of potential life lost
-2. Comparative illness and disability ratio
-3. Acute morbidity
-4. Mood and anxiety disorders
-
-## IMD health disability score [I]
-
-1. **Years of potential life lost**: Age standardised measure of premature death. Based on 2013–2017 mortality data, weights unexpected deaths more heavily for younger individuals, using age-sex population estimates (excluding prisoners) to calculate impact.
-2. **Comparative illness and disability ratio**: Age and sex-standardised morbidity/disability ratio based on those receiving benefits due to inability to work from ill health. This indicator is based on March 2016 data from the Department of Work and Pensions, compares actual versus expected benefit recipients. Uses age-sex standardised rate and excluding prisoners to adjust for population structure.
-
-## IMD health disability score [II]
-
-3. **Acute morbidity**: Measures the level of emergency admissions to hospital based on administrative records of in-patient admissions.
-
-- This indicator is based on 2015/16–2016/17 emergency hospital admissions lasting over one day and uses age-sex standardised rates with 2016–2017 population estimates while excluding prisoners.
-
-## IMD health disability score [III]
-
-4. **Mood and anxiety Disorders**: A composite measure derived from:
-  - Prescribing data (from NHS Business Services Authority)
-  - Hospital episode data (from Hospital Episode Statistics 2015/16-2016/17)
-  - Suicide mortality data (from the ONS)
-
-**Indicator weights for mood and anxiety disorders**
-
-| **Indicator**                            | **Indicator Weight** |
-|------------------------------------------|-----------------------|
-| Prescribing data                         | 0.415                 |
-| Hospital episode data                    | 0.381                 |
-| Suicide mortality data                   | 0.205                 |
-
-
-## Health disability score calculation
-
-- The indicators within the domain were standardised by ranking and transforming to a normal distribution.
-- Factor analysis was used to generate the weights to combine the indicators into the final domain score:
-
-| **Indicator**                            | **Indicator Weight** |
-|------------------------------------------|-----------------------|
-| Years of potential life lost             | 0.271                 |
-| Comparative illness and disability ratio | 0.300                 |
-| Acute morbidity                          | 0.256                 |
-| Mood and anxiety disorders               | 0.172                 |
-
-
-## IMD barriers to housing and services score indicators
-- Measures the physical and financial accessibility of housing and local services by considering geographical and wider barriers.
-- Geographical indicators: mean road distance to the closest post office, primary school, supermarket or general store and GP surgery.
-- Wider barrier indicator: LSOA proportion of household overcrowding,  homelessness measured by LAD rate of acceptances for housing assistance and housing affordability.
-
-## IMD barriers to housing and services score calculation
-
-- The indicators within each sub-domains are standardised by ranking
-and transforming to a normal distribution.
-- They are then combined using equal weights.
-- The subdomains were then standardised by ranking and transforming to an exponential distribution and combined with equal weights to create the overall domain score. 
-
-## Calculation of IMD overall score
-The IMD overall score combines information from the seven domains to produce an overall relative measure of deprivation:
-
-| **IMD Domain**                           | **Weight (%)** |
-|-----------------------------------------|----------------|
-| Income score                            | 22.5           |
-| Employment deprivation                  | 22.5           |
-| Education, skills and training          | 13.5           |
-| Health deprivation and disability       | 13.5           |
-| Crime                                   | 9.3            |
-| Barriers to housing and services        | 9.3            |
-| Living environment deprivation          | 9.3            |
-
 # Risk factors: Income and poverty
 
 ## Income data
@@ -358,7 +283,7 @@ fig.show()
 
 # Risk factors: Education
 
-## Location of uneducated parents
+## Location of parents with no qualifications
 
 ```{python}
 #| label: uneducated-location
@@ -499,3 +424,114 @@ fig.show()
 
 - Overall in the UK, Leeds has a (kid-count weighted) average risk score of ``{python} leeds_risk_score_mean``.
 
+# Appendix
+
+## Calculation of IMD Income Score {#IMD_income}
+
+- Out-of-work adults and children in families claiming specific benefits.
+- Working individuals with low earnings satisfying means-tested criteria.
+
+Key indicators include adults and children receiving:
+
+1. Income Support
+2. Income based job seeker's allowance
+3. Income based employment and support allowance
+4. Pension Credit 
+
+This score is calculated by finding the total people satisfying these indicators as a proportion of the LSOA population.
+
+<div class="footer">
+  <a href="#IMD_index">Return to IMD Index</a>
+</div>
+
+
+## IMD health disability score {#IMD_health}
+- Measures the risk of premature death and impairment of quality of life due to poor physical or mental health.
+- Does not include behavior or environmental factors predictive of future health deprivation.
+
+Indicators include:
+
+1. Years of potential life lost
+2. Comparative illness and disability ratio
+3. Acute morbidity
+4. Mood and anxiety disorders
+
+<div class="footer">
+  <a href="#IMD_index">Return to IMD Index</a>
+</div>
+
+## IMD health disability score [I]
+
+1. **Years of potential life lost**: Age standardised measure of premature death. Based on 2013–2017 mortality data, weights unexpected deaths more heavily for younger individuals, using age-sex population estimates (excluding prisoners) to calculate impact.
+2. **Comparative illness and disability ratio**: Age and sex-standardised morbidity/disability ratio based on those receiving benefits due to inability to work from ill health. This indicator is based on March 2016 data from the Department of Work and Pensions, compares actual versus expected benefit recipients. Uses age-sex standardised rate and excluding prisoners to adjust for population structure.
+
+<div class="footer">
+  <a href="#IMD_index">Return to IMD Index</a>
+</div>
+
+## IMD health disability score [II]
+
+3. **Acute morbidity**: Measures the level of emergency admissions to hospital based on administrative records of in-patient admissions.
+
+- This indicator is based on 2015/16–2016/17 emergency hospital admissions lasting over one day and uses age-sex standardised rates with 2016–2017 population estimates while excluding prisoners.
+
+<div class="footer">
+  <a href="#IMD_index">Return to IMD Index</a>
+</div>
+
+## IMD health disability score [III]
+
+4. **Mood and anxiety Disorders**: A composite measure derived from:
+  - Prescribing data (from NHS Business Services Authority)
+  - Hospital episode data (from Hospital Episode Statistics 2015/16-2016/17)
+  - Suicide mortality data (from the ONS)
+
+**Indicator weights for mood and anxiety disorders**
+
+| **Indicator**                            | **Indicator Weight** |
+|------------------------------------------|-----------------------|
+| Prescribing data                         | 0.415                 |
+| Hospital episode data                    | 0.381                 |
+| Suicide mortality data                   | 0.205                 |
+
+
+<div class="footer">
+  <a href="#IMD_index">Return to IMD Index</a>
+</div>
+
+## Health disability score calculation
+
+- The indicators within the domain were standardised by ranking and transforming to a normal distribution.
+- Factor analysis was used to generate the weights to combine the indicators into the final domain score:
+
+| **Indicator**                            | **Indicator Weight** |
+|------------------------------------------|-----------------------|
+| Years of potential life lost             | 0.271                 |
+| Comparative illness and disability ratio | 0.300                 |
+| Acute morbidity                          | 0.256                 |
+| Mood and anxiety disorders               | 0.172                 |
+
+
+<div class="footer">
+  <a href="#IMD_index">Return to IMD Index</a>
+</div>
+
+## IMD barriers to housing and services score indicators {#IMD_housing}
+- Measures the physical and financial accessibility of housing and local services by considering geographical and wider barriers.
+- Geographical indicators: mean road distance to the closest post office, primary school, supermarket or general store and GP surgery.
+- Wider barrier indicator: LSOA proportion of household overcrowding,  homelessness measured by LAD rate of acceptances for housing assistance and housing affordability.
+
+<div class="footer">
+  <a href="#IMD_index">Return to IMD Index</a>
+</div>
+
+## IMD barriers to housing and services score calculation
+
+- The indicators within each sub-domains are standardised by ranking
+and transforming to a normal distribution.
+- They are then combined using equal weights.
+- The subdomains were then standardised by ranking and transforming to an exponential distribution and combined with equal weights to create the overall domain score. 
+
+<div class="footer">
+  <a href="#IMD_index">Return to IMD Index</a>
+</div>
