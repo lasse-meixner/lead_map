@@ -22,13 +22,16 @@ fancy_names = {
 }
 
 # plot function that shows geospatial distribution of predictor across leeds
-def plot_chloropleth(variable, df, location = "Leeds",**kwargs):
+def plot_chloropleth(variable, df, location = "Leeds", **kwargs):
     # filter for leeds
     leeds = df.loc[df["msoa_name_x"].str.contains(location)]
 
+    # hover data default
+    hover_data = kwargs.pop("hover_data", ["msoa_name_x", variable])
+
     fig = px.choropleth_mapbox(
         leeds,
-        hover_data=["msoa_name_x", variable],
+        hover_data=hover_data,
         geojson=leeds.geometry,
         locations=leeds.index,
         # center on England
@@ -179,7 +182,7 @@ def plot_heatmap(variables, df, location="Leeds"):
         z=corr_matrix,
         x=[fancy_names.get(v, v) for v in variables],
         y=[fancy_names.get(v, v) for v in variables],
-        colorscale='rdbu_r',
+        colorscale='rdbu',
         zmin=-1,
         zmax=1,
         showscale=True
