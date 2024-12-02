@@ -353,7 +353,7 @@ We then use this 500m grid to compute two measures:
 #| label: soil-lead-comparison
 #| echo: false
 merged_no_soil_na = merged.dropna(subset=["soil_lead_mean"])
-fig = plot_histograms("idw_soil_lead_mean", merged_no_soil_na, location="Leeds", other_location="UK", n_bins=40)
+fig = plot_histograms("soil_lead_mean_idw", merged_no_soil_na, location="Leeds", other_location="UK", n_bins=40)
 fig.update_layout(
   title="Soil lead concentration in Leeds vs UK",
   # change x label
@@ -412,8 +412,8 @@ We have more data, at a more granular level.
 ```{python}
 #| label: risk-map
 #| echo: false
-
-fig = plot_risk_score(risk_factors, merged, "Leeds")
+risk_factors_dict = dict(zip(risk_factors, [1, 1, 1, -1, 1]))
+fig = plot_risk_score(risk_factors_dict, merged, "Leeds")
 fig.update_layout(title="Risk map for Leeds")
 fig.show()
 ```
@@ -426,19 +426,11 @@ The MSOAs with the highest risk scores are located in the **north/north-eastern 
 #| label: risk-comparison
 #| echo: false
 
-merged_w_risk = compute_risk_score(merged, risk_factors)
+merged_w_risk = compute_risk_score(merged, risk_factors_dict)
 
-# get leeds with UK-wide risk score
-leeds_w_uk_based_risk = merged_w_risk.loc[merged_w_risk["msoa_name_x"].str.contains("Leeds")]
-# compute population weighted average risk score of leeds
-leeds_risk_score_mean = round((leeds_w_uk_based_risk["risk_score"] * leeds["total_kids_2011"]).sum() / leeds["total_kids_2011"].sum(), 1)
-
-fig = plot_histograms("risk_score", merged_w_risk, "Leeds", other_location="Oxford", n_bins=10)
-fig.update_layout(title="Risk score in Leeds vs Oxford")
+fig = plot_UK_risk_comparison(merged_w_risk, locations = ["Leeds", "Nottingham", "Oxford", "Cambridge", "Manchester", "Chelsea", "Southampton"])
 fig.show()
 ```
-
-- Overall in the UK, Leeds has a (kid-count weighted) average risk score of `{python} leeds_risk_score_mean`.
 
 # Appendix
 

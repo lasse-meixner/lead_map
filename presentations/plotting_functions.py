@@ -250,16 +250,86 @@ def plot_risk_score(predictors, df, location = "Leeds"):
     fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
     return fig
 
+
 ## auxiliary function to compute risk score
-def compute_risk_score(df, predictors):
-    relevant_vars = predictors + ["msoa_name_x", "geometry"]
+def compute_risk_score(df, predictors = {"imd_overall_score_2015":1, "bp_pre_1954_prop": 1, "house_price_mean_median_2017to2021": -1, "soil_lead_mean":1}):
+    predictors_list = list(predictors.keys())
+    relevant_vars = predictors_list + ["msoa_name_x", "geometry", "total_kids_2011"]
     # get copy of df
     df_copy = df.copy().loc[:, relevant_vars]
     # compute empirical quantiles by passing through ECDF
-    for p in predictors:
+    for p in predictors_list:
         df_copy[p + "_pctile"] = df_copy[p].rank(pct=True)
+        if predictors[p] == -1:
+            df_copy[p + "_pctile"] = 1 - df_copy[p + "_pctile"]
     # compute risk score by taking equal weighting
-    df_copy["risk_score"] = df_copy[[p + "_pctile" for p in predictors]].mean(axis=1)
+    df_copy["risk_score"] = df_copy[[p + "_pctile" for p in predictors_list]].mean(axis=1)
     # pass through its own ECDF again
     df_copy["risk_score"] = df_copy["risk_score"].rank(pct=True)
     return df_copy
+
+
+def plot_UK_risk_comparison(data_w_risk_score, locations = ["Leeds", "Manchester", "Liverpool", "Oxford","Cambridge"]):
+    # for each location, compute weighted average risk score weighted by "total_kids_2011"
+    locations_risk = {}
+    for location in locations:
+        # compute and add aggregate
+        l = data_w_risk_score.loc[data_w_risk_score["msoa_name_x"].str.contains(location)]
+        locations_risk[location] = round((l["risk_score"] * l["total_kids_2011"]).sum() / l["total_kids_2011"].sum(), 2)
+
+    # set all dots to blue except "Leeds" is orange
+    colors = ["blue"] * len(locations)
+    colors[locations.index("Leeds")] = "orange"
+    
+    # create figure
+    fig = go.Figure()
+
+    # add line with arrow cap on y = 1 on [0,1]
+    fig.add_annotation(
+        x=1,  # End point of the arrow
+        y=1,  # End point of the arrow
+        ax=0,  # Start point of the arrow
+        ay=1,  # Start point of the arrow
+        xref="x",
+        yref="y",
+        axref="x",
+        ayref="y",
+        arrowhead=2,  # Arrowhead style
+        arrowsize=1.5,  # Arrow size
+        arrowwidth=2,  # Arrow width
+        arrowcolor="grey",  # Arrow color
+        opacity=0.5  # Arrow opacity
+    )
+
+    # plot as dots along a horizontal line
+    fig.add_trace(go.Scatter(
+        x=list(locations_risk.values()), 
+        y=np.ones(len(locations_risk)), 
+        mode='markers', 
+        marker=dict(size=20, color=colors), 
+        text=list(locations_risk.keys()))
+    )
+    
+    # add annotation for each dot
+    for location in locations_risk:
+        fig.add_annotation(
+            x=locations_risk[location],
+            y=1,
+            xref="x",
+            yref="y",
+            text=location,
+            showarrow=True,
+            font=dict(size=16)
+        )
+
+    # update layout
+    fig.update_layout(
+        title="Aggregate Risk Score Comparison",
+        xaxis_title="weighted average risk score across MSOAs in each LAD (weighed by nr. of children)",
+        plot_bgcolor='white',
+        paper_bgcolor='white',
+        # hide y axis
+        yaxis=dict(showticklabels=False, showline=False, showgrid=False),
+        showlegend=False
+    )
+    return fig
