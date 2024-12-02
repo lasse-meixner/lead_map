@@ -9,10 +9,12 @@ format:
     slideNumber: true
     auto: true
     scrollable: true
+    embed-resources: true
+    self-contained-math: true
 execute:
   enabled: true
   echo: true
-  cache: true
+  cache: false
 jupyter: lead_map
 ---
 
@@ -131,6 +133,13 @@ The IMD overall score combines information from the seven domains to produce an 
 | Barriers to housing and services        | 9.3            |
 | Living environment deprivation          | 9.3            |
 
+## IMD overall score by MSOA
+
+```{python}
+fig = plot_chloropleth("imd_overall_score_2015", merged, "Leeds", color_continuous_scale="rdylbu_r")
+fig.show()
+```
+
 # Risk factors: Housing
 
 ## Why housing
@@ -242,7 +251,7 @@ fig.show()
 #| label: high-income-location
 #| echo: false
 
-fig = plot_chloropleth("median_annual_incomeE", merged, "Leeds", color_continuous_scale="Viridis")
+fig = plot_chloropleth("median_annual_incomeE", merged, "Leeds", color_continuous_scale="rdylbu_r")
 fig.show()
 ```
 - The northern outskirts are richer than the center
@@ -267,7 +276,7 @@ uk_poverty_cum_20 = round((merged["poverty_rateE"] > 30).sum() / len(merged),1)
 fig = plot_histograms("poverty_rateE", merged, "Leeds", n_bins=30)
 fig.show()
 ```
-- Poverty rates in Leeds have a heavier tail than the UK, with ``{python} leeds_poverty_cum_20`` of MSOAs having more than 20% poverty, compared to ``{python} uk_poverty_cum_20`` in the UK.
+- Poverty rates in Leeds have a heavier tail than the UK, with `{python} leeds_poverty_cum_20` of MSOAs having more than 20% poverty, compared to `{python} uk_poverty_cum_20` in the UK.
 
 ## Location of poverty
 
@@ -422,7 +431,7 @@ fig.update_layout(title="Risk score in Leeds vs Oxford")
 fig.show()
 ```
 
-- Overall in the UK, Leeds has a (kid-count weighted) average risk score of ``{python} leeds_risk_score_mean``.
+- Overall in the UK, Leeds has a (kid-count weighted) average risk score of `{python} leeds_risk_score_mean`.
 
 # Appendix
 
