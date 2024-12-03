@@ -65,10 +65,14 @@ We believe that a combination of them can give a good indication of lead exposur
 #| echo: false
 #| cache: false
 
+# imports
 from plotting_functions import *
 import sys
 sys.path.append('../UK/predictors/exploration')
 from shapefile_loading import get_msoa_merged_shapefile
+
+# GLOBAL vars
+cities = ["Bristol", "Birmingham","Liverpool", "Leeds", "Nottingham", "Oxford", "Cambridge", "Manchester", "Chelsea", "Southampton", "Warwick"]
 ```
 
 ```{python}
@@ -140,6 +144,16 @@ The IMD overall score combines information from the seven domains to produce an 
 #| echo: false
 
 fig = plot_chloropleth("imd_overall_score_2015", merged, "Leeds", color_continuous_scale="rdylbu_r")
+fig.show()
+```
+
+## Average IMD of different cities
+
+```{python}
+#| label: imd-comparison
+#| echo: false
+
+fig = plot_UK_aggregate_comparison(merged, outcome_var = "imd_overall_score_2015", locations = cities)
 fig.show()
 ```
 
@@ -232,7 +246,7 @@ fig.show()
 - Residents may have fewer housing options and are likelier to live in older, potentially lead-contaminated buildings.
 
 ## Unemployment rate
-<!-- todo: fix the bug where always house prices are shown...? -->
+
 ```{python}
 #| label: unemployment-map
 #| echo: false
@@ -268,7 +282,7 @@ fig.show()
 ## Poverty rate by MSOA
 
 ```{python}
-#| label: poverty-comparison
+#| label: poverty-leeds-vs-uk-distribution
 #| cache: false
 #| echo: false
 
@@ -292,6 +306,17 @@ fig.show()
 ```
 
 - Poverty rates are highest towards the center
+
+## Poverty rate in different cities
+
+```{python}
+#| label: poverty-comparison
+#| echo: false
+
+fig = plot_UK_aggregate_comparison(merged, outcome_var = "poverty_rateE", locations = cities)
+fig.show()
+```
+
 
 # Risk factors: Education
 
@@ -353,7 +378,7 @@ We then use this 500m grid to compute two measures:
 ## Soil lead comparison by MSOAs
 
 ```{python}
-#| label: soil-lead-comparison
+#| label: soil-lead-distribution
 #| echo: false
 merged_no_soil_na = merged.dropna(subset=["soil_lead_mean"])
 fig = plot_histograms("soil_lead_mean_idw", merged_no_soil_na, location="Leeds", other_location="UK", n_bins=40)
@@ -368,6 +393,16 @@ fig.show()
 ```
 
 - compared to the overall UK distribution, Leeds has higher soil lead concentrations
+ 
+## Soil lead in different cities
+
+```{python}
+#| label: soil-lead-comparison
+#| echo: false
+
+fig = plot_UK_aggregate_comparison(merged, outcome_var = "soil_lead_mean", locations = cities)
+fig.show()
+```
 
 # Variable dependence
 
@@ -431,7 +466,7 @@ The MSOAs with the highest risk scores are located in the **north/north-eastern 
 
 merged_w_risk = compute_risk_score(merged, risk_factors_dict)
 
-fig = plot_UK_risk_comparison(merged_w_risk, locations = ["Leeds", "Nottingham", "Oxford", "Cambridge", "Manchester", "Chelsea", "Southampton"])
+fig = plot_UK_aggregate_comparison(merged_w_risk, outcome_var = "risk_score", locations = cities)
 fig.show()
 ```
 

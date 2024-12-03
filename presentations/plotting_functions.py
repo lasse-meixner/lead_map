@@ -18,7 +18,8 @@ fancy_names = {
   "poverty_rateE": "Poverty rate",
   "black_ppl_prop_2011": "% black people (2011)",
   "no_qual_ppl_w_kids_prop_2011": "% unqualified people (2011)",
-  "soil_lead_mean": "Soil lead"
+  "soil_lead_mean": "Soil lead",
+  "risk_score": "Risk Score"
 }
 
 # plot function that shows geospatial distribution of predictor across leeds
@@ -269,13 +270,16 @@ def compute_risk_score(df, predictors = {"imd_overall_score_2015":1, "bp_pre_195
     return df_copy
 
 
-def plot_UK_risk_comparison(data_w_risk_score, locations = ["Leeds", "Manchester", "Liverpool", "Oxford","Cambridge"]):
+def plot_UK_aggregate_comparison(data_w_outcome, outcome_var, locations = ["Leeds", "Manchester", "Liverpool", "Oxford","Cambridge"]):
     # for each location, compute weighted average risk score weighted by "total_kids_2011"
-    locations_risk = {}
+    results = pd.DataFrame()
+
     for location in locations:
         # compute and add aggregate
-        l = data_w_risk_score.loc[data_w_risk_score["msoa_name_x"].str.contains(location)]
-        locations_risk[location] = round((l["risk_score"] * l["total_kids_2011"]).sum() / l["total_kids_2011"].sum(), 2)
+        l = data_w_outcome.loc[data_w_outcome["msoa_name_x"].str.contains(location)]
+        weighted_avg = round((l[outcome_var] * l["total_kids_2011"]).sum() / l["total_kids_2011"].sum(), 2)
+        results = results.append({"location": location, "weighted_avg": weighted_avg, "nr_msoas": len(l)}, ignore_index=True)
+        
 
     # set all dots to blue except "Leeds" is orange
     colors = ["blue"] * len(locations)
@@ -286,7 +290,7 @@ def plot_UK_risk_comparison(data_w_risk_score, locations = ["Leeds", "Manchester
 
     # add line with arrow cap on y = 1 on [0,1]
     fig.add_annotation(
-        x=1,  # End point of the arrow
+        x=max(results["weighted_avg"]) + 0.1*(max(results["weighted_avg"]) - min(results["weighted_avg"])),  # End point of the arrow
         y=1,  # End point of the arrow
         ax=0,  # Start point of the arrow
         ay=1,  # Start point of the arrow
@@ -303,21 +307,23 @@ def plot_UK_risk_comparison(data_w_risk_score, locations = ["Leeds", "Manchester
 
     # plot as dots along a horizontal line
     fig.add_trace(go.Scatter(
-        x=list(locations_risk.values()), 
-        y=np.ones(len(locations_risk)), 
+        x=results["weighted_avg"],
+        y=np.ones(len(results)), 
         mode='markers', 
         marker=dict(size=20, color=colors), 
-        text=list(locations_risk.keys()))
-    )
+        text=results["location"],
+        customdata=results[["weighted_avg", "nr_msoas"]],
+        hovertemplate="<b>%{text}</b><br>Weighted Avg: %{customdata[0]}<br>MSOAs: %{customdata[1]}<extra></extra>"
+    ))
     
     # add annotation for each dot
-    for location in locations_risk:
+    for i, row in results.iterrows():
         fig.add_annotation(
-            x=locations_risk[location],
+            x=row["weighted_avg"],
             y=1,
             xref="x",
             yref="y",
-            text=location,
+            text=row["location"],
             showarrow=True,
             xanchor="right",
             font=dict(size=16),
@@ -326,8 +332,8 @@ def plot_UK_risk_comparison(data_w_risk_score, locations = ["Leeds", "Manchester
 
     # update layout
     fig.update_layout(
-        title="Aggregate Risk Score Comparison",
-        xaxis_title="weighted average risk score across MSOAs in each LAD (weighed by nr. of children)",
+        title=f"Aggregate {fancy_names.get(outcome_var, outcome_var)} comparison",
+        xaxis_title=f"weighted average {fancy_names.get(outcome_var, outcome_var)} across MSOAs in each LAD (weighed by nr. of children)",
         plot_bgcolor='white',
         paper_bgcolor='white',
         # hide y axis
