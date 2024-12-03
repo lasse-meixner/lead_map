@@ -136,6 +136,9 @@ The IMD overall score combines information from the seven domains to produce an 
 ## IMD overall score by MSOA
 
 ```{python}
+#| label: imd-overall-location
+#| echo: false
+
 fig = plot_chloropleth("imd_overall_score_2015", merged, "Leeds", color_continuous_scale="rdylbu_r")
 fig.show()
 ```

@@ -319,7 +319,9 @@ def plot_UK_risk_comparison(data_w_risk_score, locations = ["Leeds", "Manchester
             yref="y",
             text=location,
             showarrow=True,
-            font=dict(size=16)
+            xanchor="right",
+            font=dict(size=16),
+            textangle=70  # Rotate text
         )
 
     # update layout
