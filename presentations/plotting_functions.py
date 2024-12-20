@@ -18,17 +18,21 @@ fancy_names = {
   "poverty_rateE": "Poverty rate",
   "black_ppl_prop_2011": "% black people (2011)",
   "no_qual_ppl_w_kids_prop_2011": "% unqualified people (2011)",
-  "soil_lead_mean": "Soil lead"
+  "soil_lead_mean": "Soil lead",
+  "risk_score": "Risk Score"
 }
 
 # plot function that shows geospatial distribution of predictor across leeds
-def plot_chloropleth(variable, df, location = "Leeds",**kwargs):
+def plot_chloropleth(variable, df, location = "Leeds", **kwargs):
     # filter for leeds
     leeds = df.loc[df["msoa_name_x"].str.contains(location)]
 
+    # hover data default
+    hover_data = kwargs.pop("hover_data", ["msoa_name_x", variable])
+
     fig = px.choropleth_mapbox(
         leeds,
-        hover_data=["msoa_name_x", variable],
+        hover_data=hover_data,
         geojson=leeds.geometry,
         locations=leeds.index,
         # center on England
@@ -179,7 +183,7 @@ def plot_heatmap(variables, df, location="Leeds"):
         z=corr_matrix,
         x=[fancy_names.get(v, v) for v in variables],
         y=[fancy_names.get(v, v) for v in variables],
-        colorscale='rdbu_r',
+        colorscale='rdbu',
         zmin=-1,
         zmax=1,
         showscale=True
@@ -247,16 +251,93 @@ def plot_risk_score(predictors, df, location = "Leeds"):
     fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
     return fig
 
+
 ## auxiliary function to compute risk score
-def compute_risk_score(df, predictors):
-    relevant_vars = predictors + ["msoa_name_x", "geometry"]
+def compute_risk_score(df, predictors = {"imd_overall_score_2015":1, "bp_pre_1954_prop": 1, "house_price_mean_median_2017to2021": -1, "soil_lead_mean":1}):
+    predictors_list = list(predictors.keys())
+    relevant_vars = predictors_list + ["msoa_name_x", "geometry", "total_kids_2011"]
     # get copy of df
     df_copy = df.copy().loc[:, relevant_vars]
     # compute empirical quantiles by passing through ECDF
-    for p in predictors:
+    for p in predictors_list:
         df_copy[p + "_pctile"] = df_copy[p].rank(pct=True)
+        if predictors[p] == -1:
+            df_copy[p + "_pctile"] = 1 - df_copy[p + "_pctile"]
     # compute risk score by taking equal weighting
-    df_copy["risk_score"] = df_copy[[p + "_pctile" for p in predictors]].mean(axis=1)
+    df_copy["risk_score"] = df_copy[[p + "_pctile" for p in predictors_list]].mean(axis=1)
     # pass through its own ECDF again
     df_copy["risk_score"] = df_copy["risk_score"].rank(pct=True)
     return df_copy
+
+
+def plot_UK_aggregate_comparison(data_w_outcome, outcome_var, locations = ["Leeds", "Manchester", "Liverpool", "Oxford","Cambridge"]):
+    # for each location, compute weighted average risk score weighted by "total_kids_2011"
+    results = pd.DataFrame()
+
+    for location in locations:
+        # compute and add aggregate
+        l = data_w_outcome.loc[data_w_outcome["msoa_name_x"].str.contains(location)]
+        weighted_avg = round((l[outcome_var] * l["total_kids_2011"]).sum() / l["total_kids_2011"].sum(), 2)
+        results = results.append({"location": location, "weighted_avg": weighted_avg, "nr_msoas": len(l)}, ignore_index=True)
+        
+
+    # set all dots to blue except "Leeds" is orange
+    colors = ["blue"] * len(locations)
+    colors[locations.index("Leeds")] = "orange"
+    
+    # create figure
+    fig = go.Figure()
+
+    # add line with arrow cap on y = 1 on [0,1]
+    fig.add_annotation(
+        x=max(results["weighted_avg"]) + 0.1*(max(results["weighted_avg"]) - min(results["weighted_avg"])),  # End point of the arrow
+        y=1,  # End point of the arrow
+        ax=0,  # Start point of the arrow
+        ay=1,  # Start point of the arrow
+        xref="x",
+        yref="y",
+        axref="x",
+        ayref="y",
+        arrowhead=2,  # Arrowhead style
+        arrowsize=1.5,  # Arrow size
+        arrowwidth=2,  # Arrow width
+        arrowcolor="grey",  # Arrow color
+        opacity=0.5  # Arrow opacity
+    )
+
+    # plot as dots along a horizontal line
+    fig.add_trace(go.Scatter(
+        x=results["weighted_avg"],
+        y=np.ones(len(results)), 
+        mode='markers', 
+        marker=dict(size=20, color=colors), 
+        text=results["location"],
+        customdata=results[["weighted_avg", "nr_msoas"]],
+        hovertemplate="<b>%{text}</b><br>Weighted Avg: %{customdata[0]}<br>MSOAs: %{customdata[1]}<extra></extra>"
+    ))
+    
+    # add annotation for each dot
+    for i, row in results.iterrows():
+        fig.add_annotation(
+            x=row["weighted_avg"],
+            y=1,
+            xref="x",
+            yref="y",
+            text=row["location"],
+            showarrow=True,
+            xanchor="right",
+            font=dict(size=16),
+            textangle=70  # Rotate text
+        )
+
+    # update layout
+    fig.update_layout(
+        title=f"Aggregate {fancy_names.get(outcome_var, outcome_var)} comparison",
+        xaxis_title=f"weighted average {fancy_names.get(outcome_var, outcome_var)} across MSOAs in each LAD (weighed by nr. of children)",
+        plot_bgcolor='white',
+        paper_bgcolor='white',
+        # hide y axis
+        yaxis=dict(showticklabels=False, showline=False, showgrid=False),
+        showlegend=False
+    )
+    return fig
